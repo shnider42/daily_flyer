@@ -1,6 +1,6 @@
 # Farwake: Lost Expeditions
 
-## Nightglass · 0.3.0
+## Nightglass · 0.3.1
 
 A standalone, scene-by-scene first-person mystery for DailyFlyer, set in the existing Farwake universe. The first case adapts the Nightglass listening-shaft incident on Luna. Future anthology destinations remain unimplemented.
 
@@ -10,7 +10,7 @@ You are a recovery operator investigating an earlier expedition. Retrieve its fi
 
 `index.html` is the player entry point. Eight distinct illustrated views cover the approach, airlock, junction, survey room, service bay, listening shaft, lower landing, and surface beacon. The lower landing and beacon now have their own artwork.
 
-On phones, a concrete next-action button and named exits appear before the other room objects. Tap a scene marker or its text action to inspect something. **Look closer** opens the scene’s objects and optional details in the same reader used for records. There are no movement sticks, Inspect/Move tabs, or automatic mode changes. All required actions remain available as text controls when scene markers are off or outside the visible image.
+Tap labelled direction arrows in the illustration to move between scenes. Left, right, forward, down, and return arrows follow each view’s geography. On phones, movement no longer requires a button below the picture; **List of exits** opens an optional text alternative. Navigation stays visible when object markers are off, and a blocked direction explains what is needed. A short movement guard prevents a repeated tap from skipping through the next scene. Tap a scene marker or its text action to inspect something. **Look closer** opens the scene’s objects and optional details in the same reader used for records. There are no movement sticks, Inspect/Move tabs, or automatic mode changes. All required actions remain available as text controls when scene markers are off or outside the visible image.
 
 The investigation includes:
 

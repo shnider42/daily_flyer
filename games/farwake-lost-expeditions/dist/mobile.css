@@ -8,6 +8,17 @@
 }
 
 @media (max-width: 800px), (max-height: 520px) and (max-width: 1000px) {
+  body.compact-layout .scene-direction { width: 90px; min-height: 58px; padding: 6px 5px; gap: 3px; }
+  body.compact-layout .scene-direction > svg { width: 24px; height: 26px; }
+  body.compact-layout .direction-label { font-size: 14px; line-height: 1.15; }
+  body.compact-layout .scene-direction.direction-back { left: 9px; bottom: 9px; width: auto; max-width: 120px; min-height: 44px; padding: 7px 10px; gap: 6px; }
+  body.compact-layout .route-group > summary { display: flex; align-items: center; min-height: 44px; padding: 8px 0; color: #aabca6; cursor: pointer; }
+  body.compact-layout .route-group > summary .eyebrow { display: none; }
+  body.compact-layout .route-fallback-label { display: inline; font-size: 14px; text-decoration: underline; text-underline-offset: 4px; }
+  body.compact-layout .route-group[open] > summary { margin-bottom: 6px; }
+}
+
+@media (max-width: 800px), (max-height: 520px) and (max-width: 1000px) {
   body.compact-layout {
     width: 100%;
     min-width: 0;

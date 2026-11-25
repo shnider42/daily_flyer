@@ -1,4 +1,19 @@
 /* Illustrated investigation: shared styles for scene controls and close views. */
+#scene-directions { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.scene-direction { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 116px; min-height: 64px; padding: 8px; border: 1px solid #bacbad91; border-radius: 4px; background: #10191bdc; color: #e4edda; box-shadow: 0 2px 12px #0005; pointer-events: auto; touch-action: manipulation; }
+.scene-direction > svg { flex: 0 0 auto; width: 26px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.direction-label { font-size: 14px; line-height: 1.2; text-align: center; }
+.scene-direction:hover, .scene-direction:focus-visible { background: #2b3a30f2; border-color: #d8e8c9; color: #f2f5e9; }
+.scene-direction.suggested { border-color: #e0eccc; color: #f2f5df; box-shadow: 0 0 0 2px #c4d8ae2b, 0 2px 12px #0005; }
+.scene-direction[aria-disabled="true"] { border-style: dashed; border-color: #c5b891a6; color: #d8d2bb; }
+.direction-lock { position: absolute; top: -7px; right: -5px; display: grid; place-items: center; width: 22px; height: 24px; border-radius: 4px; background: #1b211df5; color: #e2cf9f; }
+.direction-lock svg { width: 12px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
+.scene-direction.direction-back { left: 28px; bottom: 58px; transform: none; flex-direction: row; gap: 8px; width: auto; min-height: 48px; padding: 8px 12px; }
+.stage.changing .scene-direction { opacity: .35; pointer-events: none; }
+.route-group > summary { display: block; list-style: none; cursor: default; }
+.route-group > summary::-webkit-details-marker { display: none; }
+.route-group > summary .eyebrow { display: block; }
+.route-fallback-label { display: none; }
 .stage { height: calc(100dvh - 390px); }
 .scene-observation { margin: 0 0 16px; max-width: 900px; color: #d0d7cb; font: 18px/1.5 var(--serif); }
 .look-closer { position: absolute; z-index: 5; right: 28px; bottom: 18px; min-height: 46px; padding: 10px 15px; background: #10191bef; border: 1px solid #9aab8f; border-radius: 3px; color: #e8ebdf; }

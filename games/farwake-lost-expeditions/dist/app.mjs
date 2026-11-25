@@ -34,6 +34,7 @@ let panelReturn = null;
 const compactMedia = matchMedia('(max-width: 800px), (max-height: 520px) and (max-width: 1000px)');
 let compact = compactMedia.matches;
 let latestFeedback = null;
+let travelReadyAt = 0;
 const image = $('#scene-image');
 const stage = $('#stage');
 const panel = $('#panel');
@@ -52,6 +53,53 @@ const ANCHORS = {
   'redirect-receiver':[71,43], 'recover-recorder':[65,59],
   'publish-warning':[48,54], 'finish':[50,45]
 };
+
+// Scene directions are separate from optional object markers. "Back" follows
+// the station's fixed geography, so revisiting a room never reverses the exits.
+const DIRECTIONS = {
+  approach: {
+    airlock: { x:55, y:54, direction:'forward', label:'Airlock' },
+    beacon: { x:88, y:58, direction:'right', label:'Beacon' }
+  },
+  airlock: {
+    junction: { x:53, y:53, direction:'forward', label:'Inside' },
+    approach: { direction:'back', label:'Surface' }
+  },
+  junction: {
+    survey: { x:13, y:48, direction:'left', label:'Survey room' },
+    service: { x:87, y:48, direction:'right', label:'Service bay' },
+    shaft: { x:50, y:75, direction:'down', label:'Listening shaft' },
+    airlock: { direction:'back', label:'Airlock' }
+  },
+  survey: { junction: { direction:'back', label:'Junction' } },
+  service: { junction: { x:93, y:54, direction:'right', label:'Junction' } },
+  shaft: {
+    lower: { x:54, y:72, direction:'down', label:'Lower landing' },
+    junction: { direction:'back', label:'Junction' }
+  },
+  lower: { shaft: { x:24, y:46, direction:'forward', label:'Up to shaft' } },
+  beacon: { approach: { x:89, y:42, direction:'forward', label:'Station' } }
+};
+const DIRECTION_PATHS = {
+  forward:'M12 20V4m-7 7 7-7 7 7',
+  down:'M12 4v16m-7-7 7 7 7-7',
+  left:'M20 12H4m7-7-7 7 7 7',
+  right:'M4 12h16m-7-7 7 7-7 7',
+  back:'M9 4 4 9l5 5M4 9h9a7 7 0 0 1 0 14'
+};
+
+function directionButton(action,nextId){
+  const route=DIRECTIONS[state.scene]?.[action.target];
+  if(!route)return null;
+  const button=document.createElement('button');
+  button.type='button';button.dataset.action=action.id;
+  button.className=`scene-direction direction-${route.direction}${action.id===nextId?' suggested':''}`;
+  button.setAttribute('aria-label',action.label+(action.disabled?' · not yet available':''));
+  if(action.disabled){button.setAttribute('aria-disabled','true');button.title=action.reason;}
+  if(route.direction!=='back'){button.dataset.x=route.x;button.dataset.y=route.y;}
+  button.innerHTML=`<svg viewBox="0 0 24 26" aria-hidden="true"><path d="${DIRECTION_PATHS[route.direction]}"/></svg><span class="direction-label">${escape(route.label)}</span>${action.disabled?'<span class="direction-lock" aria-hidden="true"><svg viewBox="0 0 16 18"><path d="M4 7V5a4 4 0 0 1 8 0v2M2 7h12v9H2z"/></svg></span>':''}`;
+  return button;
+}
 
 function hasProgress(){ return state.moves > 0 || state.records.length > 0 || state.completed; }
 function persist(){
@@ -126,6 +174,16 @@ function positionScene(){
   const top=(rect.height-height)/2;
   Object.assign(image.style,{width:`${width}px`,height:`${height}px`,left:`${left}px`,top:`${top}px`});
   geometry={width,height,left,top,maxPan};
+  const directionBounds=[];
+  for(const el of $('#scene-directions').children){
+    if(el.dataset.x){
+      const halfWidth=el.offsetWidth/2,halfHeight=el.offsetHeight/2;
+      const x=Math.max(halfWidth+8,Math.min(rect.width-halfWidth-8,Number(el.dataset.x)/100*width+left));
+      const y=Math.max(halfHeight+48,Math.min(rect.height-halfHeight-10,Number(el.dataset.y)/100*height+top));
+      el.style.left=`${x}px`;el.style.top=`${y}px`;
+    }
+    directionBounds.push(el.getBoundingClientRect());
+  }
   const occupied=[];
   for(const el of $('#scene-hotspots').children){
     const x=Number(el.dataset.x)/100*width+left,y=Number(el.dataset.y)/100*height+top;
@@ -133,9 +191,18 @@ function positionScene(){
     el.classList.toggle('label-below',compact?y<rect.height*.55:['listen-receiver','power-receiver'].includes(el.dataset.action));
     const crowded=compact&&occupied.some(point=>Math.abs(x-point.x)<112&&Math.abs(y-point.y)<64);
     el.hidden=x<24||x>rect.width-24||y<(compact?67:75)||y>rect.height-(compact?40:35)||crowded;
+    if(compact&&!el.hidden){
+      const overlaps=(a,b)=>a.left<b.right+4&&a.right>b.left-4&&a.top<b.bottom+4&&a.bottom>b.top-4;
+      const collides=()=>directionBounds.some(route=>[el.getBoundingClientRect(),el.querySelector('.hotspot-label').getBoundingClientRect()].some(object=>overlaps(object,route)));
+      if(collides()&&el.classList.contains('label-below')){
+        el.classList.remove('label-below');
+        if(overlaps(el.querySelector('.hotspot-label').getBoundingClientRect(),$('.scene-heading').getBoundingClientRect()))el.classList.add('label-below');
+      }
+      el.hidden=collides();
+    }
     if(!el.hidden)occupied.push({x,y});
   }
-  $('#view-instruction').textContent=state.completed?'Recovery complete · review your notebook':maxPan>20?'Drag to look · select a marker to explore':currentActions.some(a=>a.kind!=='move'&&!a.disabled)?'Select an object · routes are below':'Choose a route below';
+  $('#view-instruction').textContent=state.completed?'Recovery complete · review your notebook':maxPan>20?'Arrows move · dots inspect · drag to look':'Tap a direction to move · dots inspect';
 }
 new ResizeObserver(positionScene).observe(stage);
 image.addEventListener('load',positionScene);
@@ -163,20 +230,22 @@ function actionButton(action,hotspot=false){
 function renderActions(){
   currentActions=availableActions(state);
   const touch=mobileActions(state,currentActions);
-  const interactions=$('#interactions'),routes=$('#routes'),hotspots=$('#scene-hotspots');
-  interactions.replaceChildren();routes.replaceChildren();hotspots.replaceChildren();
+  const interactions=$('#interactions'),routes=$('#routes'),hotspots=$('#scene-hotspots'),directions=$('#scene-directions');
+  interactions.replaceChildren();routes.replaceChildren();hotspots.replaceChildren();directions.replaceChildren();
   const task=missionStatus(state);
   const next=currentActions.find(a=>a.id===task.nextActionId&&!a.disabled);
   const primary=$('#primary-action');
-  primary.hidden=!next&&!state.completed;
+  primary.hidden=(!next&&!state.completed)||(compact&&next?.kind==='move');
   primary.textContent=state.completed?'Read your expedition report':next?.label||'';
   if(next)primary.dataset.action=next.id;else delete primary.dataset.action;
   const presented=[...touch.interactions,...touch.routes];
   const physical=touch.hotspots.filter(a=>!['read-dispatch','compare-signal','finish'].includes(a.id)).sort((a,b)=>Number(b.id===task.nextActionId)-Number(a.id===task.nextActionId));
   const hotspotIds=new Set((compact?physical.slice(0,2):physical).map(a=>a.id));
   for(const action of presented){
-    if(action.id!==next?.id)(action.kind==='move'?routes:interactions).append(actionButton(action));
+    if(action.id!==next?.id||(compact&&action.kind==='move'))(action.kind==='move'?routes:interactions).append(actionButton(action));
   }
+  for(const action of touch.routes){const button=directionButton(action,task.nextActionId);if(button)directions.append(button);}
+  $('#move-content').open=!compact;
   for(const action of physical)if(hotspotIds.has(action.id))hotspots.append(actionButton(action,true));
   $('.inspection-group').hidden=!interactions.children.length;
   $('.route-group').hidden=!routes.children.length;
@@ -243,6 +312,7 @@ function execute(actionId, direct=false){
   if(!active||state.completed)return;
   const entry=currentActions.find(a=>a.id===actionId);
   if(!entry)return;
+  if(entry.kind==='move'&&(stage.classList.contains('changing')||performance.now()<travelReadyAt))return;
   if(!direct&&actionId==='compare-signal'){showEvidence();return;}
   if(entry.disabled){openPanel('NOT YET AVAILABLE',entry.label,`<div class="panel-copy"><p>${escape(entry.reason||'Inspect the nearby evidence first.')}</p></div>`);return;}
   if(!direct&&['power-inspection','power-receiver'].includes(actionId)){showServicePanel();return;}
@@ -251,7 +321,7 @@ function execute(actionId, direct=false){
   if(entry.kind==='move'&&panel.open)closePanel();
   const result=perform(state,actionId);
   state=result.state;
-  if(entry.kind==='move'){hintOpen=false;latestFeedback=null;}
+  if(entry.kind==='move'){hintOpen=false;latestFeedback=null;travelReadyAt=performance.now()+350;}
   render();persist();
   if(result.event)sound.cue(result.event);
   if(result.record)showRecord(result.record);
@@ -263,7 +333,7 @@ function execute(actionId, direct=false){
     openPanel('AT THE RECEIVER',actionId==='mute-receiver'?'The call falls silent':'Something follows the call',`<div class="panel-copy"><p>${escape(result.message)}</p></div><p class="record-takeaway">The lower landing is clear. You can recover the recorder and return along the green lamps.</p>`);
     $('#panel-done').textContent='Go to the lower landing';$('#panel-done').dataset.panelAction='continue-lower';$('#panel-done').className='primary-button';
   }
-  if(entry.kind==='move'&&compact)window.scrollTo({top:0,behavior:'instant'});
+  if(entry.kind==='move'){stage.focus({preventScroll:true});if(compact)window.scrollTo({top:0,behavior:'instant'});}
   if(state.completed)showEnding();
 }
 document.addEventListener('click',event=>{const action=event.target.closest('[data-action]');if(action){event.preventDefault();execute(action.dataset.action,action.dataset.direct==='true');}});
@@ -326,14 +396,14 @@ function showSettings(){
   openPanel('EXPEDITION SETTINGS','Make yourself comfortable',`
     <div class="setting-row"><label for="pref-sound">Sound<small>All recorded information is also available as text.</small></label><input id="pref-sound" type="checkbox" ${preferences.sound?'checked':''}></div>
     <div class="setting-row"><label for="pref-volume">Volume</label><input id="pref-volume" type="range" min="0" max="1" step=".05" value="${preferences.volume}" aria-label="Sound volume"></div>
-    <div class="setting-row"><label for="pref-markers">Scene markers<small>Available actions always remain below the view.</small></label><input id="pref-markers" type="checkbox" ${preferences.markers?'checked':''}></div>
+    <div class="setting-row"><label for="pref-markers">Object markers<small>Direction arrows stay visible. Object actions remain below the view.</small></label><input id="pref-markers" type="checkbox" ${preferences.markers?'checked':''}></div>
     <div class="setting-row"><label for="pref-labels">Always show desktop marker labels<small>Phone markers always show their short names. Every action also has a text button.</small></label><input id="pref-labels" type="checkbox" ${preferences.labels?'checked':''}></div>
     <div class="setting-row"><label for="pref-motion">Reduce motion<small>Use immediate transitions between viewpoints.</small></label><input id="pref-motion" type="checkbox" ${preferences.reducedMotion?'checked':''}></div>
     <div class="settings-foot"><button class="secondary-button" data-panel-action="about">About & controls</button><button class="secondary-button" data-panel-action="restart">Start over</button></div>
     <p class="credits">Your progress and settings are saved only in this browser. This game has no accounts, analytics, or online save sync.</p>`);
 }
 function showAbout(){
-  openPanel('FARWAKE · LOST EXPEDITIONS','Nightglass',`<div class="panel-copy"><p>${escape(CHAPTER.fiction)}</p><p>A scene-by-scene investigation on Luna. Follow the physical evidence, recover the recorder, and leave a useful warning.</p><p><strong>Controls:</strong> tap a labelled object or use its text button. Named exits take you between scenes. Look closer reveals optional details; records stay in your notebook. Closing an inspection returns you to the same view.</p><p><strong>Keyboard:</strong> Tab through controls, Enter or Space to activate, J for the notebook, H for help, M to toggle sound, and Escape to close a panel. Left and right keys pan a cropped desktop view.</p><p>Your notebook and progress stay in this browser. You can leave, reload, and continue. Clearing this browser’s site data removes the save.</p><p><strong>Atmosphere:</strong> isolation, an imitated call, and brief implied animal movement. All sound clues are readable. There are no timed reading challenges.</p></div><p class="credits">Created for Christopher Holtsnider’s DailyFlyer project. Original Farwake setting and Nightglass adaptation. Fictional scene artwork generated for this game; it is not authentic lunar photography. Sound is generated locally. Version 0.3.0.</p>`);
+  openPanel('FARWAKE · LOST EXPEDITIONS','Nightglass',`<div class="panel-copy"><p>${escape(CHAPTER.fiction)}</p><p>A scene-by-scene investigation on Luna. Follow the physical evidence, recover the recorder, and leave a useful warning.</p><p><strong>Controls:</strong> tap an arrow in the scene to move in that direction. Dots mark objects to inspect. On phones, List of exits opens the text alternative. Look closer reveals optional details; records stay in your notebook. Closing an inspection returns you to the same view.</p><p><strong>Keyboard:</strong> Tab through controls, Enter or Space to activate, J for the notebook, H for help, M to toggle sound, and Escape to close a panel. Left and right keys pan a cropped desktop view.</p><p>Your notebook and progress stay in this browser. You can leave, reload, and continue. Clearing this browser’s site data removes the save.</p><p><strong>Atmosphere:</strong> isolation, an imitated call, and brief implied animal movement. All sound clues are readable. There are no timed reading challenges.</p></div><p class="credits">Created for Christopher Holtsnider’s DailyFlyer project. Original Farwake setting and Nightglass adaptation. Fictional scene artwork generated for this game; it is not authentic lunar photography. Sound is generated locally. Version 0.3.1.</p>`);
 }
 function confirmRestart(){
   openPanel('START A NEW RECORD','Restart this expedition?',`<div class="panel-copy"><p>This replaces the Nightglass progress saved in this browser. Your sound and display settings stay as they are.</p></div><div class="inline-buttons"><button class="secondary-button" data-panel-action="close">Keep my progress</button><button class="primary-button" data-panel-action="confirm-restart">Start over</button></div>`);
@@ -344,7 +414,7 @@ function showEnding(){
 }
 function downloadReport(){
   const ending=getEnding(state);if(!ending)return;
-  const report=`FARWAKE: LOST EXPEDITIONS\nNIGHTGLASS — FIELD REPORT\n\n${ending.title}\n${ending.text}\n\n${ending.details.join('\n')}\n\nRECOVERED RECORDS\n\n${RECORD_ORDER.filter(id=>state.records.includes(id)).map(id=>`${RECORDS[id].title}\n${RECORDS[id].source}\n${RECORDS[id].body}`).join('\n\n')}\n\n${CHAPTER.fiction}\nVersion 0.3.0\n`;
+  const report=`FARWAKE: LOST EXPEDITIONS\nNIGHTGLASS — FIELD REPORT\n\n${ending.title}\n${ending.text}\n\n${ending.details.join('\n')}\n\nRECOVERED RECORDS\n\n${RECORD_ORDER.filter(id=>state.records.includes(id)).map(id=>`${RECORDS[id].title}\n${RECORDS[id].source}\n${RECORDS[id].body}`).join('\n\n')}\n\n${CHAPTER.fiction}\nVersion 0.3.1\n`;
   const url=URL.createObjectURL(new Blob([report],{type:'text/plain;charset=utf-8'}));
   const a=document.createElement('a');a.href=url;a.download='nightglass-field-report.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
