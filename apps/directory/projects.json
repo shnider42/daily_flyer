@@ -1683,5 +1683,41 @@
       "note": "Short scenarios and reflection prompts fit a few minutes on a phone."
     },
     "featureWeight": 3
+  },
+  {
+    "id": "farwake-lost-expeditions",
+    "title": "FARWAKE: Lost Expeditions",
+    "subtitle": "Nightglass",
+    "description": "Explore a lunar survey installation in first person, compare recovered records, resolve a repeating signal, and follow the green lights home. The first complete case in a Farwake expedition anthology.",
+    "type": "games",
+    "subtype": "Exploration mystery",
+    "tags": [
+      "First-person",
+      "Solo",
+      "Mystery",
+      "Environmental puzzles",
+      "Atmospheric horror",
+      "Farwake",
+      "Touch",
+      "Keyboard"
+    ],
+    "art": "farwake",
+    "url": "https://dfe-farwake-lost-expeditions.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/farwake-lost-expeditions",
+    "createdAt": "2026-11-24",
+    "datePrecision": "day",
+    "dateSource": "First playable Nightglass release, 24 Nov 2026 in America/New_York; source commit f671d2b8ce1fd2f39d06f29810cbf1c565e41413.",
+    "aliases": [
+      "Nightglass",
+      "The Nightglass Listening Shaft",
+      "Farwake Lost Expeditions",
+      "Lost Expeditions"
+    ],
+    "device": {
+      "best": "both",
+      "note": "Touch and mouse navigation support both devices; a larger screen makes photograph details easier to compare."
+    },
+    "featureWeight": 2
   }
 ]
