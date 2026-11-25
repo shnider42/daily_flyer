@@ -1,4 +1,5 @@
 /* Nightglass: restrained, local-only sound. A user gesture must call start(). */
+import { MENU_THEME, RecordedTheme } from './menu-theme.mjs';
 
 const clamp = (value, fallback = 0.65) => Number.isFinite(Number(value))
   ? Math.max(0, Math.min(1, Number(value))) : fallback;
@@ -13,14 +14,17 @@ const INTERIOR = {
 };
 
 /**
- * No samples, speech services, tracking, or network requests. The repeating
- * three-note receiver packet is deliberately synthetic; captions carry the
- * recorded words. Unease never silently becomes combat music.
+ * The original Farwake recording is served from this game's own assets.
+ * Environmental sounds and the repeating receiver packet remain synthetic;
+ * captions carry the recorded words. Exploration has no musical score.
  */
 export class NightglassAudio {
-  constructor({ volume = 0.65, enabled = true } = {}) {
+  constructor({ volume = 0.65, enabled = true, musicEnabled = true, musicVolume = 0.65 } = {}) {
     this.enabled = Boolean(enabled);
     this.volume = clamp(volume);
+    this.musicEnabled = Boolean(musicEnabled);
+    this.musicVolume = clamp(musicVolume);
+    this.mode = 'menu';
     this.scene = 'approach';
     this.state = {};
     this.context = null;
@@ -37,6 +41,13 @@ export class NightglassAudio {
     this._tickCount = 0;
     this._nextPacket = 0;
     this._nextMechanical = 0;
+    this._theme = null;
+    this._musicPlayer = null;
+    this._musicMode = null;
+    this._musicMix = null;
+    this._reportDue = null;
+    this._reportStarted = false;
+    this._reportFinished = false;
     this._onVisibility = () => {
       this._visibilityPaused = Boolean(globalThis.document?.hidden);
       void this._syncTransport();
@@ -65,7 +76,14 @@ export class NightglassAudio {
         this._buildGraph();
         globalThis.document?.addEventListener('visibilitychange', this._onVisibility);
       }
-      return await this._syncTransport();
+      // Both resume() and play() are initiated within the caller's trusted tap.
+      // The recording loads independently; gameplay never waits for its media.
+      const transport = this._syncTransport();
+      if (this._canPlayMusic()) {
+        this._theme?.resume();
+        this._theme?.unlock();
+      }
+      return await transport;
     } catch {
       // Unsupported/rejected audio must never prevent playing the expedition.
       if (this.context && !this._master) {
@@ -89,6 +107,115 @@ export class NightglassAudio {
   setVolume(volume) {
     this.volume = clamp(volume, this.volume);
     this._updateMaster();
+    this._syncMusic();
+  }
+
+  setMusicEnabled(enabled) {
+    this.musicEnabled = Boolean(enabled);
+    this._syncMusic();
+  }
+
+  setMusicVolume(volume) {
+    this.musicVolume = clamp(volume, this.musicVolume);
+    this._syncMusic();
+  }
+
+  setMode(mode) {
+    if (this._disposed || !['menu', 'expedition', 'report'].includes(mode) || mode === this.mode) return;
+    this.mode = mode;
+    if (mode === 'expedition') {
+      this._reportStarted = false; this._reportFinished = false; this._reportDue = null;
+    } else if (mode === 'report') {
+      this._reportDue = this.context ? this.context.currentTime + 2 : null;
+    } else {
+      this._reportDue = null;
+      this._stopEffects();
+    }
+    this._applyScene();
+    this._syncMusic();
+    this._notifyMusic();
+  }
+
+  musicStatus() {
+    const theme = this._theme;
+    const playing = Boolean(this._canPlayMusic() && this.context?.state === 'running' &&
+      this._musicPlayer?.status().activeVoices);
+    let status;
+    if (!this.musicEnabled || this._disposed) status = 'off';
+    else if (!this.enabled || this.volume <= 0 || this.musicVolume <= 0) status = 'muted';
+    else if (theme?.blocked) status = 'blocked';
+    else if (theme?.error) status = 'error';
+    else if (this._paused || this._visibilityPaused) status = 'paused';
+    else if (this.mode === 'expedition') status = 'quiet';
+    else if (!this._started) status = 'ready';
+    else if (playing) status = 'playing';
+    else if (theme?.pending || this._musicPlayer && !this._musicPlayer.ended &&
+      !theme?.media?.paused && theme?.media?.readyState < 3) status = 'loading';
+    else if (this.mode === 'report' && !this._reportStarted) status = 'waiting';
+    else if (this.mode === 'report' && (this._reportFinished || theme?.media?.ended)) status = 'ended';
+    else if (this.context?.state !== 'running') status = 'paused';
+    else status = 'ready';
+    return {
+      mode: this.mode, enabled: this.musicEnabled, volume: this.musicVolume,
+      masterEnabled: this.enabled, masterVolume: this.volume,
+      unlocked: Boolean(theme?.primed), playing, status, error: theme?.error || null,
+      title: MENU_THEME.title, credit: MENU_THEME.credit, durationSeconds: MENU_THEME.durationSeconds,
+    };
+  }
+
+  _notifyMusic() {
+    if (globalThis.document?.dispatchEvent && typeof globalThis.Event === 'function') {
+      globalThis.document.dispatchEvent(new Event('farwake-music-status'));
+    }
+  }
+
+  _canPlayMusic() {
+    return this._canPlay() && this.musicEnabled && this.volume > 0 && this.musicVolume > 0;
+  }
+
+  _updateMusicGain() {
+    if (!this._musicBus) return;
+    const target = this.volume * this.musicVolume * (this._musicMode === 'report' ? 0.45 : 0.9);
+    if (target === this._musicMix) return;
+    this._musicMix = target;
+    this._ramp(this._musicBus.gain, target, 0.2);
+  }
+
+  _syncMusic() {
+    if (!this._theme || !this.context || this._disposed) return;
+    if (this._musicPlayer && this._musicMode !== this.mode) this._musicPlayer.stop(1.2);
+    this._musicPlayer?.update();
+    if (this._musicPlayer?.ended) {
+      if (this._musicMode === 'report') this._reportFinished = true;
+      this._musicPlayer = null; this._musicMode = null;
+    }
+    this._updateMusicGain();
+    if (!this._canPlayMusic() || this.context.state !== 'running') {
+      this._theme.suspend();
+      return;
+    }
+    this._theme.resume();
+    if (this.mode === 'expedition') {
+      this._musicPlayer?.stop(1.2);
+      return;
+    }
+    if (this.mode === 'report' && !this._reportStarted) {
+      this._musicPlayer?.stop(1.2);
+      this._reportDue ??= this.context.currentTime + 2;
+      if (this.context.currentTime < this._reportDue) return;
+    }
+    const matching = this._musicPlayer && this._musicMode === this.mode &&
+      this._musicPlayer._stoppingAt == null;
+    if (matching || (this.mode === 'report' && this._reportStarted)) return;
+    this._musicPlayer?.stop();
+    this._musicMode = this.mode;
+    if (this.mode === 'report') { this._reportStarted = true; this._reportFinished = false; }
+    this._musicPlayer = this._theme.createPlayer().play(MENU_THEME.id, {
+      fadeIn: this.mode === 'report' ? 1.8 : 1.4,
+      loop: this.mode === 'menu',
+    });
+    this._updateMusicGain();
+    this._notifyMusic();
   }
 
   /** Matches the state module's receiverMode and flags.inspectionPowered. */
@@ -124,6 +251,7 @@ export class NightglassAudio {
       clearInterval(this._timer);
       this._timer = null;
       this._updateMaster();
+      this._theme?.suspend();
       // A short fade avoids an abrupt discontinuity when muting or opening a menu.
       this._suspendTimer = setTimeout(() => {
         if (!this._canPlay() && ctx.state !== 'closed') {
@@ -137,13 +265,17 @@ export class NightglassAudio {
       if (!this._canPlay() || ctx.state !== 'running') return false;
       this._applyScene();
       this._updateMaster();
+      this._syncMusic();
       if (!this._timer) {
         this._nextPacket = ctx.currentTime + 3.2;
         this._nextMechanical = ctx.currentTime + 7.5;
         this._timer = setInterval(() => this._tick(), 500);
       }
       return true;
-    } catch { return false; }
+    } catch {
+      this._theme?.suspend();
+      return false;
+    }
   }
 
   _buildGraph() {
@@ -159,6 +291,13 @@ export class NightglassAudio {
     this._master.connect(limiter);
     limiter.connect(ctx.destination);
     this._limiter = limiter;
+    this._musicBus = ctx.createGain();
+    this._musicBus.gain.value = this.volume * this.musicVolume * 0.9;
+    // The recording shares the volume setting and limiter, while the procedural
+    // effects retain their separate 0.28 safety ceiling.
+    this._musicBus.connect(limiter);
+    this._musicMix = this._musicBus.gain.value;
+    this._theme = new RecordedTheme(ctx, this._musicBus, undefined, () => this._notifyMusic());
 
     this._humGain = ctx.createGain();
     this._humGain.gain.value = 0;
@@ -225,6 +364,12 @@ export class NightglassAudio {
 
   _applyScene() {
     if (!this.context || !this._humGain || this._disposed) return;
+    if (this.mode !== 'expedition') {
+      this._ramp(this._humGain.gain, 0, 1.2);
+      this._ramp(this._airGain.gain, 0, 1.2);
+      this._ramp(this._lowGain.gain, 0, 1.2);
+      return;
+    }
     const profile = INTERIOR[this.scene] || { hum: 0.04, air: 0.018, cutoff: 230, pitch: 54 };
     const lit = Boolean(this.state.flags?.inspectionPowered);
     this._ramp(this._humGain.gain, profile.hum + (lit ? 0.012 : 0), 0.7);
@@ -236,6 +381,8 @@ export class NightglassAudio {
 
   _tick() {
     if (!this._canPlay() || this.context?.state !== 'running') return;
+    this._syncMusic();
+    if (this.mode !== 'expedition') return;
     const now = this.context.currentTime;
     this._tickCount++;
     const nearReceiver = ['junction', 'survey', 'service', 'shaft', 'lower'].includes(this.scene);
@@ -254,7 +401,7 @@ export class NightglassAudio {
 
   /** All cues are informational or restrained environmental responses. */
   cue(name) {
-    if (!this._canPlay() || this.context?.state !== 'running') return;
+    if (this.mode === 'menu' || !this._canPlay() || this.context?.state !== 'running') return;
     const now = this.context.currentTime;
     if (now - (this._lastCue.get(name) ?? -Infinity) < 0.14) return;
     this._lastCue.set(name, now);
@@ -380,12 +527,22 @@ export class NightglassAudio {
     };
   }
 
+  _stopEffects() {
+    for (const node of this._transient) {
+      try { node.stop?.(); } catch { /* already ended */ }
+      try { node.disconnect(); } catch { /* already disconnected */ }
+    }
+    this._transient.clear();
+  }
+
   dispose() {
     if (this._disposed) return;
     this._disposed = true;
     clearInterval(this._timer);
     clearTimeout(this._suspendTimer);
     this._timer = null;
+    this._musicPlayer?.dispose();
+    this._theme?.dispose();
     globalThis.document?.removeEventListener('visibilitychange', this._onVisibility);
     for (const node of [...this._continuous, ...this._transient]) {
       try { node.stop?.(); } catch { /* already ended */ }
@@ -393,7 +550,7 @@ export class NightglassAudio {
     }
     this._transient.clear();
     this._continuous = [];
-    for (const node of [this._master, this._limiter, this._humGain, this._lowGain, this._airGain, this._airFilter]) {
+    for (const node of [this._master, this._limiter, this._humGain, this._lowGain, this._airGain, this._airFilter, this._musicBus]) {
       try { node?.disconnect(); } catch { /* already disconnected */ }
     }
     if (this.context && this.context.state !== 'closed') void this.context.close().catch(() => {});

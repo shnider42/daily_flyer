@@ -1,6 +1,7 @@
 import { SCENES, RECORDS, RECORD_ORDER, CHAPTER } from './content.mjs';
 import { initialState, hydrateState, perform, availableActions, getEnding, sceneDescription } from './state.mjs';
-import { NightglassAudio } from './audio.mjs';
+import { NightglassAudio } from './audio.mjs?v=0.3.3';
+import { MENU_THEME } from './menu-theme.mjs';
 import { mobileActions, mobileLabel } from './mobile-actions.mjs';
 import { missionStatus, MISSION_BRIEF } from './mission.mjs';
 import { sceneObservations, sceneObservationLead, evidenceCards, EVIDENCE_QUESTIONS, assessEvidence } from './investigation.mjs';
@@ -16,12 +17,15 @@ const rawPrefs = readLocal(PREF_KEY) || {};
 const preferences = {
   sound: typeof rawPrefs.sound === 'boolean' ? rawPrefs.sound : true,
   volume: Number.isFinite(rawPrefs.volume) ? Math.max(0, Math.min(1, rawPrefs.volume)) : 0.5,
+  music: typeof rawPrefs.music === 'boolean' ? rawPrefs.music : true,
+  musicVolume: Number.isFinite(rawPrefs.musicVolume) ? Math.max(0, Math.min(1, rawPrefs.musicVolume)) : 0.65,
   markers: typeof rawPrefs.markers === 'boolean' ? rawPrefs.markers : true,
   labels: typeof rawPrefs.labels === 'boolean' ? rawPrefs.labels : true,
   reducedMotion: typeof rawPrefs.reducedMotion === 'boolean' ? rawPrefs.reducedMotion : matchMedia('(prefers-reduced-motion: reduce)').matches
 };
-const sound = new NightglassAudio({ enabled: preferences.sound, volume: preferences.volume });
+const sound = new NightglassAudio({ enabled: preferences.sound, volume: preferences.volume, musicEnabled: preferences.music, musicVolume: preferences.musicVolume });
 let active = false;
+let entryToken = 0;
 let audioAvailable = true;
 let sceneToken = 0;
 let lastScene = null;
@@ -119,11 +123,63 @@ function applyPreferences(){
   document.body.classList.toggle('reduced-motion', preferences.reducedMotion);
   sound.setEnabled(preferences.sound);
   sound.setVolume(preferences.volume);
+  sound.setMusicEnabled(preferences.music);
+  sound.setMusicVolume(preferences.musicVolume);
   $('#sound-status').textContent=!preferences.sound?'Sound off · all clues remain readable':!audioAvailable?'Audio unavailable · written clues active':'Sound on · captions included';
+  updateMusicControls();
 }
 function updateIntro(){
   $('#begin-button').textContent=state.completed?'Read your expedition report':hasProgress()?'Continue expedition':'Begin expedition';
   $('#intro-restart').hidden=!hasProgress();
+  updateMusicControls();
+}
+function updateMusicControls(){
+  const music=sound.musicStatus();
+  const running=music.mode==='menu'&&['playing','loading'].includes(music.status);
+  const button=$('#menu-music-button');
+  button.textContent=running?'Stop theme':'Listen to theme';
+  button.setAttribute('aria-pressed',String(running));
+  button.dataset.playback=music.status;
+  $('#menu-music-title').textContent=MENU_THEME.title;
+  $('#menu-music-credit').textContent=MENU_THEME.credit;
+  const messages={
+    ready:'Music starts when you choose Listen.',
+    loading:'Loading the Farwake theme…',
+    playing:music.mode==='report'?'Farwake theme · closing reprise':'Farwake theme · playing',
+    paused:'Music paused.',
+    waiting:'The closing theme follows the recovery cue.',
+    quiet:'During the investigation: station sounds and the receiver.',
+    muted:!music.masterEnabled||music.masterVolume===0?'All sound is muted.':'Music level is at zero.',
+    off:'Music is off.',
+    ended:'The closing theme has finished.',
+    blocked:active?'Music could not start. Tap Retry music to try again.':'Music could not start. Tap Listen to try again.',
+    error:active?'The music could not load. Tap Retry music to try again.':'The music could not load. Tap Listen to try again.'
+  };
+  const notice=$('#menu-music-status');
+  notice.hidden=!['loading','blocked','error'].includes(music.status);
+  notice.textContent=messages[music.status]||'';
+  const status=$('#music-status');
+  if(status){status.textContent=messages[music.status]||'';status.dataset.playback=music.status;}
+  const retry=$('#music-retry');
+  if(retry)retry.hidden=!['blocked','error'].includes(music.status);
+}
+async function listenToTheme(){
+  const music=sound.musicStatus();
+  if(music.mode==='menu'&&['playing','loading'].includes(music.status)){
+    preferences.music=false;savePreferences();return;
+  }
+  // Listen is an explicit request for audible music, including after a saved mute.
+  preferences.sound=true;preferences.music=true;
+  if(preferences.volume===0)preferences.volume=0.5;
+  if(preferences.musicVolume===0)preferences.musicVolume=0.65;
+  sound.setMode('menu');savePreferences();
+  const starting=sound.start();updateMusicControls();
+  audioAvailable=await starting;updateMusicControls();
+}
+$('#menu-music-button').addEventListener('click',listenToTheme);
+document.addEventListener('farwake-music-status',updateMusicControls);
+for(const type of ['playing','pause','ended','waiting','error','loadedmetadata','canplay']){
+  document.addEventListener(type,event=>{if(event.target.id==='farwake-theme-audio')updateMusicControls();},true);
 }
 function toast(message){
   clearTimeout(toastTimer);
@@ -304,14 +360,25 @@ function render(){
 }
 
 async function begin(){
+  const token=++entryToken;
   active=true;$('#intro').hidden=true;
   $('#game').inert=false;
   fieldControls.open=!compact;
-  audioAvailable=await sound.start();applyPreferences();render();persist();
+  // An old report stays quiet; only a newly completed recovery earns its reprise.
+  sound.setMode('expedition');
+  audioAvailable=await sound.start();
+  if(token!==entryToken||!active)return;
+  applyPreferences();render();persist();
   if(state.completed)showEnding();else stage.focus({preventScroll:true});
 }
 $('#begin-button').addEventListener('click',begin);
-$('#home-button').addEventListener('click',()=>{sound.pause();active=false;$('#intro').hidden=false;$('#game').inert=true;updateIntro();$('#begin-button').focus();});
+$('#home-button').addEventListener('click',async()=>{
+  entryToken++;
+  active=false;$('#intro').hidden=false;$('#game').inert=true;
+  sound.setMode('menu');
+  const starting=sound.start();updateIntro();$('#begin-button').focus();
+  audioAvailable=await starting;updateMusicControls();
+});
 $('#intro-restart').addEventListener('click',confirmRestart);
 function showHint(){
   const task=missionStatus(state);
@@ -350,7 +417,7 @@ function execute(actionId, direct=false){
     $('#panel-done').textContent='Go to the lower landing';$('#panel-done').dataset.panelAction='continue-lower';$('#panel-done').className='primary-button';
   }
   if(entry.kind==='move'){stage.focus({preventScroll:true});if(compact)window.scrollTo({top:0,behavior:'instant'});}
-  if(state.completed)showEnding();
+  if(state.completed){sound.setMode('report');updateMusicControls();showEnding();}
 }
 document.addEventListener('click',event=>{const action=event.target.closest('[data-action]');if(action){event.preventDefault();execute(action.dataset.action,action.dataset.direct==='true');}});
 
@@ -410,16 +477,21 @@ function showJournal(tab='records'){
 }
 function showSettings(){
   openPanel('EXPEDITION SETTINGS','Make yourself comfortable',`
-    <div class="setting-row"><label for="pref-sound">Sound<small>All recorded information is also available as text.</small></label><input id="pref-sound" type="checkbox" ${preferences.sound?'checked':''}></div>
-    <div class="setting-row"><label for="pref-volume">Volume</label><input id="pref-volume" type="range" min="0" max="1" step=".05" value="${preferences.volume}" aria-label="Sound volume"></div>
+    <div class="setting-row"><label for="pref-sound">All sound<small>Master switch for music and station sounds. All clues are also readable.</small></label><input id="pref-sound" type="checkbox" ${preferences.sound?'checked':''}></div>
+    <div class="setting-row"><label for="pref-volume">Master volume</label><input id="pref-volume" type="range" min="0" max="1" step=".05" value="${preferences.volume}" aria-label="Sound volume"></div>
+    <div class="setting-row"><label for="pref-music">Music<small>The Farwake theme plays on the title screen and after a new recovery. Investigation leaves room for the station and receiver.</small></label><input id="pref-music" type="checkbox" ${preferences.music?'checked':''}></div>
+    <div class="setting-row"><label for="pref-music-volume">Music level</label><input id="pref-music-volume" type="range" min="0" max="1" step=".05" value="${preferences.musicVolume}" aria-label="Music level"></div>
+    <p id="music-status" class="credits" aria-live="polite"></p><button id="music-retry" class="secondary-button" data-panel-action="retry-music" hidden>Retry music</button>
+    <p class="credits">${escape(MENU_THEME.title)}. ${escape(MENU_THEME.credit)}</p>
     <div class="setting-row"><label for="pref-markers">Object markers<small>Direction arrows stay visible. Open Task on phones for every object action.</small></label><input id="pref-markers" type="checkbox" ${preferences.markers?'checked':''}></div>
     <div class="setting-row"><label for="pref-labels">Always show desktop marker labels<small>Phone labels appear on keyboard focus. Open Task or Look closer for the action names.</small></label><input id="pref-labels" type="checkbox" ${preferences.labels?'checked':''}></div>
     <div class="setting-row"><label for="pref-motion">Reduce motion<small>Use immediate transitions between viewpoints.</small></label><input id="pref-motion" type="checkbox" ${preferences.reducedMotion?'checked':''}></div>
     <div class="settings-foot"><button class="secondary-button" data-panel-action="about">About & controls</button><button class="secondary-button" data-panel-action="restart">Start over</button></div>
     <p class="credits">Your progress and settings are saved only in this browser. This game has no accounts, analytics, or online save sync.</p>`);
+  updateMusicControls();
 }
 function showAbout(){
-  openPanel('FARWAKE · LOST EXPEDITIONS','Nightglass',`<div class="panel-copy"><p>${escape(CHAPTER.fiction)}</p><p>A scene-by-scene investigation on Luna. Follow the physical evidence, recover the recorder, and leave a useful warning.</p><p><strong>Controls:</strong> tap an arrow in the scene to move in that direction. Dots mark objects to inspect. On phones, open Task for your assignment, help, and all actions, including List of exits. The magnifier opens Look closer for objects and optional details. Records stay in your notebook. Closing an inspection returns you to the same view.</p><p><strong>Keyboard:</strong> Tab through controls, Enter or Space to activate, J for the notebook, H for help, M to toggle sound, and Escape to close a panel. Left and right keys pan a cropped desktop view.</p><p>Your notebook and progress stay in this browser. You can leave, reload, and continue. Clearing this browser’s site data removes the save.</p><p><strong>Atmosphere:</strong> isolation, an imitated call, and brief implied animal movement. All sound clues are readable. There are no timed reading challenges.</p></div><p class="credits">Created for Christopher Holtsnider’s DailyFlyer project. Original Farwake setting and Nightglass adaptation. Fictional scene artwork generated for this game; it is not authentic lunar photography. Sound is generated locally. Version 0.3.2.</p>`);
+  openPanel('FARWAKE · LOST EXPEDITIONS','Nightglass',`<div class="panel-copy"><p>${escape(CHAPTER.fiction)}</p><p>A scene-by-scene investigation on Luna. Follow the physical evidence, recover the recorder, and leave a useful warning.</p><p><strong>Controls:</strong> tap an arrow in the scene to move in that direction. Dots mark objects to inspect. On phones, open Task for your assignment, help, and all actions, including List of exits. The magnifier opens Look closer for objects and optional details. Records stay in your notebook. Closing an inspection returns you to the same view.</p><p><strong>Keyboard:</strong> Tab through controls, Enter or Space to activate, J for the notebook, H for help, M to toggle sound, and Escape to close a panel. Left and right keys pan a cropped desktop view.</p><p>Your notebook and progress stay in this browser. You can leave, reload, and continue. Clearing this browser’s site data removes the save.</p><p><strong>Atmosphere:</strong> isolation, an imitated call, and brief implied animal movement. All sound clues are readable. There are no timed reading challenges.</p></div><p class="credits">Created for Christopher Holtsnider’s DailyFlyer project. Original Farwake setting and Nightglass adaptation. Fictional scene artwork generated for this game; it is not authentic lunar photography. Station sounds are synthesized locally. The original Farwake menu recording is bundled with this game. ${escape(MENU_THEME.credit)} Version 0.3.3.</p>`);
 }
 function confirmRestart(){
   openPanel('START A NEW RECORD','Restart this expedition?',`<div class="panel-copy"><p>This replaces the Nightglass progress saved in this browser. Your sound and display settings stay as they are.</p></div><div class="inline-buttons"><button class="secondary-button" data-panel-action="close">Keep my progress</button><button class="primary-button" data-panel-action="confirm-restart">Start over</button></div>`);
@@ -430,7 +502,7 @@ function showEnding(){
 }
 function downloadReport(){
   const ending=getEnding(state);if(!ending)return;
-  const report=`FARWAKE: LOST EXPEDITIONS\nNIGHTGLASS — FIELD REPORT\n\n${ending.title}\n${ending.text}\n\n${ending.details.join('\n')}\n\nRECOVERED RECORDS\n\n${RECORD_ORDER.filter(id=>state.records.includes(id)).map(id=>`${RECORDS[id].title}\n${RECORDS[id].source}\n${RECORDS[id].body}`).join('\n\n')}\n\n${CHAPTER.fiction}\nVersion 0.3.2\n`;
+  const report=`FARWAKE: LOST EXPEDITIONS\nNIGHTGLASS — FIELD REPORT\n\n${ending.title}\n${ending.text}\n\n${ending.details.join('\n')}\n\nRECOVERED RECORDS\n\n${RECORD_ORDER.filter(id=>state.records.includes(id)).map(id=>`${RECORDS[id].title}\n${RECORDS[id].source}\n${RECORDS[id].body}`).join('\n\n')}\n\n${CHAPTER.fiction}\nVersion 0.3.3\n`;
   const url=URL.createObjectURL(new Blob([report],{type:'text/plain;charset=utf-8'}));
   const a=document.createElement('a');a.href=url;a.download='nightglass-field-report.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
@@ -458,6 +530,7 @@ panel.addEventListener('click',event=>{
     case 'restart':confirmRestart();break;
     case 'ending':showEnding();break;
     case 'download':downloadReport();break;
+    case 'retry-music':void sound.start().then(updateMusicControls);break;
     case 'confirm-restart':state=initialState();lastScene=null;hintOpen=false;latestFeedback=null;persist();closePanel();begin();break;
   }
 });
@@ -473,14 +546,21 @@ panel.addEventListener('change',async event=>{
   switch(event.target.id){
     case 'pref-sound':preferences.sound=event.target.checked;sound.setEnabled(preferences.sound);if(preferences.sound)audioAvailable=await sound.start();break;
     case 'pref-volume':preferences.volume=Number(event.target.value);break;
+    case 'pref-music':preferences.music=event.target.checked;sound.setMusicEnabled(preferences.music);if(preferences.music)audioAvailable=await sound.start();break;
+    case 'pref-music-volume':preferences.musicVolume=Number(event.target.value);break;
     case 'pref-markers':preferences.markers=event.target.checked;break;
     case 'pref-labels':preferences.labels=event.target.checked;break;
     case 'pref-motion':preferences.reducedMotion=event.target.checked;break;
     default:return;
   }
+  if(['pref-volume','pref-music-volume'].includes(event.target.id)&&preferences.sound&&preferences.music&&preferences.volume>0&&preferences.musicVolume>0)audioAvailable=await sound.start();
   savePreferences();
 });
-panel.addEventListener('input',event=>{if(event.target.id==='pref-volume'){preferences.volume=Number(event.target.value);sound.setVolume(preferences.volume);}});
+panel.addEventListener('input',event=>{
+  if(event.target.id==='pref-volume'){preferences.volume=Number(event.target.value);sound.setVolume(preferences.volume);}
+  if(event.target.id==='pref-music-volume'){preferences.musicVolume=Number(event.target.value);sound.setMusicVolume(preferences.musicVolume);}
+  updateMusicControls();
+});
 document.addEventListener('keydown',async event=>{
   if(!active||panel.open||/INPUT|TEXTAREA|SELECT/.test(event.target.tagName))return;
   if(event.ctrlKey||event.metaKey||event.altKey)return;
@@ -514,8 +594,8 @@ compactMedia.addEventListener('change',event=>{
   fieldControls.open=!compact;
   render();
 });
-document.addEventListener('visibilitychange',()=>{if(document.hidden)sound.pause();else if(active)sound.resume();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)sound.pause();else void sound.resume().then(updateMusicControls);});
 window.addEventListener('pagehide',()=>sound.pause());
-window.addEventListener('pageshow',()=>{if(active)sound.resume();});
+window.addEventListener('pageshow',()=>{void sound.resume().then(updateMusicControls);});
 $('#game').inert=true;
 applyPreferences();updateIntro();render();
