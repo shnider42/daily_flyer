@@ -1719,5 +1719,40 @@
       "note": "Touch and mouse navigation support both devices; a larger screen makes photograph details easier to compare."
     },
     "featureWeight": 2
+  },
+  {
+    "id": "ball-knowledge",
+    "title": "Ball Knowledge",
+    "subtitle": "Every subject. Every second.",
+    "description": "Race the clock through general trivia, from common knowledge to one-of-one deep cuts. Rarer answers earn more points on a shared leaderboard.",
+    "type": "games",
+    "subtype": "Trivia",
+    "tags": [
+      "Trivia",
+      "Quiz",
+      "General knowledge",
+      "Solo",
+      "Leaderboard",
+      "History",
+      "Science",
+      "Music"
+    ],
+    "art": "ball-knowledge",
+    "url": "https://dfe-ball-knowledge.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/ball-knowledge",
+    "createdAt": "2026-11-25",
+    "datePrecision": "day",
+    "dateSource": "First Ball Knowledge build in its DFE project thread; America/New_York calendar date.",
+    "aliases": [
+      "Ball Knowledge",
+      "General Trivia",
+      "Knowledge Quiz"
+    ],
+    "device": {
+      "best": "both",
+      "note": "Quick tap answers on a phone; keyboard shortcuts on desktop. Category practice includes an untimed option."
+    },
+    "featureWeight": 2
   }
 ]

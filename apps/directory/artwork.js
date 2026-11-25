@@ -2,6 +2,7 @@
  * The visible card supplies the accessible name. These covers are decorative.
  */
 export const ART_PALETTES = Object.freeze({
+  'ball-knowledge':{background:'#f7f5ee',foreground:'#17191a',accent:'#db412d'},
   dsl:{background:'#5c6746',foreground:'#f0edd8',accent:'#e58b53'},
   gridiron:{background:'#202631',foreground:'#fff0c8',accent:'#efac32'},
   infierno:{background:'#e8dfc8',foreground:'#26251f',accent:'#ba342e'},
@@ -70,6 +71,15 @@ const jet='M0-108 11-63 16-22 89 38 89 48 19 23 13 78 38 96 37 105 0 93-37 105-3
 const ship='M0-116 19-51 42-15 51 47 21 36 13 90-13 90-21 36-51 47-42-15-19-51Z';
 
 const covers={
+  'ball-knowledge':u=>({
+    body:`${rect(0,0,640,420,'#f7f5ee')}${rect(24,24,592,372,'none','stroke="#17191a" stroke-width="2"')}
+      ${note('EVERY SUBJECT. EVERY SECOND.',43,56,'#17191a',{size:13,spacing:2})}
+      ${type('BALL',38,175,135,'#17191a',{width:340})}${type('KNOWLEDGE',38,265,90,'#17191a',{width:555})}
+      <circle cx="497" cy="130" r="64" fill="#db412d"/><circle cx="497" cy="130" r="51" fill="none" stroke="#f7f5ee" stroke-width="2" stroke-dasharray="2 9"/>
+      ${type('15',497,153,69,'#f7f5ee',{anchor:'middle'})}${line('M43 290H595','#17191a',2)}
+      ${rect(43,313,79,13,'#808980')}${rect(134,313,79,13,'#4e805b')}${rect(225,313,79,13,'#396b9f')}${rect(316,313,79,13,'#815392')}${rect(407,313,79,13,'#b67616')}${rect(498,313,96,13,'#db412d')}
+      ${note('COMMON TO ONE OF ONE',43,363,'#17191a',{size:15,spacing:2})}${paper(u,.08)}`,
+  }),
   dsl:u=>({
     defs:`<pattern id="${u}-hex" width="70" height="60" patternUnits="userSpaceOnUse"><path d="M18 1H52L70 30 52 59H18L0 30Z" fill="none" stroke="#d9d9a9" stroke-width="1"/></pattern>`,
     body:`${rect(0,0,640,420,'#5c6746')}${rect(0,0,640,420,`url(#${u}-hex)`,'opacity=".19"')}${rect(459,0,181,420,'#202e25')}${hatch(u,459,0,181,420,.13)}
