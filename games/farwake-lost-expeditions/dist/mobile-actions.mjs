@@ -36,6 +36,7 @@ export function mobileActions(state, actions) {
     if (action.id === 'check-return' && state.flags.returnChecked) return false;
     if (['power-inspection', 'power-receiver'].includes(action.id) && state.flags.inspectionPowered) return false;
     if (action.id === 'listen-receiver' && state.receiverMode) return false;
+    if (action.id === 'publish-warning' && state.flags.warningPublished) return false;
     return true;
   });
   const hasNewInteraction = interactions.some(action => !action.disabled &&

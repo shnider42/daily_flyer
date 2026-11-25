@@ -1,63 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#101819">
-  <meta name="description" content="Walk through Nightglass, a lunar recovery mystery in the Farwake universe.">
-  <title>Nightglass · 3D exploration</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="stylesheet" href="explore.css?v=0.2.0">
-  <script type="module" src="explore.mjs?v=0.2.0"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101416">
+<meta http-equiv="refresh" content="0;url=index.html">
+<title>Nightglass · Farwake: Lost Expeditions</title>
+<script>location.replace(new URL('index.html', location.href).href);</script>
+<style>body{margin:0;background:#101416;color:#e3e5dc;font:18px/1.6 Georgia,serif;padding:10vh 7vw}a{color:#b4cfab}</style>
 </head>
-<body>
-  <main id="expedition" aria-label="Nightglass 3D expedition">
-    <canvas id="world" aria-label="Three-dimensional view of Nightglass. Drag to look, tap the floor to walk. Room actions are also available using the Nearby button." tabindex="0"></canvas>
-    <div class="vignette" aria-hidden="true"></div>
-    <header class="world-header">
-      <a href="index.html" class="icon-button" aria-label="Return to expedition versions">←</a>
-      <div class="location"><span>NIGHTGLASS <small>3D PREVIEW</small></span><h1 id="location-title">The approach</h1></div>
-      <button id="notebook-button" class="quiet-button">Notebook</button>
-      <button id="menu-button" class="icon-button" aria-label="Open controls and settings">☰</button>
-    </header>
-    <section class="mission-hud" aria-label="Current task">
-      <button id="assignment-button" aria-label="Review your mission goals"><span id="mission-phase">RECOVER THE RECORDER</span><span aria-hidden="true">↗</span></button>
-      <h2 id="task-title">Enter the airlock</h2>
-      <p id="task-text">The field recorder is inside the station.</p>
-    </section>
-    <p id="controls-tip">Drag to look · Tap the floor to walk</p>
-    <div class="crosshair" aria-hidden="true"></div>
-    <div class="world-bottom">
-      <p id="feedback" role="status" hidden></p>
-      <nav class="movement-controls" aria-label="Movement and interaction">
-        <button id="walk-button" aria-label="Hold to walk forward"><span aria-hidden="true">↑</span><small>Hold to walk</small></button>
-        <button id="interact-button" disabled><span id="interact-label">Look toward an object</span><small id="interact-detail">Or tap Nearby for room actions</small></button>
-        <button id="nearby-button"><span aria-hidden="true">⌖</span><small>Nearby</small></button>
-      </nav>
-      <p id="save-notice">Progress saved on this device</p>
-    </div>
-  </main>
-
-  <section id="start-screen" aria-label="Recovery briefing">
-    <div class="start-art" aria-hidden="true"></div>
-    <div class="start-content">
-      <p class="eyebrow">FARWAKE · LOST EXPEDITIONS</p>
-      <p class="case-number">01 / LUNA</p>
-      <h1>Nightglass</h1>
-      <p class="start-deck">The call is still repeating.</p>
-      <p class="start-copy">You are a recovery operator at a deserted survey station on the Moon. The earlier crew never logged its departure. Its field recorder is still inside.</p>
-      <ol class="assignment-steps"><li>Recover the field recorder.</li><li>Send a warning from the surface beacon.</li><li>Return to the airlock to finish the recovery.</li></ol>
-      <div class="start-actions"><button id="begin-button" class="primary-button" disabled>Preparing the station…</button><a href="index.html" class="text-link">Snapshot version</a></div>
-      <p id="start-controls" class="start-note">Drag to look. Tap the floor or a doorway to walk.<br>Tap equipment to inspect it. All sound clues are readable.</p>
-      <p class="preview-note">3D movement preview · Version 0.2.0</p>
-    </div>
-  </section>
-
-  <dialog id="panel" aria-labelledby="panel-title">
-    <header class="panel-header"><div><p id="panel-kicker" class="eyebrow">FIELD NOTEBOOK</p><h2 id="panel-title">Your records</h2></div><button id="close-panel" class="quiet-button" aria-label="Close panel">Close</button></header>
-    <div id="panel-body"></div>
-    <footer class="panel-footer"><button id="panel-done" class="primary-button">Back to the station</button></footer>
-  </dialog>
-  <noscript><p class="fatal">Nightglass needs JavaScript. <a href="index.html">Return to the expedition menu.</a></p></noscript>
-</body>
+<body><h1>Nightglass</h1><p><a href="index.html">Continue your expedition</a></p></body>
 </html>

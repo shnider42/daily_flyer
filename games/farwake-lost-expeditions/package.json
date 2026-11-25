@@ -1,10 +1,10 @@
 {
   "name": "farwake-lost-expeditions",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check dist/app.mjs && node --check dist/explore.mjs && node --check dist/world3d.mjs && node --check dist/software3d.mjs && node --check dist/world-layout.mjs && node --check dist/mission.mjs && node --check dist/audio.mjs && node --check dist/state.mjs && node --check dist/content.mjs && node --check dist/mobile-actions.mjs"
+    "check": "node --check dist/app.mjs && node --check dist/investigation.mjs && node --check dist/explore.mjs && node --check dist/world3d.mjs && node --check dist/software3d.mjs && node --check dist/world-layout.mjs && node --check dist/mission.mjs && node --check dist/audio.mjs && node --check dist/state.mjs && node --check dist/content.mjs && node --check dist/mobile-actions.mjs"
   }
 }

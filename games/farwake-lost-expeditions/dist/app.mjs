@@ -3,6 +3,7 @@ import { initialState, hydrateState, perform, availableActions, getEnding, scene
 import { NightglassAudio } from './audio.mjs';
 import { mobileActions, mobileLabel } from './mobile-actions.mjs';
 import { missionStatus, MISSION_BRIEF } from './mission.mjs';
+import { sceneObservations, sceneObservationLead, evidenceCards, EVIDENCE_QUESTIONS, assessEvidence } from './investigation.mjs';
 
 const SAVE_KEY = 'farwake.lost-expeditions.nightglass.v1';
 const PREF_KEY = 'farwake.lost-expeditions.preferences.v1';
@@ -16,7 +17,7 @@ const preferences = {
   sound: typeof rawPrefs.sound === 'boolean' ? rawPrefs.sound : true,
   volume: Number.isFinite(rawPrefs.volume) ? Math.max(0, Math.min(1, rawPrefs.volume)) : 0.5,
   markers: typeof rawPrefs.markers === 'boolean' ? rawPrefs.markers : true,
-  labels: rawPrefs.labels === true,
+  labels: typeof rawPrefs.labels === 'boolean' ? rawPrefs.labels : true,
   reducedMotion: typeof rawPrefs.reducedMotion === 'boolean' ? rawPrefs.reducedMotion : matchMedia('(prefers-reduced-motion: reduce)').matches
 };
 const sound = new NightglassAudio({ enabled: preferences.sound, volume: preferences.volume });
@@ -48,8 +49,8 @@ const ANCHORS = {
   'power-inspection':[48,51], 'power-receiver':[69,48],
   'listen-receiver':[24,47], 'inspect-cable':[39,42],
   'compare-signal':[54,40], 'mute-receiver':[24,51],
-  'redirect-receiver':[71,43], 'recover-recorder':[65,62],
-  'publish-warning':[14,38], 'finish':[50,45]
+  'redirect-receiver':[71,43], 'recover-recorder':[65,59],
+  'publish-warning':[48,54], 'finish':[50,45]
 };
 
 function hasProgress(){ return state.moves > 0 || state.records.length > 0 || state.completed; }
@@ -71,8 +72,7 @@ function applyPreferences(){
   $('#sound-status').textContent=!preferences.sound?'Sound off · all clues remain readable':!audioAvailable?'Audio unavailable · written clues active':'Sound on · captions included';
 }
 function updateIntro(){
-  $('#begin-button').textContent=state.completed?'Review snapshot version':hasProgress()?'Continue snapshot version':'Play snapshot version';
-  $('#explore-link').textContent=hasProgress()?'Continue in 3D':'Explore in 3D';
+  $('#begin-button').textContent=state.completed?'Read your expedition report':hasProgress()?'Continue expedition':'Begin expedition';
   $('#intro-restart').hidden=!hasProgress();
 }
 function toast(message){
@@ -84,7 +84,7 @@ function caption(message,duration=6500){
   latestFeedback=message?{message,expanded:false}:null;
   renderFeedback();
   clearTimeout(captionTimer); $('#scene-caption').textContent=message || '';
-  if(message) captionTimer=setTimeout(()=>{$('#scene-caption').textContent='';},duration);
+  if(message) captionTimer=setTimeout(()=>{$('#scene-caption').textContent='';latestFeedback=null;renderFeedback();},duration);
 }
 function renderFeedback(){
   const el=$('#mobile-feedback');
@@ -93,6 +93,7 @@ function renderFeedback(){
 }
 function openPanel(kicker,title,html){
   if(!panel.open)panelReturn=document.activeElement;
+  latestFeedback=null;renderFeedback();clearTimeout(captionTimer);$('#scene-caption').textContent='';
   $('#panel-kicker').textContent=kicker;
   $('#panel-title').textContent=title;
   $('#panel-body').innerHTML=html;
@@ -100,6 +101,10 @@ function openPanel(kicker,title,html){
   panel.scrollTop=0;
   $('#panel-body').scrollTop=0;
   $('#panel-done').textContent=active?`Back to ${SCENES[state.scene].title.toLowerCase()}`:'Close';
+  $('#panel-done').dataset.panelAction='close';
+  $('#panel-done').className='secondary-button';
+  $('#panel-title').tabIndex=-1;
+  $('#panel-title').focus({preventScroll:true});
 }
 function closePanel(){ panel.close(); }
 panel.addEventListener('close',()=>{
@@ -107,26 +112,28 @@ panel.addEventListener('close',()=>{
   else if(active)stage.focus({preventScroll:true});
 });
 $('#close-panel').addEventListener('click',closePanel);
-$('#panel-done').addEventListener('click',closePanel);
 panel.addEventListener('click',event=>{if(event.target===panel){const b=panel.getBoundingClientRect();if(event.clientX<b.left||event.clientX>b.right||event.clientY<b.top||event.clientY>b.bottom)closePanel();}});
 
 function positionScene(){
   const rect=stage.getBoundingClientRect();
   if(!rect.width||!rect.height)return;
   const iw=image.naturalWidth||1672, ih=image.naturalHeight||941;
-  const frame=state.scene==='lower'?{zoom:2.1,x:.65,y:.62}:state.scene==='beacon'?{zoom:2.7,x:.15,y:.38}:null;
-  const scale=(compact&&!frame?Math.min:Math.max)(rect.width/iw,rect.height/ih)*(frame?.zoom||1);
+  const scale=(compact?Math.min:Math.max)(rect.width/iw,rect.height/ih);
   const width=iw*scale,height=ih*scale;
   const maxPan=Math.max(0,(width-rect.width)/2);
   pan=Math.max(-maxPan,Math.min(maxPan,pan));
-  const left=frame?Math.min(0,Math.max(rect.width-width,rect.width/2-width*frame.x)):(rect.width-width)/2+pan;
-  const top=frame?Math.min(0,Math.max(rect.height-height,rect.height/2-height*frame.y)):(rect.height-height)/2;
+  const left=(rect.width-width)/2+pan;
+  const top=(rect.height-height)/2;
   Object.assign(image.style,{width:`${width}px`,height:`${height}px`,left:`${left}px`,top:`${top}px`});
   geometry={width,height,left,top,maxPan};
+  const occupied=[];
   for(const el of $('#scene-hotspots').children){
     const x=Number(el.dataset.x)/100*width+left,y=Number(el.dataset.y)/100*height+top;
     el.style.left=`${x}px`;el.style.top=`${y}px`;
-    el.hidden=x<22||x>rect.width-22||y<(compact?58:75)||y>rect.height-(compact?28:35);
+    el.classList.toggle('label-below',compact?y<rect.height*.55:['listen-receiver','power-receiver'].includes(el.dataset.action));
+    const crowded=compact&&occupied.some(point=>Math.abs(x-point.x)<112&&Math.abs(y-point.y)<64);
+    el.hidden=x<24||x>rect.width-24||y<(compact?67:75)||y>rect.height-(compact?40:35)||crowded;
+    if(!el.hidden)occupied.push({x,y});
   }
   $('#view-instruction').textContent=state.completed?'Recovery complete · review your notebook':maxPan>20?'Drag to look · select a marker to explore':currentActions.some(a=>a.kind!=='move'&&!a.disabled)?'Select an object · routes are below':'Choose a route below';
 }
@@ -147,8 +154,7 @@ function actionButton(action,hotspot=false){
     button.className=`action-button ${action.kind}`;
     if(compact){
       const lock=action.disabled?'<span class="action-lock" aria-hidden="true">◇</span>':'';
-      const arrow=action.kind==='move'&&!action.disabled?'<span class="route-arrow" aria-hidden="true">→</span>':'';
-      button.innerHTML=`<span class="action-label">${lock}${escape(action.label)}${arrow}</span>${action.disabled&&action.reason?`<small>${escape(action.reason)}</small>`:''}`;
+      button.innerHTML=`<span class="action-label">${lock}${escape(action.label)}</span>${action.disabled?'<small>Tap to see what’s needed</small>':''}`;
     }else button.textContent=action.label;
     if(action.disabled)button.title=action.reason||'Inspect the nearby evidence first.';
   }
@@ -159,16 +165,21 @@ function renderActions(){
   const touch=mobileActions(state,currentActions);
   const interactions=$('#interactions'),routes=$('#routes'),hotspots=$('#scene-hotspots');
   interactions.replaceChildren();routes.replaceChildren();hotspots.replaceChildren();
-  const mobileInteractions=state.flags.signalCompared?[...touch.interactions].sort((a,b)=>Number(a.id==='listen-receiver')-Number(b.id==='listen-receiver')):touch.interactions;
-  const presented=compact?[...mobileInteractions,...touch.routes]:currentActions;
-  const hotspotIds=new Set((compact?touch.hotspots:currentActions.filter(a=>a.kind!=='move'&&!a.disabled&&!(a.id==='listen-receiver'&&currentActions.some(x=>x.id==='mute-receiver')))).map(a=>a.id));
+  const task=missionStatus(state);
+  const next=currentActions.find(a=>a.id===task.nextActionId&&!a.disabled);
+  const primary=$('#primary-action');
+  primary.hidden=!next&&!state.completed;
+  primary.textContent=state.completed?'Read your expedition report':next?.label||'';
+  if(next)primary.dataset.action=next.id;else delete primary.dataset.action;
+  const presented=[...touch.interactions,...touch.routes];
+  const physical=touch.hotspots.filter(a=>!['read-dispatch','compare-signal','finish'].includes(a.id)).sort((a,b)=>Number(b.id===task.nextActionId)-Number(a.id===task.nextActionId));
+  const hotspotIds=new Set((compact?physical.slice(0,2):physical).map(a=>a.id));
   for(const action of presented){
-    (action.kind==='move'?routes:interactions).append(actionButton(action));
-    if(hotspotIds.has(action.id)&&!['read-dispatch','compare-signal','finish'].includes(action.id))hotspots.append(actionButton(action,true));
+    if(action.id!==next?.id)(action.kind==='move'?routes:interactions).append(actionButton(action));
   }
+  for(const action of physical)if(hotspotIds.has(action.id))hotspots.append(actionButton(action,true));
   $('.inspection-group').hidden=!interactions.children.length;
   $('.route-group').hidden=!routes.children.length;
-  const task=missionStatus(state);
   for(const el of document.querySelectorAll('.action-button'))el.classList.toggle('suggested',el.dataset.action===task.nextActionId);
   positionScene();
 }
@@ -181,9 +192,15 @@ function render(){
   $('#record-count').textContent=state.records.length;
   $('#journal-button').setAttribute('aria-label',`Open field notebook · ${state.records.length} records`);
   const task=missionStatus(state);
-  $('#objective-title').textContent=task.title;$('#objective-text').textContent=task.text;
+  const phases={recover:'Recover the field recorder',warn:'Warn the next crew',return:'Return to the airlock',complete:'Recovery complete'};
+  $('#objective-phase').textContent=task.phase==='complete'?'EXPEDITION RECORD':'YOUR ASSIGNMENT';
+  $('#objective-title').textContent=state.flags.signalCompared&&!state.receiverMode?'Control the repeated call':phases[task.phase];
+  $('#objective-text').textContent=task.nextScene!==state.scene&&task.nextScene!==task.destination
+    ? `Continue through ${SCENES[task.nextScene].title.toLowerCase().replace(/^(?!the )/,'the ')} to ${SCENES[task.destination].title.toLowerCase().replace(/^(?!the )/,'the ')}.`
+    : task.text;
+  $('#scene-observation').textContent=sceneObservationLead(state);
   $('#hint-box').textContent=task.hint;$('#hint-box').hidden=!hintOpen;
-  $('#hint-button').textContent='Assignment';
+  $('#hint-button').textContent='Help';
   document.body.classList.toggle('inspection-on',!!state.flags.inspectionPowered&&['junction','service','shaft','lower'].includes(state.scene));
   $('#scene-status').textContent=state.completed?'EXPEDITION RECOVERED':state.receiverMode==='mute'?'RECEIVER ISOLATED':state.receiverMode==='redirect'?'RETURN ROUTE LIT':'RETURN ROUTE AVAILABLE';
   renderActions();
@@ -197,7 +214,7 @@ function render(){
     preload.onerror=()=>{if(token!==sceneToken)return;stage.classList.remove('changing');$('#scene-loading').hidden=true;toast('This view could not load. Your progress is safe; reload to try again.');};
     preload.src=source;
     setTimeout(()=>{if(token===sceneToken&&!preload.complete)$('#scene-loading').hidden=false;},400);
-    if(compact){latestFeedback=null;renderFeedback();}else caption(sceneDescription(state),7500);
+    latestFeedback=null;renderFeedback();$('#scene-caption').textContent='';
   }
   updateIntro();
 }
@@ -213,18 +230,25 @@ $('#home-button').addEventListener('click',()=>{sound.pause();active=false;$('#i
 $('#intro-restart').addEventListener('click',confirmRestart);
 function showHint(){
   const task=missionStatus(state);
-  openPanel('YOUR ASSIGNMENT','Bring back the record',`<div class="panel-copy"><p>${escape(MISSION_BRIEF)}</p><h3>${escape(task.title)}</h3><p>${escape(task.text)}</p><p>${escape(task.hint)}</p></div>`);
+  openPanel('YOUR ASSIGNMENT','Bring back the record',`<ol class="mission-steps">${task.steps.map(step=>`<li class="${step.done?'done':step.current?'current':''}">${escape(step.label)}${step.done?' · done':''}</li>`).join('')}</ol><div class="panel-copy"><p>${escape(MISSION_BRIEF)}</p><h3>${escape(task.title)}</h3><p>${escape(task.text)}</p><details class="optional-hint"><summary>Show me a more specific lead</summary><p>${escape(task.hint)}</p></details></div>`);
 }
 $('#hint-button').addEventListener('click',showHint);
 $('#settings-button').addEventListener('click',showSettings);
 $('#journal-button').addEventListener('click',()=>showJournal());
 $('#about-button').addEventListener('click',showAbout);
+$('#look-closer').addEventListener('click',showSceneDetails);
+$('#primary-action').addEventListener('click',()=>{if(state.completed)showEnding();});
 
-function execute(actionId){
+function execute(actionId, direct=false){
   if(!active||state.completed)return;
   const entry=currentActions.find(a=>a.id===actionId);
   if(!entry)return;
-  if(entry.disabled){caption(entry.reason||'Inspect the nearby evidence first.');return;}
+  if(!direct&&actionId==='compare-signal'){showEvidence();return;}
+  if(entry.disabled){openPanel('NOT YET AVAILABLE',entry.label,`<div class="panel-copy"><p>${escape(entry.reason||'Inspect the nearby evidence first.')}</p></div>`);return;}
+  if(!direct&&['power-inspection','power-receiver'].includes(actionId)){showServicePanel();return;}
+  if(!direct&&['mute-receiver','redirect-receiver'].includes(actionId)){showReceiverControls();return;}
+  if(!direct&&actionId==='publish-warning'){showBeacon();return;}
+  if(entry.kind==='move'&&panel.open)closePanel();
   const result=perform(state,actionId);
   state=result.state;
   if(entry.kind==='move'){hintOpen=false;latestFeedback=null;}
@@ -232,28 +256,69 @@ function execute(actionId){
   if(result.event)sound.cue(result.event);
   if(result.record)showRecord(result.record);
   else if(result.message&&!(compact&&entry.kind==='move'))caption(result.message,result.event==='redirect'?9500:6500);
+  if(actionId==='open-panel')showServicePanel();
+  if(actionId==='listen-receiver')openPanel('LISTENING TRANSCRIPT','The repeated call',`<div class="panel-copy"><p>${escape(result.message)}</p></div><p class="record-takeaway">Your listening is saved with the evidence. Compare it with the survey log and the marks on the cable.</p><button class="secondary-button" data-action="listen-receiver">Listen again</button>`);
+  if(actionId==='check-return')openPanel('THE WAY BACK','The green return supply',`<div class="panel-copy"><p>${escape(result.message)}</p></div><p class="record-takeaway">The green lamps remain your route back to the airlock.</p>`);
+  if(['mute-receiver','redirect-receiver'].includes(actionId)){
+    openPanel('AT THE RECEIVER',actionId==='mute-receiver'?'The call falls silent':'Something follows the call',`<div class="panel-copy"><p>${escape(result.message)}</p></div><p class="record-takeaway">The lower landing is clear. You can recover the recorder and return along the green lamps.</p>`);
+    $('#panel-done').textContent='Go to the lower landing';$('#panel-done').dataset.panelAction='continue-lower';$('#panel-done').className='primary-button';
+  }
   if(entry.kind==='move'&&compact)window.scrollTo({top:0,behavior:'instant'});
   if(state.completed)showEnding();
 }
-document.addEventListener('click',event=>{const action=event.target.closest('[data-action]');if(action){event.preventDefault();execute(action.dataset.action);}});
+document.addEventListener('click',event=>{const action=event.target.closest('[data-action]');if(action){event.preventDefault();execute(action.dataset.action,action.dataset.direct==='true');}});
+
+function sceneDetailImage(title,anchor=[50,50]){
+  return `<div class="inspection-visual" role="img" aria-label="${escape(title)} in ${escape(SCENES[state.scene].title.toLowerCase())}" style="background-image:url('assets/${SCENES[state.scene].image}.webp');background-size:180%;background-position:${anchor[0]}% ${anchor[1]}%"></div>`;
+}
+function showSceneDetails(){
+  const details=sceneObservations(state);
+  const objects=mobileActions(state,currentActions).interactions.filter(a=>!a.disabled);
+  openPanel('LOOK CLOSER',SCENES[state.scene].title,`<div class="panel-copy"><p>${escape(sceneDescription(state))}</p></div>${objects.length?`<h3 class="inspection-subtitle">Equipment & records</h3><div class="record-list">${objects.map(a=>`<button class="record-entry" data-action="${escape(a.id)}"><span><strong>${escape(a.label)}</strong><small>${a.record?'Read and keep in your notebook':'Inspect the equipment'}</small></span></button>`).join('')}</div>`:''}<h3 class="inspection-subtitle">Take a moment</h3><div class="record-list">${details.map(item=>`<button class="record-entry" data-observation="${escape(item.id)}"><span><strong>${escape(item.title)}</strong><small>Optional observation</small></span></button>`).join('')}</div>`);
+}
+function showObservation(id){
+  const item=sceneObservations(state).find(detail=>detail.id===id);if(!item)return;
+  openPanel('A CLOSER LOOK',item.title,`${sceneDetailImage(item.title,item.anchor)}<div class="panel-copy"><p>${escape(item.body)}</p></div><button class="secondary-button" data-panel-action="scene-details">Other details in this view</button>`);
+}
+function showServicePanel(feedback=''){
+  const f=state.flags;
+  openPanel('SERVICE BAY','The service panel',`<div class="panel-copy"><p>Two switched circuits sit below a separate green return cable.</p></div><div class="circuit-panel" aria-label="Service panel circuits"><div class="circuit-row circuit-return"><div><strong>RETURN</strong><small>Independent cell · route lamps</small></div><span class="circuit-status">ON · leave connected</span></div><button class="circuit-row ${f.inspectionPowered?'circuit-on':''}" data-panel-action="circuit-inspection" ${f.inspectionPowered?'disabled':''}><span><strong>INSPECTION</strong><small>Shaft and lower landing</small></span><span class="circuit-status">${f.inspectionPowered?'ON':'OFF · switch on'}</span></button><button class="circuit-row" data-panel-action="circuit-receiver" ${f.inspectionPowered?'disabled':''}><span><strong>RECEIVER</strong><small>Pickup and playback</small></span><span class="circuit-status">${f.inspectionPowered?'Already powered':'ON · test supply'}</span></button></div>${feedback?`<p class="puzzle-feedback" role="status">${escape(feedback)}</p>`:''}${!state.records.includes('maintenance')?'<p class="panel-copy">Read the maintenance card to identify the circuit before switching it.</p><button class="secondary-button" data-action="read-maintenance">Read the maintenance card</button>':`<p class="record-takeaway">${f.inspectionPowered?'The shaft is lit. Your green return lamps are still on.':'The card identifies INSPECTION as the supply for the lamps. The receiver already has power.'}</p>`}`);
+}
+function showEvidence(){
+  const cards=evidenceCards(state),assessment=assessEvidence(state,{});
+  openPanel('AT THE RECEIVER','Put the clues together',`<div class="panel-copy"><p>Use what you found to decide what the call means and how to keep your way back.</p></div><details class="evidence-cards" ${assessment.ready?'':'open'}><summary>Your evidence · ${cards.length} of 4 clues</summary>${cards.map(card=>`<article><h3>${escape(card.title)}</h3><p>${escape(card.text)}</p></article>`).join('')}${state.records.includes('maintenance')?'<p class="record-takeaway">Maintenance card: the green RETURN lamps have an independent supply.</p>':''}</details>${assessment.ready?`<form id="evidence-form">${EVIDENCE_QUESTIONS.map(q=>`<fieldset class="evidence-question"><legend>${escape(q.prompt)}</legend>${q.options.map(option=>`<label class="evidence-option"><input type="radio" name="${q.id}" value="${option.id}"><span>${escape(option.label)}</span></label>`).join('')}</fieldset>`).join('')}<p id="puzzle-feedback" class="puzzle-feedback" role="status" hidden></p></form>`:`<p class="puzzle-feedback">${escape(assessment.feedback)}</p><p class="panel-copy">Your notes will be here when you return.</p>`}`);
+  if(assessment.ready){$('#panel-done').textContent='Check my reasoning';$('#panel-done').dataset.panelAction='check-evidence';$('#panel-done').className='primary-button';}
+}
+function showReceiverControls(){
+  if(!state.flags.signalCompared||state.receiverMode)return;
+  openPanel('THE REPEATED CALL','Choose what happens to it',`<div class="panel-copy"><p>The clipped ending matches the damaged survey call. The green exit lamps have their own supply.</p><p>Either control clears your route to the recorder. Choose what you want to do with the sound.</p></div><div class="receiver-choices"><button class="record-entry" data-panel-action="receiver-mute"><span><strong>Mute the receiver</strong><small>Stop the playback here. The return lights stay on.</small></span></button><button class="record-entry" data-panel-action="receiver-redirect"><span><strong>Redirect into the side shaft</strong><small>Send the playback away from your recovery route. Keep the return lights on.</small></span></button></div>`);
+}
+function showBeacon(){
+  openPanel('SURFACE BEACON','Leave a useful warning',`<p class="record-meta">REPLACE: CLEAR SURVEY ACCESS</p><div class="warning-draft"><h3>Your field warning</h3><p>Repeated survey call. The recovered recording describes an animal imitating it. Do not use the voice as a route marker.</p><p>${state.receiverMode==='mute'?'The receiver is muted.':'The playback has been redirected into the side shaft.'} Follow the independent green lamps back to the airlock.</p><p>The earlier crew’s later movements are unconfirmed.</p><small>Attachment: recovered field recording</small></div>`);
+  $('#panel-done').textContent='Transmit this warning';$('#panel-done').dataset.panelAction='transmit-warning';$('#panel-done').className='primary-button';
+}
 
 function recordPhoto(record){
-  return record.kind==='photo'?`<div class="reference-notes"><p class="eyebrow">ANNOTATIONS ON THE SURVEY PHOTOGRAPH</p><p>Receiver → central passage<br>White lead → listening input<br>Side-shaft socket → capped<br>Green exit cable → separate supply</p></div>`:'';
+  return record.kind==='photo'?`<div class="wiring-sketch"><p class="eyebrow">COPIED FROM THE CREW’S ANNOTATIONS</p><div class="sketch-wire green"><strong>GREEN RETURN CABLE</strong><span>Independent cell · exit lamps</span></div><div class="sketch-wire white"><strong>WHITE LISTENING LEAD</strong><span>Receiver · central passage</span></div><div class="sketch-wire capped"><strong>SIDE-SHAFT SOCKET</strong><span>Capped before the last shift</span></div></div>`:'';
 }
 function showRecord(id){
   if(!state.records.includes(id)||!RECORDS[id])return;
   const record=RECORDS[id];
   const photograph=recordPhoto(record);
-  openPanel(record.kind==='audio'?'RECOVERED TRANSCRIPT':record.kind==='photo'?'REFERENCE PHOTOGRAPH':'PHYSICAL RECORD',record.title,`${photograph}<p class="record-meta">${escape(record.source)}</p><div class="panel-copy"><p>${escape(record.body)}</p></div><div class="inline-buttons"><button class="secondary-button" data-panel-action="back-journal">All records</button></div>`);
+  const takeaways={dispatch:'Recover the recorder, warn the next crew, and return to the airlock.',photograph:'You have a reference for the receiver’s original wiring.',survey_log:'Listen for the same clipped ending when you reach the receiver.',maintenance:'Restore INSPECTION while keeping the green return supply connected.',cable_marks:'Compare the moved lead with the reference notes and the repeated call.',field_recorder:'You can now replace the beacon’s old clearance with a supported warning.'};
+  openPanel(record.kind==='audio'?'RECOVERED TRANSCRIPT':record.kind==='photo'?'REFERENCE NOTES':'PHYSICAL RECORD',record.title,`${photograph}<p class="record-meta">${escape(record.source)}</p><div class="panel-copy"><p>${escape(record.body)}</p></div><p class="record-takeaway">${escape(takeaways[id])}</p><div class="inline-buttons"><button class="secondary-button" data-panel-action="back-journal">All records</button></div>`);
 }
 function showJournal(tab='records'){
   const tabs=`<div class="notebook-tabs"><button data-panel-action="journal-records" class="${tab==='records'?'active':''}">Records (${state.records.length})</button><button data-panel-action="journal-route" class="${tab==='route'?'active':''}">Your route</button></div>`;
   let body;
   if(tab==='route'){
-    body=`<div class="panel-copy"><p>The route stays where you left it. Return through the service junction to reach the airlock.</p></div><div class="route-map">${Object.values(SCENES).map(scene=>`<div class="route-node ${state.scene===scene.id?'current':''} ${!state.visited.includes(scene.id)?'unknown':''}">${state.visited.includes(scene.id)?escape(scene.title):'Unvisited'}<small>${state.scene===scene.id?'You are here':state.visited.includes(scene.id)?'Previously visited':'Not yet recorded'}</small></div>`).join('')}</div>`;
+    const links={approach:['airlock','beacon'],airlock:['approach','junction'],junction:['airlock','survey','service','shaft'],survey:['junction'],service:['junction'],shaft:['junction','lower'],lower:['shaft'],beacon:['approach']};
+    const returns={approach:['approach','airlock'],airlock:['airlock'],junction:['junction','airlock'],survey:['survey','junction','airlock'],service:['service','junction','airlock'],shaft:['shaft','junction','airlock'],lower:['lower','shaft','junction','airlock'],beacon:['beacon','approach','airlock']};
+    const exits=currentActions.filter(a=>a.kind==='move'&&!a.disabled);
+    body=`<p class="record-meta">YOU ARE AT ${escape(SCENES[state.scene].title.toUpperCase())}</p><div class="connected-route"><strong>Your way back</strong><ol class="return-path">${returns[state.scene].map(id=>`<li>${escape(SCENES[id].title)}</li>`).join('')}</ol></div>${exits.length?`<h3 class="inspection-subtitle">From here</h3><div class="action-list">${exits.map(a=>`<button class="action-button" data-action="${a.id}">${escape(a.label)}</button>`).join('')}</div>`:''}<h3 class="inspection-subtitle">Places you have visited</h3><div class="route-map">${state.visited.map(id=>`<div class="route-node ${state.scene===id?'current':''}">${escape(SCENES[id].title)}<small>${links[id].filter(link=>state.visited.includes(link)).map(link=>escape(SCENES[link].title)).join(' · ')||'No further route recorded'}</small></div>`).join('')}</div>`;
   }else{
     const ids=RECORD_ORDER.filter(id=>state.records.includes(id));
-    body=ids.length?`<div class="record-list">${ids.map(id=>`<button class="record-entry" data-record="${id}"><span><strong>${escape(RECORDS[id].title)}</strong><small>${escape(RECORDS[id].source)}</small></span><span aria-hidden="true">＋</span></button>`).join('')}</div>`:'<div class="panel-copy"><p>Your notebook is empty. Read the field dispatch at the approach, then look for photographs and records inside.</p></div>';
+    body=ids.length?`<div class="record-list">${ids.map(id=>`<button class="record-entry" data-record="${id}"><span><strong>${escape(RECORDS[id].title)}</strong><small>${escape(RECORDS[id].source)}</small></span><span aria-hidden="true">＋</span></button>`).join('')}</div>`:'<div class="panel-copy"><p>Your notebook is empty. Enter the airlock and visit the survey room to find the crew’s reference notes and log. The dispatch at the entrance is optional.</p></div>';
   }
   openPanel(CHAPTER.archive.toUpperCase(),'Field notebook',tabs+body+(state.completed?'<div class="inline-buttons"><button class="primary-button" data-panel-action="ending">View expedition report</button></div>':''));
 }
@@ -262,13 +327,13 @@ function showSettings(){
     <div class="setting-row"><label for="pref-sound">Sound<small>All recorded information is also available as text.</small></label><input id="pref-sound" type="checkbox" ${preferences.sound?'checked':''}></div>
     <div class="setting-row"><label for="pref-volume">Volume</label><input id="pref-volume" type="range" min="0" max="1" step=".05" value="${preferences.volume}" aria-label="Sound volume"></div>
     <div class="setting-row"><label for="pref-markers">Scene markers<small>Available actions always remain below the view.</small></label><input id="pref-markers" type="checkbox" ${preferences.markers?'checked':''}></div>
-    <div class="setting-row"><label for="pref-labels">Always show marker labels<small>Helpful when learning the controls.</small></label><input id="pref-labels" type="checkbox" ${preferences.labels?'checked':''}></div>
+    <div class="setting-row"><label for="pref-labels">Always show desktop marker labels<small>Phone markers always show their short names. Every action also has a text button.</small></label><input id="pref-labels" type="checkbox" ${preferences.labels?'checked':''}></div>
     <div class="setting-row"><label for="pref-motion">Reduce motion<small>Use immediate transitions between viewpoints.</small></label><input id="pref-motion" type="checkbox" ${preferences.reducedMotion?'checked':''}></div>
     <div class="settings-foot"><button class="secondary-button" data-panel-action="about">About & controls</button><button class="secondary-button" data-panel-action="restart">Start over</button></div>
     <p class="credits">Your progress and settings are saved only in this browser. This game has no accounts, analytics, or online save sync.</p>`);
 }
 function showAbout(){
-  openPanel('FARWAKE · LOST EXPEDITIONS','Nightglass',`<div class="panel-copy"><p>${escape(CHAPTER.fiction)}</p><p>A complete first case in a planned collection of expedition mysteries. You are a recovery operator on Luna. Follow the physical evidence, recover the recorder, and leave a useful warning.</p><p><strong>Snapshot controls:</strong> select an object or one of the actions and exits below the picture. Records open in a notebook sheet; closing it returns to the same room. Desktop views can be dragged sideways when cropped.</p><p><strong>3D preview:</strong> a connected, walkable version of the same station is available from the expedition menu. Both views use your progress on this device.</p><p><strong>Keyboard:</strong> Tab through controls, Enter or Space to activate, J for the notebook, H for a lead, M to toggle sound, and Escape to close a panel. Left and right keys pan the view.</p><p>The field notebook preserves every record you read. You can leave, reload, and continue. Clearing this browser’s site data removes the save.</p><p><strong>Atmosphere:</strong> isolation, an imitated call, and brief implied animal movement. There are no flashing jump scares, death loops, or timed reading challenges.</p></div><p class="credits">Created for Christopher Holtsnider’s DailyFlyer project. Original Farwake setting and Nightglass adaptation. Fictional scene artwork generated for this game; it is not authentic lunar photography. Sound is generated locally. Version 0.2.0.</p><div class="inline-buttons"><button class="primary-button" data-panel-action="close">Close</button></div>`);
+  openPanel('FARWAKE · LOST EXPEDITIONS','Nightglass',`<div class="panel-copy"><p>${escape(CHAPTER.fiction)}</p><p>A scene-by-scene investigation on Luna. Follow the physical evidence, recover the recorder, and leave a useful warning.</p><p><strong>Controls:</strong> tap a labelled object or use its text button. Named exits take you between scenes. Look closer reveals optional details; records stay in your notebook. Closing an inspection returns you to the same view.</p><p><strong>Keyboard:</strong> Tab through controls, Enter or Space to activate, J for the notebook, H for help, M to toggle sound, and Escape to close a panel. Left and right keys pan a cropped desktop view.</p><p>Your notebook and progress stay in this browser. You can leave, reload, and continue. Clearing this browser’s site data removes the save.</p><p><strong>Atmosphere:</strong> isolation, an imitated call, and brief implied animal movement. All sound clues are readable. There are no timed reading challenges.</p></div><p class="credits">Created for Christopher Holtsnider’s DailyFlyer project. Original Farwake setting and Nightglass adaptation. Fictional scene artwork generated for this game; it is not authentic lunar photography. Sound is generated locally. Version 0.3.0.</p>`);
 }
 function confirmRestart(){
   openPanel('START A NEW RECORD','Restart this expedition?',`<div class="panel-copy"><p>This replaces the Nightglass progress saved in this browser. Your sound and display settings stay as they are.</p></div><div class="inline-buttons"><button class="secondary-button" data-panel-action="close">Keep my progress</button><button class="primary-button" data-panel-action="confirm-restart">Start over</button></div>`);
@@ -279,23 +344,44 @@ function showEnding(){
 }
 function downloadReport(){
   const ending=getEnding(state);if(!ending)return;
-  const report=`FARWAKE: LOST EXPEDITIONS\nNIGHTGLASS — FIELD REPORT\n\n${ending.title}\n${ending.text}\n\n${ending.details.join('\n')}\n\nRECOVERED RECORDS\n\n${RECORD_ORDER.filter(id=>state.records.includes(id)).map(id=>`${RECORDS[id].title}\n${RECORDS[id].source}\n${RECORDS[id].body}`).join('\n\n')}\n\n${CHAPTER.fiction}\nVersion 0.2.0\n`;
+  const report=`FARWAKE: LOST EXPEDITIONS\nNIGHTGLASS — FIELD REPORT\n\n${ending.title}\n${ending.text}\n\n${ending.details.join('\n')}\n\nRECOVERED RECORDS\n\n${RECORD_ORDER.filter(id=>state.records.includes(id)).map(id=>`${RECORDS[id].title}\n${RECORDS[id].source}\n${RECORDS[id].body}`).join('\n\n')}\n\n${CHAPTER.fiction}\nVersion 0.3.0\n`;
   const url=URL.createObjectURL(new Blob([report],{type:'text/plain;charset=utf-8'}));
   const a=document.createElement('a');a.href=url;a.download='nightglass-field-report.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 panel.addEventListener('click',event=>{
   const record=event.target.closest('[data-record]');if(record){showRecord(record.dataset.record);return;}
+  const observation=event.target.closest('[data-observation]');if(observation){showObservation(observation.dataset.observation);return;}
   const control=event.target.closest('[data-panel-action]');if(!control)return;
   switch(control.dataset.panelAction){
     case 'close':closePanel();break;
     case 'back-journal':case 'journal-records':showJournal();break;
     case 'journal-route':showJournal('route');break;
+    case 'scene-details':showSceneDetails();break;
+    case 'check-evidence':$('#evidence-form')?.requestSubmit();break;
+    case 'continue-lower':execute('go:lower');break;
+    case 'circuit-inspection':{
+      const action=currentActions.find(a=>a.id==='power-inspection');
+      if(action?.disabled){showServicePanel(action.reason);break;}
+      execute('power-inspection',true);showServicePanel('The lamps come on in stages. The green return supply stays steady.');break;
+    }
+    case 'circuit-receiver':execute('power-receiver',true);showServicePanel('A short burst of feedback. The receiver is already powered; this does not light the passage.');break;
+    case 'receiver-mute':closePanel();execute('mute-receiver',true);break;
+    case 'receiver-redirect':closePanel();execute('redirect-receiver',true);break;
+    case 'transmit-warning':closePanel();execute('publish-warning',true);break;
     case 'about':showAbout();break;
     case 'restart':confirmRestart();break;
     case 'ending':showEnding();break;
     case 'download':downloadReport();break;
     case 'confirm-restart':state=initialState();lastScene=null;hintOpen=false;latestFeedback=null;persist();closePanel();begin();break;
   }
+});
+panel.addEventListener('submit',event=>{
+  if(event.target.id!=='evidence-form')return;
+  event.preventDefault();
+  const answers=Object.fromEntries(new FormData(event.target));
+  const result=assessEvidence(state,answers);
+  if(result.correct){execute('compare-signal',true);showReceiverControls();}
+  else{const feedback=$('#puzzle-feedback');feedback.textContent=result.feedback;feedback.hidden=false;feedback.scrollIntoView({block:'nearest',behavior:'auto'});}
 });
 panel.addEventListener('change',async event=>{
   switch(event.target.id){

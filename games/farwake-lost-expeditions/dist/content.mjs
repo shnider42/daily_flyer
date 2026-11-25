@@ -18,8 +18,8 @@ export const SCENES = Object.freeze({
   survey: scene('survey', 'The survey room', 'Before the last shift', 'survey', 'The crew left annotated reference notes beside the survey log. The room looks recently used, but the fine dust on the writing surface has not been disturbed.'),
   service: scene('service', 'The service bay', 'Independent circuits', 'service', 'A maintenance card identifies the three circuits. The inspection supply is isolated at the panel. A low receiver tone continues through the wall.'),
   shaft: scene('shaft', 'The listening shaft', 'A voice without a breath', 'shaft', 'A receiver faces the lower passage. Its white lead has been moved since the reference photograph. A separate branch points into an empty side shaft.'),
-  lower: scene('lower', 'The lower landing', 'Field recorder · close view', 'shaft', 'The field recorder rests in a bracket beside the lower pickup. Your green return markers remain visible above. A narrow side opening leads away from the recovery route.'),
-  beacon: scene('beacon', 'The surface beacon', 'Beacon terminal · close view', 'approach', 'The beacon still advertises clear survey access. A recovered recording and a truthful warning can outlast this visit.')
+  lower: scene('lower', 'The lower landing', 'The last recording', 'lower', 'The field recorder rests in a bracket beside the lower pickup. Your green return markers remain visible above. A narrow side opening leads away from the recovery route.'),
+  beacon: scene('beacon', 'The surface beacon', 'A message for the next crew', 'beacon', 'The beacon still advertises clear survey access. A recovered recording and a truthful warning can outlast this visit.')
 });
 
 const record = (id, title, kind, source, body) => Object.freeze({ id, title, kind, source, body });
