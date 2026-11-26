@@ -3,11 +3,11 @@ import {displayMode} from '../dist/gunnery-view.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { readSettings, applySettings } from '../dist/ui.mjs';
+import { readSettings, applySettings, STORAGE_KEY } from '../dist/ui.mjs';
 import { CameraProfile } from '../dist/camera-profile.mjs';
 import { normalizeCameraPreferences, normalizeModeZoom, zoomLimits } from '../dist/camera-preferences.mjs';
 
-const SETTINGS_KEY = 'dfe.farwake.settings.v1', SAVE_KEY = 'dfe.farwake.save.v1';
+const SETTINGS_KEY = 'dfe.farwake.settings.v1', SAVE_KEY = STORAGE_KEY;
 
 function settingsBoundary(initial = null) {
   const entries = new Map([[SAVE_KEY, 'normal-voyage-to-preserve'], ['dfe.farwake.action-guide.v1', 'learned-actions-to-preserve']]);

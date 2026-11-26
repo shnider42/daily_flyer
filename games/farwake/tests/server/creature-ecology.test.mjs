@@ -7,7 +7,9 @@ import { storyThreats } from '../../dist/expedition-story-rules.mjs';
 import { mergeSnapshot } from '../../dist/network.mjs';
 import { isWalkable } from '../../dist/surface.mjs';
 
-const seed = 'shared-creature-ecology';
+// Five permanent survey sites are enough to exercise peaceful ice fauna and
+// mixed basalt-tube wildlife through the actual shared entry/combat paths.
+const seed = 'shared-creature-ecology-1';
 const ok = result => { assert.equal(result?.ok, true, result?.reason); return result; };
 const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-8, message || `${actual} differs from ${expected}`);
 const memory = () => ({ kind: 'memory', version: 0, snapshot: null, async save(id, version, snapshot) {
@@ -18,12 +20,13 @@ const geometry = surface => ({ tiles: surface.tiles, spawn: surface.spawn, exit:
   entities: surface.entities.map(({ id, type, x, y }) => ({ id, type, x, y })) });
 const attack = unit => Object.fromEntries(['species', 'creatureBehavior', 'phase', 'windup', 'aimAngle', 'attackX', 'attackY', 'attackTargetX', 'attackTargetY'].map(key => [key, unit[key]]));
 
-function findCavern(predicate) {
+function findCavern(bodyId, predicate) {
   for (const system of buildGalaxy(seed)) for (const body of system.bodies) {
+    if (body.id !== bodyId) continue;
     const site = explorationSites(body, seed).find(item => item.cavern && predicate(item));
     if (site) return { systemId: system.id, bodyId: body.id, siteId: site.id, site };
   }
-  assert.fail('The generated galaxy must expose the requested cavern ecology.');
+  assert.fail('The compact galaxy must expose the requested cavern ecology.');
 }
 function placeAt(realm, captain, type, id) {
   const entity = realm._surface(captain).entities.find(item => item.type === type && (!id ||
@@ -31,8 +34,8 @@ function placeAt(realm, captain, type, id) {
   assert.ok(entity, `Missing ${type} ${id || ''}`);
   Object.assign(captain.game.state.person, { x: entity.x, y: entity.y }); return entity;
 }
-async function fixture(predicate) {
-  const where = findCavern(predicate), persistence = memory(), realm = new Realm({ id: 'ECOLOGY1', seed, persistence }), captains = [];
+async function fixture(bodyId, predicate) {
+  const where = findCavern(bodyId, predicate), persistence = memory(), realm = new Realm({ id: 'ECOLOGY1', seed, persistence }), captains = [];
   for (let index = 0; index < 2; index++) {
     const { captain } = await realm.createCaptain(`Ecology surveyor ${index + 1}`, { startMode: 'casual', startSystemId: where.systemId });
     ok(realm.attach(captain, { close() {} })); captains.push(captain);
@@ -57,8 +60,8 @@ async function restart(f) {
   return { ...f, realm, captains };
 }
 
-test('generated cave geometry and creature preparation share one authority for two captains and survive restart', async () => {
-  let f = await fixture(site => site.hostile && site.hostiles.some(unit => unit.species === 'coilworm'));
+test('compact field-cave geometry and creature preparation share one authority for two captains and survive restart', async () => {
+  let f = await fixture('epsilon-eridani-forge', site => site.hostile && site.hostiles.some(unit => unit.species === 'coilworm'));
   const [one, two] = f.captains, shared = one.game.state.exploration.encounter, surface = f.realm._surface(one);
   assert.equal(shared, two.game.state.exploration.encounter);
   assert.deepEqual(geometry(surface), geometry(f.realm._surface(two)));
@@ -100,8 +103,8 @@ test('generated cave geometry and creature preparation share one authority for t
   assert.equal(f.captains[1].game.state.exploration.encounter, restored);
 });
 
-test('quiet generated fauna stay neutral and evidence, casualties and paid survey claims persist together', async () => {
-  let f = await fixture(site => site.hostiles.length >= 2 && site.hostiles.every(unit => unit.hostileToPlayer === false));
+test('quiet field-cave fauna stay neutral and evidence, casualties and paid survey claims persist together', async () => {
+  let f = await fixture('alpha-centauri-shelf', site => site.hostiles.length >= 2 && site.hostiles.every(unit => unit.hostileToPlayer === false));
   const [one, two] = f.captains, shared = one.game.state.exploration.encounter, animal = shared.monsters[0];
   assert.equal(shared, two.game.state.exploration.encounter);
   for (const [index, captain] of f.captains.entries()) {
@@ -152,7 +155,7 @@ test('quiet generated fauna stay neutral and evidence, casualties and paid surve
 });
 
 test('defending against one mixed-cave species does not recruit its neutral neighbor', async () => {
-  let f = await fixture(site => site.hostiles.some(unit => unit.hostileToPlayer === false) && site.hostiles.some(unit => unit.hostileToPlayer === true));
+  let f = await fixture('epsilon-eridani-forge', site => site.hostiles.some(unit => unit.hostileToPlayer === false) && site.hostiles.some(unit => unit.hostileToPlayer === true));
   const [one] = f.captains, shared = one.game.state.exploration.encounter, surface = f.realm._surface(one);
   const neutral = shared.monsters.find(unit => unit.hostileToPlayer === false), target = shared.monsters.find(unit => unit.hostileToPlayer === true);
   const from = [0, Math.PI / 2, Math.PI, -Math.PI / 2].map(angle => ({ x: target.x + Math.cos(angle) * 32, y: target.y + Math.sin(angle) * 32 }))

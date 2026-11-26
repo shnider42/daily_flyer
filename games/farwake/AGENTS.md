@@ -13,6 +13,8 @@ Farwake is an existing DailyFlyer game with solo saves and server-authoritative 
 
 ## Preserve established decisions
 
+- The current playable chart has 26 systems. See `docs/compact-universe-direction.md` for its retained stories, deliberate placements and unresolved story proposals. Do not restore the retired procedural lattice to satisfy old catalog-count fixtures.
+- Version 0.38 deliberately begins a new solo/shared galaxy epoch. The user waived compatibility with earlier WIP saves and invitation codes. Reject those records clearly; preserve new voyages and shared records within the current epoch. Do not delete historical remote records as part of a map reset.
 - A frightening atmosphere does not establish actual danger. Harmless effects, empty-hall gunfire, and unrevealed future enemies must not start battle music.
 - Corridor exploration uses visible environmental events, stretches of quiet, staged light restoration, and clear nearby guidance. Required actions must remain reachable. Optional investigation can deepen the story without blocking ordinary exploration.
 - New galaxy seeds may change routes and optional details. Reentry, loading, and multiplayer synchronization must not reroll an existing galaxy. Preserve released interaction IDs, reward claims, lit relays, and occupied walkable positions.

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Game, buildGalaxy } from '../dist/engine.mjs';
+import { GALAXY_EPOCH } from '../dist/galaxy-epoch.mjs';
 import { migrateGameSpace, migrateWorldSpace } from '../dist/space-migration.mjs';
 import { systemBodyPosition } from '../dist/system-space.mjs';
 import { systemCosmicBodies } from '../dist/galaxy-expansion.mjs';
@@ -11,6 +12,9 @@ import { createSystemTraffic, captureTraffic } from '../dist/traffic.mjs';
 import { npcContractPilot } from '../dist/npc-contracts.mjs';
 
 const watchFixture = JSON.parse(readFileSync(new URL('./fixtures/crew-watch-space-010.json', import.meta.url)));
+// Keep exercising historical component schemas on the current chart. Whole old
+// galaxy imports are deliberately rejected and covered by galaxy-epoch.test.mjs.
+for (const kind of ['escort', 'gunner', 'stranded011']) watchFixture[kind].galaxyEpoch = GALAXY_EPOCH;
 
 const copy = value => structuredClone(value);
 const pose = value => ({ x: value.x, y: value.y });
@@ -90,7 +94,7 @@ test('a legacy hired watch keeps its employer, local work waypoint, personal ber
   const next = Game.fromSave(restored.save()); close(next.state.ship, pose(restored.state.ship)); close(next.state.npcContract.workPoint, pose(actual.workPoint));
 });
 
-for (const kind of ['escort', 'gunner']) test(`a real 0.10 ${kind} watch retains its live interceptor offset and completes through actual gunfire`, () => {
+for (const kind of ['escort', 'gunner']) test(`the 0.10 ${kind} watch schema on the current chart retains its live interceptor offset and completes through actual gunfire`, () => {
   const raw = copy(watchFixture[kind]), original = copy(raw), saved = raw.npcContract, record = raw.worlds[raw.systemId], enemyId = saved.work.enemyId;
   assert.equal(saved.phase, 'working');
   if (kind === 'escort') { assert.equal(saved.assignment.interruptedLeg, true); assert.equal(saved.assignment.visitedDestination, false); }
@@ -134,7 +138,7 @@ test('working pilots never pursue disabled, captured, foreign, or already resolv
   }
 });
 
-test('a genuinely stranded 0.11 escort save closes to its own target through ordinary flight and resumes work', () => {
+test('a stranded 0.11 escort schema on the current chart closes to its own target through ordinary flight and resumes work', () => {
   const raw = copy(watchFixture.stranded011), saved = raw.npcContract, before = raw.worlds[raw.systemId].enemyStates[saved.work.enemyId];
   assert.equal(raw.spaceVersion, 1); assert.ok(Math.hypot(before.x - raw.ship.x, before.y - raw.ship.y) > 1100);
   const game = Game.fromSave(raw), job = game.state.npcContract, enemy = game.system.enemies.find(value => value.id === job.work.enemyId);

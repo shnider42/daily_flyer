@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { socialPlaces, recurringPresence, socialConversation, normalizeSocialVisits } from '../dist/social-world.mjs';
+import { COMPACT_SOCIAL_HOMES, socialPlaces, recurringPresence, socialConversation, normalizeSocialVisits } from '../dist/social-world.mjs';
+import { buildGalaxy } from '../dist/engine.mjs';
 import { createAmbientMemory, sampleAmbientConversation } from '../dist/ambient-social.mjs';
 import { explorationSites, explorationLocation, createSiteState, claimSiteReward } from '../dist/exploration.mjs';
 import { generateSurface, isWalkable, evaLayout, drawSurface } from '../dist/surface.mjs';
@@ -15,21 +16,31 @@ const walkableEntities=surface=>{
  for(const entity of surface.entities)assert.ok(seen.has(Math.floor(entity.y/t)*surface.cols+Math.floor(entity.x/t)),`${surface.id}/${entity.id} is unreachable`);
 };
 
-test('social rooms are absent from Hearth and sparse, deterministic, and bounded across frontier planets',()=>{
+test('all seven ordinary venues have distinct permanent homes in every compact galaxy and stay absent from Hearth',()=>{
  for(const id of['morrow','kettle','tinbell'])assert.deepEqual(socialPlaces({id,kind:'planet',systemId:'hearth'},'test'),[]);
- let count=0;const styles=new Set();
- for(let n=0;n<1000;n++){const world={id:`frontier-social-${n}-world`,kind:'planet',biome:'temperate',systemId:`frontier-${n}`},a=socialPlaces(world,'rare'),b=socialPlaces(world,'rare');assert.deepEqual(a,b);assert.ok(a.length<=1);if(a.length){count++;styles.add(a[0].style);assert.equal(a[0].hostile,false);assert.deepEqual(a[0].caches,[]);}}
- assert.ok(count>=20&&count<=65,`expected around one in25, got${count}/1000`);assert.equal(styles.size,7);
+ const expected=['The Last Cup','The Borrowed Hour','Rainbreak Park','The Upstairs Rooms','The Small Watch House','A Farm at the Bend','The Sevenfold Door'];
+ for(const seed of['farwake','social-check','ordinary-places-a','ordinary-places-b']){
+  const names=[],homes=[],styles=new Set();
+  for(const system of buildGalaxy(seed))for(const raw of system.bodies){
+   const world={...raw,systemId:system.id},a=socialPlaces(world,seed),b=socialPlaces(world,seed);
+   assert.deepEqual(a,b);assert.ok(a.length<=1);
+   for(const site of a){assert.equal(site.hostile,false);assert.deepEqual(site.caches,[]);if(site.id==='quiet-social'){names.push(site.name);homes.push(world.id);styles.add(site.style);assert.equal(site.seeded,undefined);}}
+  }
+  assert.deepEqual(names.sort(),[...expected].sort());assert.equal(styles.size,7);
+  assert.deepEqual(homes.sort(),Object.keys(COMPACT_SOCIAL_HOMES).sort());
+ }
  assert.deepEqual(socialPlaces({id:'frontier-ordinary-world',kind:'planet',biome:'barren'},'rare'),[]);
 });
 
 test('every new ordinary venue is reachable, has no compulsory combat or loot, and preserves its environmental records',()=>{
  const places=[];
- for(const id of['kindred-landing','tessera','ochre-garden','chora','noonless','reedbank'])for(const site of explorationSites(body(id),'social-check').filter(site=>site.kind==='social'))places.push({world:body(id),site});
- const styles=new Set(places.map(({site})=>site.style));
- for(let n=0;styles.size<9&&n<1000;n++){const world=body(`frontier-social-${n}-world`),site=explorationSites(world,'social-check').find(site=>site.kind==='social');if(site&&!styles.has(site.style)){styles.add(site.style);places.push({world,site});}}
- assert.ok(places.length>=9);
- for(const{world,site}of places){const surface=generateSurface(explorationLocation(world,site.id,'social-check'),'social-check');walkableEntities(surface);assert.equal(site.hostile,false);assert.equal(createSiteState(site).monsters.length,0);assert.equal(surface.entities.filter(entity=>entity.type==='siteCache').length,0);assert.ok(surface.entities.filter(entity=>entity.type==='siteRecord').length>=2);for(const t of[0,360,720,1320]){updateNpcLife(surface,t);for(const entity of surface.entities.filter(entity=>!entity.hidden))assert.ok(isWalkable(surface,entity.x,entity.y));}}
+ for(const system of buildGalaxy('social-check'))for(const raw of system.bodies){const world={...raw,systemId:system.id};for(const site of explorationSites(world,'social-check').filter(site=>site.kind==='social'))places.push({world,site});}
+ assert.equal(places.length,13);assert.equal(new Set(places.map(({site})=>site.style)).size,9);
+ for(const{world,site}of places){
+  const region=generateSurface(world,'social-check');walkableEntities(region);
+  assert.ok(region.entities.some(entity=>entity.type==='siteEntrance'&&entity.data?.siteId===site.id),`${world.id}: the venue has a real entrance`);
+  const surface=generateSurface(explorationLocation(world,site.id,'social-check'),'social-check');walkableEntities(surface);assert.equal(site.hostile,false);assert.equal(createSiteState(site).monsters.length,0);assert.equal(surface.entities.filter(entity=>entity.type==='siteCache').length,0);assert.ok(surface.entities.filter(entity=>entity.type==='siteRecord').length>=2);for(const t of[0,360,720,1320]){updateNpcLife(surface,t);for(const entity of surface.entities.filter(entity=>!entity.hidden))assert.ok(isWalkable(surface,entity.x,entity.y));}
+ }
 });
 
 test('a preflight village has its own ordinary culture, walking paths and landing exit, with no modern services',()=>{
@@ -98,8 +109,7 @@ test('EVA uses a reachable short exterior route on the actual selected hull',()=
 });
 
 test('the sealed vault records an optional persistent witness choice without unlocking loot or opening the door',()=>{
- let site;
- for(let n=0;n<1000&&!site;n++)site=explorationSites(body(`frontier-social-${n}-world`),'social-check').find(value=>value.style==='vault');
+ const site=explorationSites({...body('sirius-crystal'),kind:'moon',biome:'ice',planetTypeId:'crystal'},'social-check').find(value=>value.style==='vault');
  assert.ok(site);const state=createSiteState(site),result=claimSiteReward(state,site,'witness','sign');
  assert.equal(result.ok,true);assert.equal(result.credits,undefined);assert.equal(result.ore,undefined);assert.match(result.text,/stays sealed/);
  const restored=createSiteState(site,JSON.parse(JSON.stringify(state)));assert.equal(restored.choices.witness,'sign');assert.equal(claimSiteReward(restored,site,'witness','leave').ok,false);

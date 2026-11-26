@@ -30,7 +30,7 @@ test('every authored starting system has exactly one named destroyer and no rand
     assert.equal(game.state.fleet.owned.includes('judicator'),false);
   }
   const game=new Game('one-home-only');
-  for(const id of ['brindle','nacre','vesper','sable','sector-40']){
+  for(const id of ['brindle','nacre','vesper','sable','sirius']){
     game.state.systemId=id;game._loadSystem(id);
     assert.equal(game.system.traffic.filter(isPeacekeeper).length,0);
   }

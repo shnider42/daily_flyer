@@ -3,11 +3,16 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Realm } from '../../server/realm.mjs';
 import { Game } from '../../dist/engine.mjs';
+import { GALAXY_EPOCH } from '../../dist/galaxy-epoch.mjs';
 import { cabinLayout, enemyHullProfile } from '../../dist/fleet.mjs';
 import { systemBodyPosition } from '../../dist/system-space.mjs';
 import { findDerelict } from '../helpers/combat-fixtures.mjs';
 
 const watchFixture = JSON.parse(readFileSync(new URL('../fixtures/crew-watch-space-010.json', import.meta.url)));
+// Isolate the historical space schema on the current chart; this is not support
+// for importing a precompact realm, which galaxy-epoch.test.mjs rejects.
+watchFixture.shared.galaxyEpoch = GALAXY_EPOCH;
+for (const captain of Object.values(watchFixture.shared.captains)) captain.game.galaxyEpoch = GALAXY_EPOCH;
 
 const copy = value => structuredClone(value);
 const pose = value => ({ x: value.x, y: value.y });
@@ -103,7 +108,7 @@ test('unloaded shared world records migrate once and room eviction does not move
   const again = new Realm({ id: realm.id, snapshot: saved, persistence: persistence() }); close(again._room('cinder').runtime.enemies.find(value => value.id === enemy.id), pose(enemy));
 });
 
-test('a real shared 0.10 escort interruption keeps its canonical combat contact and parked personal hull', () => {
+test('a shared 0.10 escort schema on the current chart keeps its canonical combat contact and parked personal hull', () => {
   const raw = copy(watchFixture.shared), saved = raw.captains[raw.ownerId], job = saved.game.npcContract, oldEmployer = raw.vessels[job.vesselId], oldEnemy = raw.worlds.kindred.enemies.find(value => value.id === job.work.enemyId);
   assert.equal(job.assignment.interruptedLeg, true); assert.equal(job.assignment.visitedDestination, false);
   const offset = { x: oldEnemy.x - oldEmployer.ship.x, y: oldEnemy.y - oldEmployer.ship.y }, original = copy(raw);

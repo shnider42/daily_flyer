@@ -1,6 +1,7 @@
 import { normalizeCameraPreferences, normalizeModeZoom } from './camera-preferences.mjs';
 import { pickDeviceSettings } from './privacy-data.mjs';
 import { createNoticeCenter } from './notice-center.mjs';
+import { GALAXY_SAVE_STORAGE_KEY } from './galaxy-epoch.mjs';
 
 export const $=id=>document.getElementById(id);
 export const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -53,7 +54,7 @@ export class Dialog{
  html(markup){this.body.innerHTML=markup;return this.body;}
  choices(items){const revision=this.revision,list=document.createElement('div');list.className='choice-list';items.forEach(item=>{const b=document.createElement('button');b.type='button';b.className=`choice ${item.warning?'warning':''}`;b.disabled=!!item.disabled;b.dataset.dialogKey=String(item.id||item.key||item.label);b.innerHTML=`<span class="choice-index" aria-hidden="true">${this.kind==='npc'?'›':'→'}</span><span><strong>${escapeHtml(item.label)}</strong>${item.detail?`<small>${escapeHtml(item.detail)}</small>`:''}</span>`;b.onclick=(event)=>{if(this.opened&&this.revision===revision&&b.isConnected&&!b.disabled)return item.action?.(event);};list.append(b);});this.body.append(list);return list;}
 }
-export const STORAGE_KEY='dfe.farwake.save.v1';
+export const STORAGE_KEY=GALAXY_SAVE_STORAGE_KEY;
 export function readSave(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return null;const parsed=JSON.parse(raw);return parsed?.state??parsed;}catch{return null;}}
 export function saveGame(game){try{const serialized=game.serialize();localStorage.setItem(STORAGE_KEY,typeof serialized==='string'?serialized:JSON.stringify(serialized));$('saveState').textContent='SAVED JUST NOW';return true;}catch{$('saveState').textContent='SAVE UNAVAILABLE';return false;}}
 export function readSettings(){

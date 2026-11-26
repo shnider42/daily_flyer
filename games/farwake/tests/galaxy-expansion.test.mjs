@@ -1,51 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
 import {buildGalaxy} from '../dist/engine.mjs';
-import {FACTION_PORTS} from '../dist/port-content.mjs';
-import {expandGalaxy,FRONTIER_SYSTEMS,GALAXY_SYSTEM_COUNT,COSMIC_RULES,systemCosmicBodies,cosmicInfluence,applyCosmicHazards} from '../dist/galaxy-expansion.mjs';
+import {COSMIC_RULES,systemCosmicBodies,cosmicInfluence,applyCosmicHazards} from '../dist/galaxy-expansion.mjs';
 import {advanceShip,getShipClass} from '../dist/fleet.mjs';
 import {SpaceRenderer} from '../dist/space-art.mjs';
-import {releasedBody} from './helpers/world-type-projection.mjs';
-
-const checksum=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
-// Recorded from the released0.4.0 generator. Expansion must not move saved worlds.
-const legacyHashes={
- 'legacy-frontier':'cd8ce8c8f7eea6c2d83a9a74facb26d91af37ea8de04f651395887f8538fe2c7',
- farwake:'9c4b45b8cfd3de1173e06978fdf73f91bedbd0fe5f1f241b009019c85cb3e572',
- 'quiet-earth':'6a1a1920b93e72d5cbad82ee7ba2a8851fa00e9731060fae2bfaa38254498d33'
-};
-// These two intentional 0.5.1 descriptions clarify the existing core port. New
-// type metadata and service berths are projected out. Procedural station moves
-// are also projected back to their old implicit positions; planets and authored
-// routes, IDs and every other released field stay protected by these hashes.
-function releasedChartProjection(systems){
- const additions=new Set(FACTION_PORTS.map(port=>port.id));
- const projected=structuredClone(systems).map(system=>({...system,bodies:system.bodies.filter(body=>!additions.has(body.id))})),hearth=projected.find(system=>system.id==='hearth');
- for(const system of projected){
-  for(const key of ['systemTypeId','typeLabel','typeDescription','stellar','activity'])delete system[key];
-  system.bodies=system.bodies.map(body=>releasedBody(body,{authored:system.authored}));
- }
- hearth.description='A tired orange star and a station built from ships that never made it home.';
- hearth.bodies.find(body=>body.id==='kettle').lore='A salvage port where every welded corridor remembers a different ship. Cinder is the smallest vessel on the departure board.';
- return projected;
-}
-
-test('expanded charts preserve released fields while adding type metadata and unique deterministic places',()=>{
- for(const[seed,expected]of Object.entries(legacyHashes)){
-  const current=buildGalaxy(seed),base=current.slice(0,300),before=JSON.stringify(base),expanded=expandGalaxy(base,seed);
-  assert.equal(checksum(releasedChartProjection(base)),expected,'existing stars, body IDs and all data except the two named prose fields retain their released values');
-  assert.equal(expanded.length,GALAXY_SYSTEM_COUNT);assert.equal(new Set(expanded.map(system=>system.id)).size,GALAXY_SYSTEM_COUNT);
-  assert.equal(new Set(expanded.flatMap(system=>system.bodies.map(body=>body.id))).size,expanded.reduce((n,system)=>n+system.bodies.length,0));
-  assert.equal(JSON.stringify(base),before);assert.ok(base.every((system,index)=>expanded[index]===system));
-  assert.deepEqual(expandGalaxy(base,seed),expanded);assert.equal(expandGalaxy(expanded,seed),expanded,'a second load cannot add duplicates');
-  assert.equal(expanded.filter(system=>system.frontier&&system.authored).length,8);
-  assert.ok(FRONTIER_SYSTEMS.every(system=>expanded.some(candidate=>candidate.id===system.id)));
- }
-});
 
 test('Hearth remains the central starter system and describes its busy inhabited port',()=>{
- for(const seed of Object.keys(legacyHashes)){
+ for(const seed of ['farwake','quiet-earth','compact-chart']){
   const hearth=buildGalaxy(seed).find(system=>system.id==='hearth'),kettle=hearth.bodies.find(body=>body.id==='kettle');
   assert.equal(hearth.gx,0);assert.equal(hearth.gy,0);
   assert.equal(hearth.description,'The crowded heart of the settled lanes. Ferries, supply ships, port tugs and watch patrols cross beneath a tired orange star; emergencies usually reach a staffed service long before a passing captain.');
@@ -53,19 +14,9 @@ test('Hearth remains the central starter system and describes its busy inhabited
  }
 });
 
-test('all900 systems are reachable with the first fold drive across different frontier seeds',()=>{
- for(const seed of ['farwake','quiet-earth','outer-route-check','a','b']){
-  const systems=expandGalaxy(buildGalaxy(seed).slice(0,300),seed),seen=new Set(['hearth']),queue=[systems.find(system=>system.id==='hearth')];
-  for(let at=0;at<queue.length;at++)for(const next of systems){
-   if(!seen.has(next.id)&&Math.hypot(next.gx-queue[at].gx,next.gy-queue[at].gy)<=5){seen.add(next.id);queue.push(next);}
-  }
-  assert.equal(seen.size,GALAXY_SYSTEM_COUNT,`${seed}: every added sector has a traversable route`);
- }
-});
-
 test('stellar remnants are deterministic runtime objects and cannot become inhabited chart bodies',()=>{
- const galaxy=expandGalaxy(buildGalaxy('remnants').slice(0,300),'remnants'),base=galaxy.slice(0,300),umbra=galaxy.find(system=>system.id==='umbra'),before=JSON.stringify(galaxy);
- assert.ok(base.every(system=>systemCosmicBodies(system,'remnants').length===0),'the old300 systems keep their original physical worlds');
+ const galaxy=buildGalaxy('remnants'),umbra=galaxy.find(system=>system.id==='umbra'),before=JSON.stringify(galaxy);
+ assert.deepEqual(galaxy.filter(system=>systemCosmicBodies(system,'remnants').length).map(system=>system.id),['umbra','lacuna'],'only the two authored black-hole destinations contain these hazards');
  const wells=systemCosmicBodies(umbra,'remnants');assert.equal(wells.length,1);assert.deepEqual(systemCosmicBodies(umbra,'remnants'),wells);
  const hole=wells[0];assert.equal(hole.landable,false);assert.equal(hole.kind,'blackhole');assert.ok(hole.warningRadius>hole.gravityRadius&&hole.gravityRadius>hole.tideRadius&&hole.tideRadius>hole.radius);
  assert.ok(Math.hypot(hole.x,hole.y)>hole.warningRadius+400,'arrival at the first port cannot begin inside the gravity warning');

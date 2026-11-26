@@ -4,31 +4,39 @@ import { Game, buildGalaxy } from '../dist/engine.mjs';
 import { STATION_GEOGRAPHY_VERSION, stationRelocations } from '../dist/station-geography.mjs';
 import { migrateGameStationGeography, migrateRealmStationGeography, legacyStationGeography } from '../dist/station-geography-migration.mjs';
 import { SYSTEM_SPACE_SCALE, WORLD_RADIUS, systemBodyPosition } from '../dist/system-space.mjs';
+import { migrateGameSpace } from '../dist/space-migration.mjs';
 import { bodyVisualRadius, applySystemActivity } from '../dist/world-types.mjs';
 import { systemContext } from '../dist/encounter-context.mjs';
 import { systemCosmicBodies } from '../dist/galaxy-expansion.mjs';
 import { createSystemTraffic, restoreTraffic } from '../dist/traffic.mjs';
 
 const seed = 'station-migration-tests', systems = buildGalaxy(seed);
-const system = systems.find(value => !value.authored && stationRelocations(value).length);
+// The compact chart has no moved stations. This isolated chart simulates an
+// earlier berth so component migration tests retain real aliases and traffic.
+const system = systems.find(value => value.id === 'sirius');
+const station = system.bodies.find(body => body.id === 'sirius-port');
+station.stationGeography = { ...station.stationGeography, legacyPosition: { x: 0, y: 0 } };
 const moved = stationRelocations(system)[0], delta = { x: moved.to.x - moved.from.x, y: moved.to.y - moved.from.y };
 const pose = (id, extra = {}) => ({ id, x: moved.from.x, y: moved.from.y + moved.radius + 130, vx: 7, vy: -2, angle: .4, angularVelocity: .2, hull: 63, shield: 11, fuel: 17, ...extra });
 const translated = value => ({ x: value.x + delta.x, y: value.y + delta.y });
 const point = value => ({ x: value.x, y: value.y });
 const close = (actual, expected) => { assert.ok(Math.abs(actual.x - expected.x) < 1e-7, `x ${actual.x} ≠ ${expected.x}`); assert.ok(Math.abs(actual.y - expected.y) < 1e-7, `y ${actual.y} ≠ ${expected.y}`); };
 
-test('a solo saved berth follows its same station exactly once without changing the captain or cargo', () => {
+test('the station component moves a saved berth once without changing the captain or cargo', () => {
   const old = new Game(seed).save(); delete old.stationGeographyVersion;
   old.systemId = system.id; old.mode = 'person'; old.locationId = moved.bodyId;
   old.ship = { ...old.ship, ...pose(old.ship.id), dockedAt: moved.bodyId };
   old.credits = 437; old.cargo = { ore: 13, crystal: 4 }; old.flags.push('station-test-earned');
-  const before = structuredClone(old), restored = Game.fromSave(old);
-  close(restored.state.ship, translated(before.ship)); assert.deepEqual(old, before);
-  assert.equal(restored.state.credits, 437); assert.deepEqual(restored.state.cargo, old.cargo);
-  assert.equal(restored.state.ship.hull, 63); assert.equal(restored.state.ship.fuel, 17);
-  assert.ok(restored.state.flags.includes('station-test-earned'));
-  assert.equal(restored.state.stationGeographyVersion, STATION_GEOGRAPHY_VERSION);
-  close(Game.fromSave(restored.save()).state.ship, restored.state.ship);
+  const before = structuredClone(old), restored = migrateGameStationGeography(old, { systems });
+  assert.equal(restored, old); close(restored.ship, translated(before.ship));
+  assert.equal(restored.credits, 437); assert.deepEqual(restored.cargo, before.cargo);
+  assert.equal(restored.ship.hull, 63); assert.equal(restored.ship.fuel, 17);
+  assert.ok(restored.flags.includes('station-test-earned'));
+  assert.deepEqual(restored.person, before.person);
+  assert.equal(restored.stationGeographyVersion, STATION_GEOGRAPHY_VERSION);
+  const current = structuredClone(restored);
+  assert.equal(migrateGameStationGeography(restored, { systems }), restored);
+  assert.deepEqual(restored, current);
 });
 
 test('a remote owned hull is migrated separately from the ship a shared guest occupies', () => {
@@ -92,13 +100,19 @@ test('a large flying hull overlapped by a newly moved station clears its full ph
   const current = structuredClone(old); migrateGameStationGeography(old, { systems }); assert.deepEqual(old, current);
 });
 
-test('a pre-expansion save scales against its former station before following the new berth', () => {
-  const old = new Game(seed).save(); delete old.stationGeographyVersion; delete old.spaceVersion; delete old.worldTypesVersion;
+test('space-scale and station-move components use the former berth in the correct order', () => {
+  const old = new Game(seed).save(); delete old.stationGeographyVersion; delete old.spaceVersion;
   old.systemId = system.id; old.mode = 'person'; old.locationId = moved.bodyId;
   const berth = { x: moved.from.x / SYSTEM_SPACE_SCALE, y: moved.from.y / SYSTEM_SPACE_SCALE + moved.radius + 130 };
   Object.assign(old.ship, berth, { dockedAt: moved.bodyId });
-  const restored = Game.fromSave(old);
-  close(restored.state.ship, { x: moved.to.x, y: moved.to.y + moved.radius + 130 });
+  const previous = legacyStationGeography(systems);
+  migrateGameSpace(old, { systems: previous });
+  close(old.ship, { x: moved.from.x, y: moved.from.y + moved.radius + 130 });
+  migrateGameStationGeography(old, { systems });
+  close(old.ship, { x: moved.to.x, y: moved.to.y + moved.radius + 130 });
+  const current = structuredClone(old);
+  migrateGameSpace(old, { systems: previous }); migrateGameStationGeography(old, { systems });
+  assert.deepEqual(old, current);
 });
 
 test('saved traffic retains its loading leg instead of restarting or teleporting into a different leg', () => {
@@ -108,9 +122,10 @@ test('saved traffic retains its loading leg instead of restarting or teleporting
   const count = applySystemActivity(system, systemContext(system)).trafficCount;
   const oldTraffic = createSystemTraffic({ seed, system: { ...prior, spatialScale: 3, radius: WORLD_RADIUS }, bodies: bodies(prior), count });
   const newTraffic = createSystemTraffic({ seed, system: { ...system, spatialScale: 3, radius: WORLD_RADIUS }, bodies: bodies(system), count });
-  const pair = oldTraffic.flatMap(old => { const next = newTraffic.find(next => next.id === old.id && next.classId === old.classId && next._trafficLane?.origin.id === old._trafficLane?.origin.id && next._trafficLane?.destination.id === old._trafficLane?.destination.id); return next && old._trafficLane ? [{ old, next }] : []; })[0];
+  const pair = oldTraffic.flatMap(old => { const next = newTraffic.find(next => next.id === old.id && next.classId === old.classId && next._trafficLane?.origin.id === old._trafficLane?.origin.id && next._trafficLane?.destination.id === old._trafficLane?.destination.id); return next && old._trafficLane && [old._trafficLane.origin.id, old._trafficLane.destination.id].includes(moved.bodyId) ? [{ old, next }] : []; })[0];
   assert.ok(pair, 'fixture supplies a stable route before and after the move');
   const a = pair.old._trafficLane, b = pair.next._trafficLane;
+  assert.notEqual(a.key, b.key, 'the chosen route actually changes with the station move');
   const saved = { id: pair.old.id, routeKey: a.key, routeTime: 2 * a.travel + a.dwellB + a.dwellA * .4 };
   restoreTraffic(oldTraffic, [saved]);
   const record = { trafficStates: [saved] }, state = { seed, systemId: system.id, ship: { id: 'hailing', x: pair.old.x + 120, y: pair.old.y },

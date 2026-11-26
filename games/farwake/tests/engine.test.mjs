@@ -73,17 +73,15 @@ function earnFirstDrive(g) {
   assert.ok(g.hasHyperdrive);assert.equal(g.state.ship.warpRange,5);
 }
 
-test('902 deterministic systems are connected with first and final drive ranges',()=>{
+test('the compact chart is deterministic and its drive tiers reach every destination',()=>{
   for(const seed of ['farwake','captain-2','phoenix','solstice','a','quiet-7']) {
     const a=buildGalaxy(seed),b=buildGalaxy(seed);
-    assert.equal(a.length,902);assert.deepEqual(a,b);assert.equal(new Set(a.map(s=>s.id )).size,902);
+    assert.equal(a.length,26);assert.deepEqual(a,b);assert.equal(new Set(a.map(s=>s.id)).size,26);
+    assert.ok(!a.some(system=>/^(sector|frontier)-/.test(system.id)),'retired filler systems are not constructed');
     const g=new Game(seed);
-    for(const range of [5,15]) for(const destination of ['sol','witness','sector-0','sector-287']) assert.ok(route(g,destination,range).length>0);
-    const reachable=new Set(['hearth']);const queue=['hearth'];
-    for(let i=0;i<queue.length;i++){const from=a.find(s=>s.id===queue[i]);for(const to of a)if(!reachable.has(to.id)&&Math.hypot(from.gx-to.gx,from.gy-to.gy)<=5){reachable.add(to.id);queue.push(to.id);}}
-    assert.equal(reachable.size,902,`No isolated stars for ${seed}`);
+    for(const destination of ['brindle','meridian','nacre','vesper','cinder','voltage','crosswind']) assert.ok(route(g,destination,5).length>0,`${destination}: starter drive route`);
+    for(const destination of a.filter(system=>system.id!=='hearth')) assert.ok(route(g,destination.id,15).length>0,`${destination.id}: final drive route`);
   }
-  assert.notDeepEqual(buildGalaxy('a'),buildGalaxy('b'));
 });
 
 test('dock, departure, jobs, upgrades and services enforce person/ship mode and proximity',()=>{
@@ -283,6 +281,8 @@ test('all eight chapters are earned through mining, jobs, travel, repairs and ac
   assert.equal(g.triggerEncounter('listening_archive').ok,false);ok(g.recordActivity('work',{token:'relay-archive',role:'archive',kind:'repair'}));
   assert.equal(g.state.completedChapters.length,3,'A repaired machine still requires its conversation');ok(g.triggerEncounter('listening_archive'));ok(g.applyChoice('listening_archive','public'));assert.equal(g.state.completedChapters.length,4);
   jumpRoute(g,'meridian');land(g,'ledger');assert.equal(g.state.completedChapters.length,4,'Arrival does not choose an ally');ok(g.triggerEncounter('ledger_alliance'));ok(g.applyChoice('ledger_alliance','freewake'));assert.equal(g.state.completedChapters.length,5);assert.equal(g.state.alliance,'freewake');
+  ok(g.launch());mineOre(g,g.state.stats.oreMined+Math.max(0,12-g.state.cargo.ore));land(g,'ledger');
+  while(g.state.credits<520)paidShift(g,'fold-two-');ok(g.buyUpgrade('fold_2'));
   jumpRoute(g,'witness');land(g,'stillwater');assert.equal(g.state.completedChapters.length,5);ok(g.triggerEncounter('buried_weather'));ok(g.applyChoice('buried_weather','mark'));assert.equal(g.state.completedChapters.length,6);
   jumpRoute(g,'sol');assert.equal(g.state.pendingEncounter?.id,'earth_arrival');assert.equal(g.state.completedChapters.length,6,'Jumping to Sol does not give landing permission');ok(g.applyChoice('earth_arrival','neighbor'));assert.equal(g.state.completedChapters.length,6);land(g,'earth');assert.equal(g.state.completedChapters.length,7);
   ok(g.triggerEncounter('earth_council'));ok(g.applyChoice('earth_council','open'));assert.equal(g.state.completedChapters.length,8);assert.equal(g.chapter,null);assert.ok(g.hasFlag('earth_decision'));assert.ok(g.state.earthChoice);

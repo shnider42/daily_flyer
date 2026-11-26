@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { openCaptainSetup } from '../dist/captain-setup.mjs';
+import { buildGalaxy } from '../dist/engine.mjs';
+import { startSystemChoices } from '../dist/start-options.mjs';
 
 // A small DOM boundary runs the real setup callbacks without a browser or a
 // second rendering implementation. Canvas drawing is outside these form tests.
@@ -254,6 +256,20 @@ test('a remote Casual origin submits the selected system and omits the Hearth op
   await f.click('[data-captain-submit]');
   assert.equal(f.submitted[0].startSystemId, 'brindle'); assert.equal(f.submitted[0].starterShip, 'kestrel');
   assert.equal(f.submitted[0].openingMission, false); assert.equal(f.submitted[0].startTogether, false);
+});
+
+test('the selected origin updates the supplied drive in both setup steps', async t => {
+  const systems = startSystemChoices(buildGalaxy('setup-compact-drives'));
+  const f = fixture(t, { startMode: 'casual', startSystems: systems });
+  for (const [id, name, range] of [['sol', 'Fold Drive II', 9], ['lacuna', 'Farwake field coil', 15], ['hearth', 'Fold Drive I', 5]]) {
+    await f.chooseSystem(id);
+    assert.ok(f.find('.captain-system-detail').textContent.includes(`Starting drive: ${name} · ${range} ly range`));
+    assert.ok(f.find('[data-start-equipment]').textContent.includes(`includes ${name}, Vector thrusters`));
+    assert.ok(f.find('[data-start-equipment]').textContent.includes(`${range} ly fold range`));
+    await f.click('[data-captain-next]');
+    assert.ok(f.find('.captain-summary').textContent.includes(`${name} fitted · ${range} ly range`));
+    await f.click('[data-captain-back]');
+  }
 });
 
 test('switching beginnings preserves the Casual destination and opening/crew drafts without applying them to other modes', async t => {

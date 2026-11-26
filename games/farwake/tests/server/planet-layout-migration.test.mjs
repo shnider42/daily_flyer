@@ -5,8 +5,8 @@ import { generateSurface, isWalkable } from '../../dist/surface.mjs';
 import { migrateRealmPlanetLayouts, PLANET_LAYOUT_MIGRATION_VERSION } from '../../server/place-migration.mjs';
 
 const seed = 'planet-home-migration', systems = buildGalaxy(seed);
-const system = systems.find(system => !system.authored && system.bodies.some(body => body.kind === 'planet'));
-const body = system.bodies.find(body => body.kind === 'planet'), surface = generateSurface(body, seed);
+const system = systems.find(system => system.id === 'tau-ceti');
+const body = system.bodies.find(body => body.id === 'tau-ceti-tide'), surface = generateSurface(body, seed);
 
 test('paid homes and outposts on invalid old tiles move to connected ground without losing their records', () => {
   const lease = { id: 'captain-home', kind: 'outpost', ownerId: 'captain', ownerName: 'Captain', systemId: system.id, locationId: body.id, x: -24, y: 72, createdAt: 12345, inventory: { ore: 18 } };

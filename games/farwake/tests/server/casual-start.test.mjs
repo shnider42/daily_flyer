@@ -6,6 +6,7 @@ import { Realm } from '../../server/realm.mjs';
 import { startServer } from '../../server/index.mjs';
 import { FarwakeNetwork, readRealmStartOptions } from '../../dist/network.mjs';
 import { buildGalaxy } from '../../dist/engine.mjs';
+import { casualStartingDrive } from '../../dist/start-options.mjs';
 
 const starterEquipment = { thrusters_1: 1, scanner_1: 1, fold_1: 1 };
 const copy = value => structuredClone(value);
@@ -50,7 +51,8 @@ function assertOrigin(realm, captain, systemId) {
   assert.equal(state.lastBodyId, port.id);
   const separation = Math.hypot(vessel.ship.x - port.x, vessel.ship.y - port.y);
   assert.ok(Math.abs(separation - (port.radius + 95)) < 1e-8, `The ship starts in the arrival ring outside ${port.name}, not at the coordinate origin (${separation}).`);
-  assert.deepEqual(state.upgrades, starterEquipment); assert.equal(vessel.ship.warpRange, 5);
+  const drive = casualStartingDrive(game.galaxy, systemId);
+  assert.deepEqual(state.upgrades, { ...starterEquipment, ...drive.upgrades }); assert.equal(vessel.ship.warpRange, drive.range);
   assert.equal(state.credits, 180); assert.equal(game.openingMissionStatus().active, false);
   assert.deepEqual(state.completedChapters, []); assert.equal(state.flags.includes('belt_signal_found'), false);
 }
@@ -75,7 +77,7 @@ test('shared origin lookup uses the actual galaxy and cannot allocate captains, 
   assert.equal(JSON.stringify(options).includes(created.passport.token), false);
   assert.equal(JSON.stringify(options).includes('tokenHash'), false);
   assert.deepEqual({ captains: realm.captains.size, vessels: realm.vessels.size, records: f.store.records.size, writes: f.store.writes }, before);
-  const preview = buildGalaxy(options.seed), chosen = preview.find(system => system.id === 'sector-287');
+  const preview = buildGalaxy(options.seed), chosen = preview.find(system => system.id === 'alpha-centauri');
   const joined = await f.request({ action: 'join', realmCode: realm.id, name: 'Remote explorer', galaxySeed: 'cannot-reseed-a-live-realm', startMode: 'casual', startSystemId: chosen.id, starterShip: 'mule' });
   const captain = realm.captains.get(joined.passport.captainId), actual = captain.game.galaxy.find(system => system.id === captain.game.state.systemId);
   assertOrigin(realm, captain, chosen.id);
@@ -218,4 +220,19 @@ test('the real multiplayer client creates and joins the same seeded galaxy with 
   assert.equal(host.latest.state.startMode, 'casual'); assert.equal(guest.latest.state.startMode, 'casual');
   assert.equal(host.latest.state.ship.warpRange, 5); assert.equal(guest.latest.state.ship.warpRange, 5);
   assert.equal(host.latest.state.multiplayer.waitingForGroupStart, false); assert.equal(guest.latest.state.multiplayer.waitingForGroupStart, false);
+});
+
+test('shared remote starts receive usable drive tiers and keep them through authority restart', async t => {
+  const f = await serverFixture(t), host = await f.connect({ create: true, name: 'Remote host', galaxySeed: 'remote-drive-tiers', startMode: 'casual', startSystemId: 'sol' });
+  const guest = await f.connect({ name: 'Distant guest', realmCode: host.passport.realmCode, startMode: 'casual', startSystemId: 'lacuna' });
+  assert.equal(host.latest.state.ship.warpRange, 9); assert.equal(guest.latest.state.ship.warpRange, 15);
+  assert.deepEqual(host.latest.state.upgrades, { ...starterEquipment, fold_2: 1 });
+  assert.deepEqual(guest.latest.state.upgrades, { ...starterEquipment, fold_2: 1, fold_3: 1 });
+  ok(await host.command('travel', { id: 'nacre' }));
+  ok(await guest.command('travel', { id: 'tau-ceti' }));
+  const passports = [copy(host.passport), copy(guest.passport)];
+  await f.restart();
+  const resumedHost = await f.connect({ passport: passports[0] }), resumedGuest = await f.connect({ passport: passports[1] });
+  assert.equal(resumedHost.latest.state.systemId, 'nacre'); assert.equal(resumedHost.latest.state.ship.warpRange, 9);
+  assert.equal(resumedGuest.latest.state.systemId, 'tau-ceti'); assert.equal(resumedGuest.latest.state.ship.warpRange, 15);
 });

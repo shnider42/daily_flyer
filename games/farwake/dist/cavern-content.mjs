@@ -1,4 +1,4 @@
-/** Sparse, additive field caves; no released story or entrance is replaced. */
+/** Deliberately placed field caves; no existing story or entrance is replaced. */
 import { planetSettlementPlan } from './planet-layout.mjs';
 import { planetTypeFor } from './world-types.mjs';
 import { settlementFootprints } from './settlement-footprints.mjs';
@@ -9,6 +9,16 @@ const freeze = value => { if (value && typeof value === 'object') { Object.value
 const point = (x, y) => ({ x: (x + .5) * 24, y: (y + .5) * 24 });
 const reward = (credits = 0, ore = 0, crystal = 0, heal = 0) => ({ credits, ore, crystal, heal });
 const sites = new Map();
+
+// Each geological family has a permanent home in the compact galaxy. The
+// survey routes and wildlife still vary with the galaxy seed, never the visit.
+export const COMPACT_CAVERN_HOMES = Object.freeze({
+  'alpha-centauri-shelf': 'glacial',
+  'epsilon-eridani-forge': 'lava-tube',
+  'epsilon-eridani-forest': 'root-grotto',
+  'tau-ceti-tide': 'tidal',
+  'tau-ceti-karst': 'limestone'
+});
 
 const descriptions = {
   limestone: { name: 'Skylight Karst', summary: 'Pale arches divide a dry cavern. Sun shafts reach the upper galleries.',
@@ -29,6 +39,7 @@ const descriptions = {
 };
 
 export function cavernFamilyFor(body = {}, seed = 'farwake') {
+  if (COMPACT_CAVERN_HOMES[body.id]) return COMPACT_CAVERN_HOMES[body.id];
   const type = planetTypeFor(body).id;
   if (['glacier', 'tundra', 'frozen-sea'].includes(type) || /ice|froz|snow/.test(String(body.biome))) return 'glacial';
   if (['archipelago', 'reef', 'storm-ocean'].includes(type) || body.biome === 'ocean') return 'tidal';
@@ -102,9 +113,12 @@ function freeEntrance(body, seed, existingSites) {
 
 export function cavernSites(body = {}, seed = 'farwake', existingSites = []) {
   if (!['planet', 'moon', 'asteroid'].includes(body.kind) || body.landable === false || body.military || body.portType === 'military' || body.techLevel === 'preflight') return [];
-  // Original named worlds and authored showcases retain all their old space.
-  if (!/^(?:(?:world|moon)-\d+|frontier-[a-z0-9_]+-(?:world|moon))$/.test(String(body.id))) return [];
-  if (hash(`${seed}:${body.id}:cavern-distribution-v1`) % 6 !== 0) return [];
+  // Existing named worlds keep their space. Compact hosts do not depend on a
+  // rarity roll; the procedural path remains available to standalone fixtures.
+  if (!COMPACT_CAVERN_HOMES[body.id]) {
+    if (!/^(?:(?:world|moon)-\d+|frontier-[a-z0-9_]+-(?:world|moon))$/.test(String(body.id))) return [];
+    if (hash(`${seed}:${body.id}:cavern-distribution-v1`) % 6 !== 0) return [];
+  }
   const key = JSON.stringify([String(seed), body.id, body.name, body.kind, body.biome, planetTypeFor(body).id,
     existingSites.map(site => [site.id, site.tileX, site.tileY])]);
   if (sites.has(key)) return sites.get(key);

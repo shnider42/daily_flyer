@@ -2,10 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { Realm } from '../../server/realm.mjs';
+import { GALAXY_EPOCH } from '../../dist/galaxy-epoch.mjs';
 import { cabinLayout, enemyHullProfile, getShipClass, isCabinWalkable } from '../../dist/fleet.mjs';
 import { SIDEARM } from '../../dist/combat.mjs';
 
 const storage = () => ({ kind: 'memory', save: async (_id, version) => ({ version: version + 1 }) });
+async function boardingSchemaFixture() {
+  const snapshot = JSON.parse(await readFile(new URL('../fixtures/realm-v021-boarding.json', import.meta.url), 'utf8'));
+  // Exercise the old boarding schema on today's chart without re-enabling full
+  // precompact imports. The unmodified realm is rejected by the epoch boundary.
+  snapshot.galaxyEpoch = GALAXY_EPOCH;
+  for (const captain of Object.values(snapshot.captains)) captain.game.galaxyEpoch = GALAXY_EPOCH;
+  return snapshot;
+}
 function assertLegacyShipPreserved(ship, original) {
   const { damageControl, ...existingFields } = ship;
   assert.deepEqual(existingFields, original, 'Migration preserves every existing physical ship property.');
@@ -168,8 +177,8 @@ test('friendly transfers leave physical ships in space and return requires a liv
 });
 
 
-test('an authentic v0.2.1 active assault migrates without overwriting the source ship, friend, crew, wounds, credits or quest progress', async () => {
-  const legacy = JSON.parse(await readFile(new URL('../fixtures/realm-v021-boarding.json', import.meta.url), 'utf8'));
+test('the v0.2.1 assault schema on the current chart preserves the source ship, friend, crew, wounds, credits and quest progress', async () => {
+  const legacy = await boardingSchemaFixture();
   for (const c of Object.values(legacy.captains)) c.lastSeen = Date.now();
   const before = structuredClone(legacy), ownerId = 'captain_legacy_owner', friendId = 'captain_legacy_friend', sourceId = before.captains[ownerId].ownedVesselId;
   const realm = new Realm({ id: legacy.realmId, snapshot: legacy, persistence: storage() }), captain = realm.captains.get(ownerId), friend = realm.captains.get(friendId), source = realm.vessels.get(sourceId), target = realm.vessels.get(captain.aboard);
@@ -186,8 +195,8 @@ test('an authentic v0.2.1 active assault migrates without overwriting the source
 });
 
 
-test('v0.2.1 normal play and an existing defensive boarding keep the same ship, crew and combat state', async () => {
-  const authentic = JSON.parse(await readFile(new URL('../fixtures/realm-v021-boarding.json', import.meta.url), 'utf8'));
+test('v0.2.1 normal and defensive boarding schemas on the current chart keep the same ship, crew and combat state', async () => {
+  const authentic = await boardingSchemaFixture();
   for (const defensive of [false, true]) {
     const snapshot = structuredClone(authentic), owner = snapshot.captains.captain_legacy_owner, id = owner.ownedVesselId, vessel = snapshot.vessels[id];
     delete vessel.combatInterior; delete vessel.boardingLeaderId;

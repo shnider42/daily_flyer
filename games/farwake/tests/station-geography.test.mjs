@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game, buildGalaxy } from '../dist/engine.mjs';
-import { bodyVisualRadius, decorateGalaxyTypes } from '../dist/world-types.mjs';
+import { bodyVisualRadius, decorateGalaxyTypes, STATION_TYPES } from '../dist/world-types.mjs';
 import { SYSTEM_SPACE_SCALE, WORLD_RADIUS, systemBodyPosition } from '../dist/system-space.mjs';
 import { systemCosmicBodies } from '../dist/galaxy-expansion.mjs';
 import { STATION_GEOGRAPHY_VERSION, STATION_NEIGHBORHOOD_GAP, decorateStationGeography, stationRelocations, migrateStationPose } from '../dist/station-geography.mjs';
@@ -14,10 +14,28 @@ const positioned = system => system.bodies.map((body,index) => ({...body,...syst
 const worlds = bodies => bodies.filter(body => ['planet','moon'].includes(body.kind));
 const near = (a,b) => assert.ok(Math.abs(a-b)<1e-6,`${a} != ${b}`);
 
-test('large majorities of actual stations have short, clear crossings to real worlds', () => {
+// Placement templates remain reusable, but they no longer need hundreds of
+// generated stars in the playable chart just to exercise their geometry.
+const stationFixture=(type,seed='station-template')=>decorateStationGeography(decorateGalaxyTypes([{
+ id:`fixture-${type}`,name:'Fixture system',faction:'freewake',authored:false,gx:18,gy:12,bodies:[
+  {id:`fixture-${type}-port`,kind:'station',name:'Working port',biome:'station',stationTypeId:type},
+  {id:`fixture-${type}-world`,kind:'planet',name:'Working world',biome:'temperate'},
+  {id:`fixture-${type}-moon`,kind:'moon',name:'Working moon',biome:'barren'}
+ ]
+}],seed),seed)[0];
+function fixtureWithKind(type,kind){
+ for(let i=0;i<256;i++){
+  const system=stationFixture(type,`station-template-${i}`);
+  if(system.bodies[0].stationGeography.kind===kind)return system;
+ }
+ assert.fail(`${type}: no${kind} placement in the template fixtures`);
+}
+
+
+test('every compact-chart station has truthful local geography and a usable physical position', () => {
   for (const seed of ['farwake','quiet-earth','station-neighborhoods','a','b']) {
     const galaxy = buildGalaxy(seed);
-    let total = 0, orbital = 0;
+    let total = 0;
     for (const system of galaxy) {
       const bodies = positioned(system), planets = worlds(bodies);
       const hazards = systemCosmicBodies(system,seed).map(body => ({...body,x:body.x*SYSTEM_SPACE_SCALE,y:body.y*SYSTEM_SPACE_SCALE}));
@@ -30,7 +48,6 @@ test('large majorities of actual stations have short, clear crossings to real wo
         assert.deepEqual(geography.nearbyBodyIds,measured.map(body => body.id),'nearby labels use real geometry');
         assert.ok(Math.hypot(station.x,station.y)+bodyVisualRadius(station)<WORLD_RADIUS);
         if (geography.kind !== 'orbital') continue;
-        orbital++;
         assert.ok(geography.nearbyBodyIds.length >= 1 && geography.nearbyBodyIds.length <= 3);
         const anchor = planets.find(body => body.id === geography.anchorBodyIds[0]);
         assert.ok(anchor);
@@ -40,14 +57,13 @@ test('large majorities of actual stations have short, clear crossings to real wo
         for (const hazard of hazards) assert.ok(dist(station,hazard)>=hazard.warningRadius+bodyVisualRadius(station)+350);
       }
     }
-    assert.equal(total,907);
-    assert.ok(orbital/total>=.85 && orbital/total<=.94,`${seed}: ${orbital}/${total} near-world stations`);
+    assert.equal(total,31);
   }
 });
 
 test('detached working stations occupy actual field edges or outer lanes, with type-specific reasons', () => {
-  const galaxy = buildGalaxy('farwake'), purposes = new Set();
-  for (const system of galaxy.filter(system => !system.authored)) {
+  const galaxy = ['freight-trident','telescope-crescent','relay-spindle','salvage-stack','rescue-fork'].map(type=>fixtureWithKind(type,'deep-space')), purposes = new Set();
+  for (const system of galaxy) {
     const bodies = positioned(system), planets = worlds(bodies);
     for (const station of bodies.filter(body => body.kind === 'station' && body.stationGeography.kind === 'deep-space')) {
       const geography = station.stationGeography;
@@ -112,7 +128,7 @@ test('a moon can support a station and a true cluster names up to three nearby w
 });
 
 test('migration translates old berths once without altering progression or unrelated flight poses', () => {
-  const chart = buildGalaxy('migration-metadata').find(system=>stationRelocations(system).length), [move] = stationRelocations(chart);
+  const chart = fixtureWithKind('transit-hub','orbital'), [move] = stationRelocations(chart);
   const old = {id:'captain-hull',x:move.from.x,y:move.from.y+move.radius+110,vx:8,vy:-2,angularVelocity:.6,hull:71,fuel:13,credits:90}, before = structuredClone(old);
   const changed = migrateStationPose(old,[move]);
   assert.deepEqual(old,before);
@@ -131,13 +147,8 @@ test('migration translates old berths once without altering progression or unrel
 });
 
 test('close station approaches still produce usable collision-free civilian and capital traffic', () => {
-  const galaxy = buildGalaxy('traffic-neighborhoods');
-  const examples = new Map();
-  for (const system of galaxy.filter(system=>!system.authored)) {
-    const station = system.bodies.find(body=>body.kind==='station');
-    if (station.stationGeography.kind==='orbital' && !examples.has(station.stationTypeId)) examples.set(station.stationTypeId,system);
-  }
-  assert.ok(examples.size>=20);
+  const examples = new Map(STATION_TYPES.filter(type=>type.id!=='defense-star').map(type=>[type.id,fixtureWithKind(type.id,'orbital')]));
+  assert.ok(examples.size>=20,'all ordinary station outlines exercise working routes');
   let capital = 0;
   for (const system of examples.values()) {
     const bodies = positioned(system).map(body=>({...body,radius:bodyVisualRadius(body)}));
@@ -157,7 +168,7 @@ test('close station approaches still produce usable collision-free civilian and 
 });
 
 test('the discovery log explains why an encountered station is where it is', () => {
-  const game = new Game('dock-location-explanation'), system = game.galaxy.find(system=>!system.authored&&system.bodies.some(body=>body.stationGeography?.kind==='deep-space'));
+  const game = new Game('dock-location-explanation'), system = game.galaxy.find(system=>system.id==='vesper');
   game.state.systemId=system.id;game._loadSystem(system.id);
   const station = game.system.bodies.find(body=>body.kind==='station');
   Object.assign(game.state.ship,{x:station.x,y:station.y+station.radius+100,vx:0,vy:0});

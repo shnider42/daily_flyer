@@ -58,8 +58,11 @@ function normalizeState(raw,now){
  // Preserve ongoing incidents and their contribution/reward evidence. Only the
  // future schedule resets; a real fight never disappears because of an upgrade.
  if(legacy){state.legacyCycle=state.cycle;state.cycle=-1;}
- state.systemCooldowns=Object.fromEntries(Object.entries(object(state.systemCooldowns)).filter(([id,until])=>id.length<160&&Number.isFinite(until)&&until>now).slice(-WORLD_DIRECTOR_RULES.maxSystemCooldowns));
  state.time=Math.max(state.startedAt,finite(state.time,state.startedAt));state.cycle=Math.max(-1,Math.floor(finite(state.cycle,-1)));
+ // A late tick may replay an opportunity just before a cooldown expires. Keep
+ // the last processed clock's deadlines until those scheduled slots are checked;
+ // advancement removes deadlines at the new clock only after replay finishes.
+ state.systemCooldowns=Object.fromEntries(Object.entries(object(state.systemCooldowns)).filter(([id,until])=>id.length<160&&Number.isFinite(until)&&until>state.time).slice(-WORLD_DIRECTOR_RULES.maxSystemCooldowns));
  state.revision=Math.max(0,Math.floor(finite(state.revision)));state.skippedCycles=Math.max(0,Math.floor(finite(state.skippedCycles)));
  state.events=(Array.isArray(state.events)?state.events:[]).filter(validEvent).slice(-WORLD_DIRECTOR_RULES.maxEvents);
  state.history=(Array.isArray(state.history)?state.history:[]).filter(validEvent).slice(-WORLD_DIRECTOR_RULES.maxHistory);

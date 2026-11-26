@@ -11,15 +11,15 @@ const checksum=value=>createHash('sha256').update(JSON.stringify(value)).digest(
 const ids=values=>[...new Set(values.map(value=>value.id))].sort();
 const visit=(game,id)=>{game.state.systemId=id;game._loadSystem(id);return game.system;};
 
-test('all25 identities in each category occur in real902-system charts across independent seeds',()=>{
+test('the compact chart retains every terrain and world size with valid deliberate system and station identities',()=>{
  for(const catalog of [STATION_TYPES,PLANET_TYPES,SYSTEM_TYPES])assert.equal(ids(catalog).length,25);
  assert.equal(new Set(STATION_TYPES.map(type=>type.shape)).size,25,'station types have distinct silhouette geometry');
  assert.equal(new Set(PLANET_TYPES.map(type=>type.terrain)).size,25,'planet types select distinct terrain samplers');
  for(const seed of ['farwake','quiet-earth','world-types-regression','a','b']){
   const galaxy=buildGalaxy(seed),bodies=galaxy.flatMap(system=>system.bodies);
-  assert.equal(galaxy.length,902);
-  assert.deepEqual([...new Set(galaxy.map(system=>system.systemTypeId))].sort(),ids(SYSTEM_TYPES));
-  assert.deepEqual([...new Set(bodies.filter(body=>body.kind==='station').map(body=>body.stationTypeId))].sort(),ids(STATION_TYPES));
+  assert.equal(galaxy.length,26);
+  assert.ok(galaxy.every(system=>SYSTEM_TYPES.some(type=>type.id===system.systemTypeId)));
+  assert.ok(bodies.filter(body=>body.kind==='station').every(body=>STATION_TYPES.some(type=>type.id===body.stationTypeId)));
   assert.deepEqual([...new Set(bodies.filter(body=>body.planetTypeId).map(body=>body.planetTypeId))].sort(),ids(PLANET_TYPES));
   assert.deepEqual([...new Set(bodies.filter(body=>body.planetTypeId).map(body=>body.sizeClass))].sort(),Object.keys(WORLD_SIZES).sort());
   assert.deepEqual(buildGalaxy(seed),galaxy);
@@ -55,8 +55,8 @@ test('working station purposes alter real traffic capacity while public berths r
 
 test('system identity changes traffic and resource activity without multiplying ambient combat',()=>{
  const game=new Game('system-activity'),counts=new Set(),traffic=new Set();
- for(const type of SYSTEM_TYPES){
-  const chart=game.galaxy.find(system=>system.systemTypeId===type.id&&!system.authored),runtime=visit(game,chart.id),context=systemContext(chart);
+ for(const chart of game.galaxy){
+  const type=systemTypeFor(chart),runtime=visit(game,chart.id),context=systemContext(chart);
   counts.add(runtime.asteroids.length);traffic.add(runtime.context.trafficCount);
   assert.equal(runtime.systemTypeId,type.id);assert.equal(runtime.typeLabel,type.name);
   assert.deepEqual(runtime.stellar,type.stellar);assert.deepEqual(runtime.activity,type.activity);
@@ -75,8 +75,6 @@ test('system identity changes traffic and resource activity without multiplying 
 // stream, resource identities/yields and signal locations, not the new labels.
 const legacyRuntime={
  hearth:['5d59be93e07f0cbb9a464a30700ee24ffe3f1d073841e460a0304bc27c3f450f','a4527b0bf0d317505b8393bc4ece3aea025ee2a97b3415c4aab4c7e61c460a83'],
- 'sector-0':['f2eb63764154240b11827fe45051b3287948b4fb15590e439b9d23d9117c4bbe','35c81786f948f7408059dc0541e5238a7265f659bd7a9e1b9fe8eef81c9d2bd3'],
- 'sector-137':['a2ad78209aacabc53f1377f0732e54283bb5398b199a093af5489508d7aa720e','421b959b03ac026e739b0e1df76060c4e088f96a577c55acf6750e05fc47a8b5'],
  lacuna:['0a09acb2f402a70371a891556ea562fe6201b65a462048f42efe28c3a3f164ce','a3b55a76b3449f6322ab76114e3b1c37192ee4a850cce87f721663f644a58121']
 };
 test('released asteroid state and signal positions keep their exact original seeded values',()=>{
@@ -129,7 +127,7 @@ test('expanded-body pose repair is pure, bounded and does not move valid or auth
  const distant={...pose,x:2000};assert.equal(migrateExpandedBodyPose(distant,[giant]),distant);
 });
 
-test('an old captain beside an enlarged world keeps progress and migrates only once',()=>{
+test('a current-map captain with older type metadata repairs a nearby enlarged-world pose only once',()=>{
  const game=new Game('body-pose-save'),chart=game.galaxy.find(system=>system.bodies.some(body=>body.kind==='planet'&&body.sizeClass==='supermassive')),bodyIndex=chart.bodies.findIndex(body=>body.kind==='planet'&&body.sizeClass==='supermassive'),body=chart.bodies[bodyIndex],center=systemBodyPosition(body,bodyIndex,chart.id);
  visit(game,chart.id);
  Object.assign(game.state.ship,{x:center.x+197,y:center.y,vx:4,vy:8});game.state.credits=817;game.state.cargo.ore=7;

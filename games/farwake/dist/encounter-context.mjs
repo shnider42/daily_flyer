@@ -4,10 +4,12 @@ const inhabited=system=>system?.bodies?.some(body=>body&&body.portServices!==fal
 
 export function systemContext(system={}){
  const radius=Math.hypot(finite(system.gx),finite(system.gy)),danger=Math.max(1,Math.min(5,finite(system.danger,1)));
- // Older authored frontier pockets keep their identity even inside the newer,
- // much larger chart. Geography never moves their existing save coordinates.
- const core=system.id==='hearth'||radius<=9&&danger<=2;
- const region=core?'core':radius>=42||danger>=5||system.cosmic?'deep':radius<=24&&danger<=2&&!system.frontier?'settled':'frontier';
+ // The compact fold chart is schematic. Authored isolation and security do not
+ // change when a remote destination is drawn closer to the settled lanes.
+ const geographicCore=system.id==='hearth'||radius<=9&&danger<=2;
+ const geographicRegion=geographicCore?'core':radius>=42||danger>=5||system.cosmic?'deep':radius<=24&&danger<=2&&!system.frontier?'settled':'frontier';
+ const region=['core','settled','frontier','deep'].includes(system.encounterRegion)?system.encounterRegion:geographicRegion;
+ const core=region==='core';
  const border=!core&&danger>=3;
  const rules={
   core:{label:'Core shipping hub',security:'high',trafficCount:system.id==='hearth'?22:16,backgroundHostileCount:0,ambientEncounterChance:.025,encounterMinSeconds:1200,encounterMaxSeconds:2400,rescueSignalChance:.001,derelictSignalChance:.002,directorWeight:.025,localIncidentCooldownSeconds:14400},

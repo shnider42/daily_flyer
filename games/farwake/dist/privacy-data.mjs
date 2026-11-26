@@ -1,10 +1,11 @@
 /** Read-only, explicitly scoped data reports. Recovery credentials are never report data. */
+import { GALAXY_SAVE_STORAGE_KEY, GALAXY_PASSPORT_STORAGE_KEY } from './galaxy-epoch.mjs';
 export const PRIVACY_FORMAT_VERSION = 1;
 export const BROWSER_DATA_KEYS = Object.freeze({
-  voyage: 'dfe.farwake.save.v1',
+  voyage: GALAXY_SAVE_STORAGE_KEY,
   settings: 'dfe.farwake.settings.v1',
   guidance: 'dfe.farwake.action-guide.v1',
-  passports: 'farwake.multiplayer.passport.v1',
+  passports: GALAXY_PASSPORT_STORAGE_KEY,
   cameraPrefix: 'dfe.farwake.camera-pending.v1:'
 });
 export const DEVICE_SETTING_FIELDS = Object.freeze([

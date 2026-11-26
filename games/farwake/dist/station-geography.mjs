@@ -24,6 +24,10 @@ const byDistance = point => (a, b) => distance(point, a) - distance(point, b) ||
 // These established ports sit on authored routes. Describe their actual jobs
 // without relocating campaign rendezvous or pretending they orbit a close world.
 const authoredReasons = {
+  'alpha-centauri-port': ['transfer', 'passenger-interchange', 'A passenger exchange serving Haven and Shelf. Arrivals transfer to local ferries here, and long-haul crews can refuel without entering either settlement approach.'],
+  'epsilon-eridani-yard': ['transfer', 'ore-transfer', 'A refinery and repair station beside the Forge workings. Ore tenders use the freight arms, while Bough field crews collect supplies from the central workshop.'],
+  'tau-ceti-observatory': ['deep-space', 'quiet-observatory', 'A detached survey station serving Tidemark and Whitecliff. Its receivers operate away from settlement radio traffic, with separate berths for sample couriers.'],
+  'sirius-port': ['transfer', 'survey-interchange', 'A transfer and supply station for Ashbank, Prism and the stellar survey crews. Local ferries meet the survey ships here before either continues to the inhabited worlds.'],
   kettle: ['transfer', 'passenger-interchange', 'A transfer junction for Morrow and Tinbell. Long-haul ships unload here; local ferries make the separate planetary approaches.'],
   weighhouse: ['transfer', 'agricultural-transfer', 'Orchard grain is consolidated here for outbound convoys. Bulk freighters wait clear of the agricultural landing traffic.'],
   ledger: ['transfer', 'freight-exchange', 'A customs and freight exchange serving Serein and Cairn. Cargo is cleared here before carriers enter either planetary approach.'],

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { buildGalaxy } from '../dist/engine.mjs';
 import { explorationSites, createSiteState } from '../dist/exploration.mjs';
 import { expeditionStorySites } from '../dist/expedition-stories.mjs';
-import { cavernSites, materializeCavern } from '../dist/cavern-content.mjs';
+import { COMPACT_CAVERN_HOMES, cavernSites, materializeCavern } from '../dist/cavern-content.mjs';
 import { CAVERN_FAMILIES, createCavernLayout } from '../dist/cavern-layouts.mjs';
 import { CREATURE_IDS, creatureProfile } from '../dist/creature-catalog.mjs';
 import { generateSurface, isWalkable, movePerson } from '../dist/surface.mjs';
@@ -64,23 +64,33 @@ test('five geological families have seeded connected routes and physically reach
   assert.equal(new Set(familyMaps.values()).size, 5);
 });
 
-test('actual galaxies expose all fourteen ordinary creatures, mixed populations and quiet dark places without replacing authored stories', () => {
-  for (const seed of ['farwake', 'cavern-distribution-a', 'cavern-distribution-b']) {
-    const families = new Set(), species = new Set(); let count = 0, fog = 0, quietFog = 0, mixed = 0, expanded = 0;
+test('every compact galaxy retains five reachable geological visits while seeds vary ordinary wildlife and darkness', () => {
+  const species = new Set(), signatures = new Map(); let count = 0, fog = 0, quietFog = 0, mixed = 0, empty = 0;
+  for (let index = 0; index < 32; index++) {
+    const seed = index === 0 ? 'farwake' : `compact-cavern-${index}`, families = new Set(), homes = new Set();
     for (const system of buildGalaxy(seed)) for (const raw of system.bodies) {
       const body = { ...raw, systemId: system.id }, selected = explorationSites(body, seed), caves = selected.filter(site => site.cavern);
       assert.ok(caves.length <= 1);
       const stories = expeditionStorySites(body, seed);
       for (const story of stories) assert.ok(selected.some(site => site.id === story.id && site.tileX === story.tileX && site.tileY === story.tileY));
-      if (system.authored) assert.equal(caves.length, 0, `${body.id} is an authored world`);
+      if (!COMPACT_CAVERN_HOMES[body.id]) assert.equal(caves.length, 0, `${body.id} keeps its existing sites`);
       for (const cave of caves) {
-        count++; families.add(cave.cavernFamily); if (body.id.startsWith('frontier-')) expanded++;
+        count++; families.add(cave.cavernFamily); homes.add(body.id);
+        assert.equal(cave.cavernFamily, COMPACT_CAVERN_HOMES[body.id]);
+        if (!signatures.has(body.id)) signatures.set(body.id, new Set());
+        signatures.get(body.id).add(JSON.stringify([cave.hostiles.map(actor => [actor.species, actor.hostileToPlayer]), cave.visibility.mode]));
         const oldSites = selected.filter(site => !site.cavern), plan = planetSettlementPlan(body, seed);
         assert.deepEqual(settlementFootprints(plan, selected).centers, settlementFootprints(plan, oldSites).centers, 'An additive cave cannot move the old landing or services.');
         assert.deepEqual(cavernSites(body, seed, oldSites), [cave], 'Looking up or returning to a cave never rerolls its geometry or population.');
         assert.ok(!oldSites.some(site => site.tileX === cave.tileX && site.tileY === cave.tileY));
+        if (index < 3) {
+          const surface = generateSurface(body, seed), entrance = surface.entities.find(entity => entity.type === 'siteEntrance' && entity.data?.siteId === cave.id);
+          assert.ok(entrance, `${body.id}: the cave has a real surface entrance`);
+          assert.ok(reachable(surface).has(cell(surface, entrance)), `${body.id}: the entrance is reachable from the landing`);
+        }
         if (cave.visibility.mode === 'local') { fog++; if (!cave.hostile) quietFog++; }
         if (cave.hostiles.some(actor => actor.hostileToPlayer) && cave.hostiles.some(actor => !actor.hostileToPlayer)) mixed++;
+        if (cave.empty) empty++;
         for (const actor of cave.hostiles) {
           species.add(actor.species);
           assert.ok(creatureProfile(actor.species).habitats.includes(cave.cavernFamily));
@@ -89,11 +99,13 @@ test('actual galaxies expose all fourteen ordinary creatures, mixed populations 
         }
       }
     }
-    assert.ok(count > 70 && count < 300 && expanded > 30);
+    assert.deepEqual([...homes].sort(), Object.keys(COMPACT_CAVERN_HOMES).sort(), 'All five visits exist in every galaxy, without a distribution roll.');
     assert.deepEqual([...families].sort(), [...CAVERN_FAMILIES].sort());
-    assert.deepEqual([...species].sort(), CREATURE_IDS.filter(id => id !== 'bellwether').sort());
-    assert.ok(fog > 0 && fog < count / 3 && quietFog > 0 && mixed > 0, 'Fog is selective and does not predict danger.');
   }
+  assert.equal(count, 160);
+  assert.ok([...signatures.values()].every(values => values.size >= 4), 'A fixed home still allows different populations in new galaxies.');
+  assert.deepEqual([...species].sort(), CREATURE_IDS.filter(id => id !== 'bellwether').sort());
+  assert.ok(fog > 0 && fog < count / 3 && quietFog > 0 && mixed > 0 && empty > 0, 'Fog is selective; quiet, mixed and empty caves remain possible.');
 });
 
 test('a neutral cavern species does not become another species’ army when the captain attacks it', () => {

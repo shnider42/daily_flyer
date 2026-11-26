@@ -3,24 +3,19 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {Game,buildGalaxy} from '../dist/engine.mjs';
 import {generateSurface} from '../dist/surface.mjs';
+import {NAMED_SYSTEMS} from '../dist/content.mjs';
+import {FRONTIER_SYSTEMS} from '../dist/galaxy-expansion.mjs';
 import {SPECIES_HOMEWORLDS} from '../dist/species-content.mjs';
 import {FACTION_PORTS} from '../dist/port-content.mjs';
 import {withHull} from './helpers/fleet-fixtures.mjs';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
 import {SYSTEM_SPACE_SCALE} from '../dist/system-space.mjs';
-import {releasedChart,releasedBody,releasedAsteroids,releasedSignals} from './helpers/world-type-projection.mjs';
+import {releasedBody,releasedAsteroids,releasedSignals} from './helpers/world-type-projection.mjs';
 
 const checksum=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const addedBodies=new Set([...SPECIES_HOMEWORLDS.map(entry=>entry.body.id),...FACTION_PORTS.map(port=>port.id)]);
 const releasedBodies=bodies=>bodies.filter(body=>!addedBodies.has(body.id));
 const ok=result=>{assert.equal(result.ok,true,result.reason);return result;};
-// Recorded from the live 0.7.1 source, before the species additions. Only the
-// appended homeworlds/service bases and new type descriptors are projected out.
-// All older identities, geography, permissions and biome fields remain intact.
-const charts={
- 'species-compatibility':'41f71102e91aafa3c37ddd178bd1792c55cc0aff93f073dff75ed4aa2eb90d69',
- farwake:'9bd1c91c285e7efa3f214c8053014723306c4744092c98e11c2689eb4473ca47'
-};
 // Derived independently from committed0.10 after verifying its unrounded data
 // against all16 original0.7.1 signatures. Coordinates use released system units;
 // six decimals avoid binary rounding noise from multiplying then dividing by3.
@@ -47,14 +42,19 @@ const physical={
   }
 };
 
-test('adding people and homeworlds preserves all 900 released stars and every older body',()=>{
- for(const[seed,expected]of Object.entries(charts)){
-  const full=buildGalaxy(seed);
-  assert.equal(full.length,902);
-  const galaxy=full.filter(system=>!['voltage','crosswind'].includes(system.id));
-  assert.equal(galaxy.length,900);
-  assert.equal(checksum(releasedChart(galaxy).map(system=>({...system,bodies:releasedBodies(system.bodies)}))),expected);
-  for(const entry of SPECIES_HOMEWORLDS)assert.equal(galaxy.find(system=>system.id===entry.systemId).bodies.at(-1).id,entry.body.id);
+test('the compact chart keeps every established species homeworld and older authored body',()=>{
+ for(const seed of ['species-compatibility','farwake']){
+  const galaxy=buildGalaxy(seed);
+  assert.equal(galaxy.length,26);
+  for(const original of [...NAMED_SYSTEMS,...FRONTIER_SYSTEMS]){
+   const system=galaxy.find(value=>value.id===original.id);assert.ok(system,original.id);
+   assert.deepEqual(system.bodies.slice(0,original.bodies.length).map(body=>releasedBody(body,{authored:true})),original.bodies,`${original.id}: authored people and destinations`);
+  }
+  for(const entry of SPECIES_HOMEWORLDS){
+   const system=galaxy.find(value=>value.id===entry.systemId);
+   assert.equal(system.bodies.filter(body=>body.id===entry.body.id).length,1);
+   assert.equal(system.bodies.at(-1).id,entry.body.id);
+  }
  }
 });
 

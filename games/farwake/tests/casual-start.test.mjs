@@ -3,9 +3,19 @@ import assert from 'node:assert/strict';
 import {Game,buildGalaxy,distance} from '../dist/engine.mjs';
 import {STARTER_SHIP_IDS} from '../dist/fleet.mjs';
 import {CASUAL_START_UPGRADES,normalizeStartMode,publicStartingPort} from '../dist/livelihoods.mjs';
+import {casualStartingDrive,startSystemChoices} from '../dist/start-options.mjs';
 
 const ok=result=>{assert.equal(result?.ok,true,result?.reason);return result;};
 const casual=(seed='casual-start',options={})=>new Game(seed,{startMode:'casual',...options});
+function routeHome(galaxy,originId,range){
+ const paths=[[originId]],seen=new Set([originId]);
+ for(const path of paths){
+  const from=galaxy.find(system=>system.id===path.at(-1));
+  if(from.id==='hearth')return path;
+  for(const to of galaxy)if(!seen.has(to.id)&&Math.hypot(from.gx-to.gx,from.gy-to.gy)<=range){seen.add(to.id);paths.push([...path,to.id]);}
+ }
+ return null;
+}
 
 test('Casual equips every starter for an immediate first fold without completing the story',()=>{
  assert.ok(Object.isFrozen(CASUAL_START_UPGRADES));
@@ -25,10 +35,10 @@ test('Casual equips every starter for an immediate first fold without completing
  delete first.state.upgrades.fold_1;assert.equal(second.state.upgrades.fold_1,1);assert.equal(CASUAL_START_UPGRADES.fold_1,1);
 });
 
-test('Casual validates named and procedural origins against the actual seeded galaxy and discovers nearby stars',()=>{
+test('Casual validates compact origins against the actual seeded galaxy and discovers nearby stars',()=>{
  for(const seed of ['casual-chart-a','casual-chart-b']){
-  const galaxy=buildGalaxy(seed),frontier=galaxy.find(system=>!system.authored&&system.frontier);
-  for(const startSystemId of ['brindle','sol','lacuna','sector-0',frontier.id]){
+  const galaxy=buildGalaxy(seed);
+  for(const startSystemId of ['brindle','sol','lacuna','alpha-centauri','tau-ceti']){
    const game=casual(seed,{startSystemId}),source=galaxy.find(system=>system.id===startSystemId),port=publicStartingPort(game.system);
    assert.equal(game.state.systemId,startSystemId);assert.equal(game.currentSystem.name,source.name);
    assert.equal(game.currentSystem.faction,source.faction);assert.equal(game.currentSystem.danger,source.danger);
@@ -46,6 +56,30 @@ test('Casual validates named and procedural origins against the actual seeded ga
  }
 });
 
+test('every Casual origin gets the minimum drive tier for a real route back to Hearth',()=>{
+ const seed='compact-casual-routes',galaxy=buildGalaxy(seed),choices=startSystemChoices(galaxy);
+ assert.equal(choices.length,galaxy.length,'Every origin remains available.');
+ for(const origin of galaxy){
+  const game=casual(seed,{startSystemId:origin.id}),range=game.state.ship.warpRange,route=routeHome(galaxy,origin.id,range);
+  assert.ok(route,`${origin.name} must connect to Hearth with its starting equipment.`);
+  const previousRange=range===15?9:range===9?5:0;
+  if(previousRange)assert.equal(routeHome(galaxy,origin.id,previousRange),null,`${origin.name} should not receive an unnecessary drive tier.`);
+  assert.equal(game.state.upgrades.fold_1,1);
+  if(range>=9)assert.equal(game.state.upgrades.fold_2,1);
+  if(range>=15)assert.equal(game.state.upgrades.fold_3,1);
+  const supplied=choices.find(choice=>choice.id===origin.id).startingDrive;
+  assert.equal(supplied.range,range);assert.ok(game.state.journal[0].text.includes(supplied.name));
+  for(const destination of route.slice(1)){
+   game.state.ship.fuel=game.state.ship.maxFuel;
+   ok(game.travel(destination));
+  }
+  assert.equal(game.state.systemId,'hearth');
+ }
+ assert.equal(casual(seed,{startSystemId:'hearth'}).state.ship.warpRange,5);
+ assert.equal(casual(seed,{startSystemId:'sol'}).state.ship.warpRange,9);
+ assert.equal(casual(seed,{startSystemId:'lacuna'}).state.ship.warpRange,15);
+});
+
 test('origin fallback is Hearth and origin inputs do not change Regular or Hardcore',()=>{
  for(const startSystemId of [undefined,null,'missing-system',42,{},['sol']]){
   const game=casual('invalid-origin',{startSystemId});
@@ -61,10 +95,10 @@ test('origin fallback is Hearth and origin inputs do not change Regular or Hardc
 });
 
 test('remote Casual starts skip the Hearth opening while a Hearth Casual captain can play it',()=>{
- for(const startSystemId of ['vesper','sol','sector-12']){
+ for(const startSystemId of ['vesper','sol','sirius']){
   const game=casual('remote-opening',{startSystemId,openingMission:true});
   assert.equal(game.state.systemId,startSystemId);assert.equal(game.state.mode,'ship');assert.equal(game.state.openingMission,null);
-  assert.equal(game.state.lastBodyId,publicStartingPort(game.system).id);assert.deepEqual(game.state.upgrades,CASUAL_START_UPGRADES);
+  assert.equal(game.state.lastBodyId,publicStartingPort(game.system).id);assert.deepEqual(game.state.upgrades,{...CASUAL_START_UPGRADES,...casualStartingDrive(game.galaxy,startSystemId).upgrades});
  }
  const hearth=casual('hearth-opening',{openingMission:true});
  assert.equal(hearth.state.systemId,'hearth');assert.equal(hearth.state.locationId,'kettle');assert.equal(hearth.state.mode,'person');

@@ -1,6 +1,7 @@
 /** New-captain choices and appearance editing. Drafts never mutate a live voyage. */
 import { starterShipChoices, normalizeStarterShip, getShipClass } from './fleet.mjs';
 import { normalizeCasualCrewCount } from './casual-crew.mjs';
+import { fittedFoldDrive } from './start-options.mjs';
 import { drawShip } from './space-art.mjs';
 import {
   CHARACTER_TRAITS, TRAIT_EFFECT_LABELS, MAX_TRAITS, SKIN_TONES, SUIT_COLORS, HAIR_COLORS, HAIR_STYLES,
@@ -16,7 +17,7 @@ const SHIP_NOTES={
 const options=(items,current)=>items.map(item=>`<option value="${esc(item.id)}"${item.id===current?' selected':''}>${esc(item.name)}</option>`).join('');
 const traitName=id=>CHARACTER_TRAITS.find(trait=>trait.id===id)?.name||'';
 const percent=value=>`${value>=1?'+':'−'}${Math.round(Math.abs(value-1)*100)}%`;
-const DEFAULT_START_SYSTEM={id:'hearth',name:'Hearth',factionName:'Freewake Union',danger:1,description:'The settled starting system, with work and guidance close at hand.',portName:'Kettle Station'};
+const DEFAULT_START_SYSTEM={id:'hearth',name:'Hearth',factionName:'Freewake Union',danger:1,description:'The settled starting system, with work and guidance close at hand.',portName:'Kettle Station',startingDrive:fittedFoldDrive({fold_1:1})};
 const dangerLabel=value=>['Low','Guarded','Hazardous','High','Extreme'][Math.max(0,Math.min(4,Number(value)-1))]||'Unknown';
 
 /**
@@ -44,6 +45,7 @@ export function openCaptainSetup(dialog,{
   const allocation=(hull=getShipClass(selectedShip))=>({aboard:Math.min(selectedCrewCount(),Math.max(0,hull.berths-1)),reserve:Math.max(0,selectedCrewCount()-Math.max(0,hull.berths-1))});
   const shipNote=hull=>SHIP_NOTES[hull.id]||{role:hull.subtitle,benefit:hull.systems.description,cost:hull.systems.tradeoff,color:'#a5bdba'};
   const selectedSystem=()=>systems.find(system=>system.id===selectedSystemId)||DEFAULT_START_SYSTEM;
+  const selectedDrive=()=>selectedSystem().startingDrive||DEFAULT_START_SYSTEM.startingDrive;
   const remoteStart=()=>selectedStart==='casual'&&selectedSystemId!=='hearth';
   const canGather=()=>selectedStart!=='hardcore'&&!remoteStart();
   const previousClose=dialog.onClose,closeButton=dialog.el?.querySelector('#closeModal');
@@ -165,7 +167,7 @@ export function openCaptainSetup(dialog,{
         <label>Starting system<select data-start-system aria-describedby="captain-system-detail captain-system-risk">${systemOptions()}</select></label>
       </div>
       ${systems.length>12?`<p class="captain-system-count" id="captain-system-count" data-start-system-count aria-live="polite">${esc(systemSearchStatus())}</p>`:''}
-      <div class="captain-system-detail" id="captain-system-detail" aria-live="polite"><strong>${esc(system.name)} · ${esc(system.factionName||'Unclaimed space')}</strong><span class="captain-system-danger${Number(system.danger)>=4?' high':''}">${esc(dangerLabel(system.danger))} danger · ${esc(system.danger??'?')}/5</span><span>Starting port: ${esc(system.portName||'a civilian station')}.</span>${system.description?`<p>${esc(system.description)}</p>`:''}</div>
+      <div class="captain-system-detail" id="captain-system-detail" aria-live="polite"><strong>${esc(system.name)} · ${esc(system.factionName||'Unclaimed space')}</strong><span class="captain-system-danger${Number(system.danger)>=4?' high':''}">${esc(dangerLabel(system.danger))} danger · ${esc(system.danger??'?')}/5</span><span>Starting port: ${esc(system.portName||'a civilian station')}.</span><span>Starting drive: ${esc(selectedDrive().name)} · ${selectedDrive().range} ly range.</span>${system.description?`<p>${esc(system.description)}</p>`:''}</div>
       <p class="captain-system-risk" id="captain-system-risk">Choose at your own risk. Local enemies, faction restrictions, and recovery rules still apply.</p>
     </section>`;
   }
@@ -193,7 +195,7 @@ export function openCaptainSetup(dialog,{
   function shipCatalogMarkup(){
     const crewed=startContext==='solo'&&selectedStart==='casual'&&selectedCrewCount()>0;
     return `<p class="captain-intro">${crewed?'Choose a ship for your crew. Each option shows how many NPCs will be aboard.':'Three compact working ships. A cockpit, a berth, and room to begin.'}</p>
-      <p class="captain-included" data-start-equipment><span>DEPARTURE GRANT</span> ${selectedStart==='casual'?'Your first ship includes Fold Drive I, Vector thrusters, and an Echo scanner. <strong>5 ly fold range · Cost: 0 CR</strong>':'Your first ship is included. <strong>Cost: 0 CR</strong>'}</p>
+      <p class="captain-included" data-start-equipment><span>DEPARTURE GRANT</span> ${selectedStart==='casual'?`Your first ship includes ${esc(selectedDrive().name)}, Vector thrusters, and an Echo scanner. <strong>${selectedDrive().range} ly fold range · Cost: 0 CR</strong>`:'Your first ship is included. <strong>Cost: 0 CR</strong>'}</p>
       <div class="captain-ships" role="group" aria-label="Choose your starter ship">${starterShipChoices(shipOptions()).map(hull=>{
         const note=shipNote(hull),count=allocation(hull);
         return `<button type="button" class="captain-ship${hull.id===selectedShip?' selected':''}" data-starter-ship="${esc(hull.id)}" aria-pressed="${hull.id===selectedShip}">
@@ -276,7 +278,7 @@ export function openCaptainSetup(dialog,{
   }
   function captainMarkup(){
     const appearance=draft.appearance,canChoose=creating||!locked;
-    const count=allocation(),startSummary=selectedStart==='hardcore'?'Hardcore · Morrow · 180 CR · no ship':selectedStart==='casual'?`Casual · ${selectedSystem().name} · ${getShipClass(selectedShip).name} · 180 CR · Fold Drive I fitted · ${selectedCrewCount()} NPC crew · ${count.aboard} aboard · ${count.reserve} in reserve`:`Regular · Hearth · ${getShipClass(selectedShip).name} · 180 CR`;
+    const count=allocation(),startSummary=selectedStart==='hardcore'?'Hardcore · Morrow · 180 CR · no ship':selectedStart==='casual'?`Casual · ${selectedSystem().name} · ${getShipClass(selectedShip).name} · 180 CR · ${selectedDrive().name} fitted · ${selectedDrive().range} ly range · ${selectedCrewCount()} NPC crew · ${count.aboard} aboard · ${count.reserve} in reserve`:`Regular · Hearth · ${getShipClass(selectedShip).name} · 180 CR`;
     return `<div class="captain-identity">
       <div class="captain-portrait"><canvas width="128" height="128" data-captain-portrait aria-label="Your captain’s appearance"></canvas><span data-captain-look></span></div>
       <div class="captain-identity-copy"><p class="captain-intro">A face for the places you’ll go.</p><p class="captain-note">Your appearance is yours to change. It has no effect on your abilities.</p>

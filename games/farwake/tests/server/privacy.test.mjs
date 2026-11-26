@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { startServer } from '../../server/index.mjs';
 import { Realm } from '../../server/realm.mjs';
 import { Game } from '../../dist/engine.mjs';
+import { GALAXY_EPOCH } from '../../dist/galaxy-epoch.mjs';
 import { newSecret, secretHash } from '../../server/protocol.mjs';
 import { authenticateExport, createPrivacyExport, RequestRateLimits, REQUEST_RATE_IDLE_MS } from '../../server/privacy.mjs';
 
@@ -78,6 +79,7 @@ test('export covers own stored records and shared associations without credentia
   assert.equal(output.captain.game.returnVesselId, 'my-parked-vessel');
   assert.deepEqual(output.captain.game.shipRecovery, captain.game.shipRecovery);
   assert.deepEqual(output.captain.game.militaryRecovery, captain.game.militaryRecovery);
+  assert.equal(output.captain.game.galaxyEpoch, captain.game.galaxyEpoch, 'The map marker describes the chart used by this captain’s stored voyage.');
   assert.equal(output.captain.game.spaceVersion, captain.game.spaceVersion, 'The geometry marker describes this captain’s saved space coordinates.');
   assert.equal(output.captain.game.worldTypesVersion, captain.game.worldTypesVersion, 'The place-size marker preserves the saved migration state.');
   assert.equal(output.captain.game.stationGeographyVersion, captain.game.stationGeographyVersion, 'The station marker preserves the saved neighborhood migration state.');
@@ -204,6 +206,7 @@ test('live captain export works at full capacity without replacing sessions or m
   // Use valid game state for the running authority, rather than the deliberate
   // privacy canaries/partial shared-world objects used by the projection test.
   for (const captain of Object.values(stored.captains)) captain.game = copy(new Game('live-privacy-synthetic').state);
+  stored.galaxyEpoch = GALAXY_EPOCH;
   stored.vessels = {}; stored.worlds = {}; stored.sites = {}; delete stored.director;
   for (let n = 2; n < 10; n++) { const id = 'captain_' + n.toString(16).padStart(24, '0'); stored.captains[id] = { ...copy(stored.captains[B]), id, ownedVesselId: `vessel_${id}`, aboard: `vessel_${id}` }; }
   const f = await serverFixture(t, memoryPersistence(stored));

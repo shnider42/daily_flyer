@@ -48,7 +48,7 @@ test('a simulated day has long irregular gaps, quiet cycles and only context-val
   for(const event of [...state.events,...state.history])seen.set(event.id,event);
  }
  const events=[...seen.values()].sort((a,b)=>a.startAt-b.startAt);
- assert.ok(events.length>20&&events.length<80,`a whole day produced ${events.length} incidents across 900 systems`);
+ assert.ok(events.length>20&&events.length<80,`a whole day produced ${events.length} incidents across ${systems.length} systems`);
  assert.ok(events[0].startAt>=900);assert.ok(events.length<state.cycle+1,'some scheduled opportunities must remain quiet');
  const gaps=events.slice(1).map((event,index)=>event.startAt-events[index].startAt);
  assert.ok(gaps.every(gap=>gap>=WORLD_DIRECTOR_RULES.minIntervalSeconds));assert.ok(new Set(gaps).size>5);
@@ -60,6 +60,22 @@ test('a simulated day has long irregular gaps, quiet cycles and only context-val
   lastBySystem.set(target.id,event.startAt);
  }
  assert.ok(events.filter(event=>systemContext(system(event.systemId)).region==='core').length<events.length*.05);
+});
+
+test('late ticks preserve local cooldowns while replaying earlier scheduled opportunities',()=>{
+ const options={seed:'quiet-day',systems},end=14400;
+ const run=step=>{
+  let state=advanceWorldDirector(null,0,options).state;
+  for(let now=step;now<=end;now+=step)state=advanceWorldDirector(state,now,options).state;
+  return state;
+ };
+ const frequent=run(5);
+ // This seed includes a scheduled opportunity two seconds before a local
+ // cooldown ends. A later tick must assess the opportunity at its own time.
+ for(const step of [30,120,720]){
+  const delayed=run(step);
+  for(const key of ['events','history','systemCooldowns','factionPressure','cycle'])assert.deepEqual(delayed[key],frequent[key],`${step}-second ticks preserve ${key}`);
+ }
 });
 
 test('a single inhabited system cannot be assigned another incident during its local recovery window',()=>{

@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { Game } from '../dist/engine.mjs';
 import { CameraProfile } from '../dist/camera-profile.mjs';
 import { normalizeCameraPreferences } from '../dist/camera-preferences.mjs';
+import { NEW_GALAXY_REQUIRED } from '../dist/galaxy-epoch.mjs';
 
 const source = readFileSync(new URL('../dist/app.mjs', import.meta.url), 'utf8');
 const declarations = [...source.matchAll(/^(?:async )?function (\w+)\(/gm)];
@@ -71,7 +72,7 @@ function fixture({ local = prefs(.8, 1.2), server = prefs(.4, .75), revision = 5
     close() { if (this.opened) { this.opened = false; context.saveNow(); } },
   };
   context = vm.createContext({
-    Game, CameraProfile, normalizeCameraPreferences, structuredClone, Blob,
+    Game, CameraProfile, normalizeCameraPreferences, NEW_GALAXY_REQUIRED, structuredClone, Blob,
     settings: { ...local, textScale: 1.4, controlScale: 1.1 }, localCameraPreferences: { ...local },
     game: solo, stored: solo.state, playing: true, testSession: null,
     cameraScope: 'local', cameraKey: null, cameraSaveTimer: null, cameraProfile: null,

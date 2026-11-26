@@ -50,6 +50,18 @@ const FRONTIER_VARIANTS=[
  place('quiet-social','The Sevenfold Door','vault','A sealed habitation vault sits beneath an old sheltering wall.','The entrance has been maintained by people who never lived inside. The seal’s date is measured in generations.',{empty:true,records:[record('oath','A public promise','WE KEEP THE DOOR UNTIL THOSE INSIDE ASK US TO OPEN IT. Below are seven generations of witnesses.'),record('window','A dark observation window','No face appears. The inside edge of the glass is clean.',33,13)],choices:[{id:'witness',name:'The witness book',x:33,y:24,text:'There is room for one more witness. Nothing here asks you to open the door.',options:[{id:'sign',label:'Add your name as a witness',text:'You add your name below the latest caretaker’s. The door stays sealed.'},{id:'leave',label:'Leave the promise to its keepers',text:'You close the book without adding a name. The door stays sealed.'}]}]})
 ];
 
+// Small places now belong to particular communities, so every compact galaxy
+// keeps all seven visits without needing hundreds of unimportant worlds.
+export const COMPACT_SOCIAL_HOMES=Object.freeze({
+ 'alpha-centauri-haven':'tavern',
+ 'sirius-ash':'gym',
+ 'tau-ceti-tide':'park',
+ 'epsilon-eridani-forest':'apartments',
+ 'tau-ceti-karst':'civic',
+ orchard:'farm',
+ 'sirius-crystal':'vault'
+});
+
 export function socialPlaces(body={},seed='farwake'){
  if(isPreflightBody(body))return[place('reed-house','The House of Knotted Reeds','preflight','Open shutters look onto a floor woven from reed mats.','Banners record agreements between river households. A public promise is woven twice: once by each household.',{tileX:52,tileY:29,
   culture:'reedbound',residents:[local('weaver','Sori Fen','settler','Promise weaver',13,16,'A knot is a promise we can touch. If it is wrong, we must undo it together.',{data:{culture:'reedbound',techLevel:'preflight'}}),local('witness','En Mar','settler','River witness',19,16,'The visitors’ place is beside the door. That is so you can leave without asking.',{data:{culture:'reedbound',techLevel:'preflight'}})],
@@ -57,6 +69,8 @@ export function socialPlaces(body={},seed='farwake'){
  })];
  if(body.systemId==='hearth'||['kettle','morrow','tinbell'].includes(body.id))return[];
  const authored=AUTHORED[body.id];if(authored)return authored.map(value=>({...value}));
+ const compactStyle=COMPACT_SOCIAL_HOMES[body.id];
+ if(compactStyle)return[{...FRONTIER_VARIANTS.find(value=>value.style===compactStyle),authored:true}];
  if(body.kind!=='planet'||!String(body.id).startsWith('frontier-')||/barren|rock|dust|volcan/.test(String(body.biome)))return[];
  const roll=hash(`${seed}:${body.id}:ordinary-place`);if(roll%25!==0)return[];
  const value=FRONTIER_VARIANTS[Math.floor(roll/25)%FRONTIER_VARIANTS.length];

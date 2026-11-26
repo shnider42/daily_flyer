@@ -6,9 +6,10 @@ import { normalizePassport } from './privacy-data.mjs';
 import { WORLD_RADIUS } from './system-space.mjs';
 import { WORLD_CONTENT_VERSION, WORLD_CONTENT_REFRESH_MESSAGE } from './world-content.mjs';
 import { SNAPSHOT_DELTA_VERSION, SnapshotDeltaDecoder } from './snapshot-delta.mjs';
+import { GALAXY_PASSPORT_STORAGE_KEY } from './galaxy-epoch.mjs';
 
 export const MULTIPLAYER_PROTOCOL = 1;
-export const PASSPORT_STORAGE_KEY = 'farwake.multiplayer.passport.v1';
+export const PASSPORT_STORAGE_KEY = GALAXY_PASSPORT_STORAGE_KEY;
 const copy = value => structuredClone(value);
 const utf8 = new TextEncoder();
 const bounded = (value, low, high) => Math.max(low, Math.min(high, Number(value) || 0));
@@ -16,6 +17,7 @@ const defaultStorage = () => { try { return globalThis.localStorage; } catch { r
 const monotonicNow = () => globalThis.performance?.now?.() ?? Date.now();
 const zeroCorrection = () => ({ x: 0, y: 0, angle: 0 });
 const resetEvents = new Set(['jump', 'dock', 'launch', 'ship-class', 'rescue']);
+const responseError = (data, fallback) => Object.assign(new Error(data.reason || fallback), { code: data.code });
 const aboardIdentity = state => state?.multiplayer?.aboardVesselId || state?.interior?.vesselId || state?.interior?.location?.vesselId || state?.ship?.id || null;
 const hullClass = value => value?.classId || value?.shipClassId || value?.shipClass || null;
 
@@ -26,7 +28,7 @@ export async function readRealmStartOptions({ url, realmCode, fetchImpl = global
   const origin = String(url || globalThis.FARWAKE_SERVER_URL || globalThis.location?.origin || '').replace(/\/$/, '');
   const response = await fetchImpl(`${origin}/api/realms/${encodeURIComponent(code)}/start-options`, { method: 'GET', credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', signal });
   const data = await response.json();
-  if (!response.ok || data.ok !== true) throw new Error(data.reason || 'Could not load this galaxy’s starting systems.');
+  if (!response.ok || data.ok !== true) throw responseError(data, 'Could not load this galaxy’s starting systems.');
   if (typeof data.seed !== 'string' || !data.seed.length || data.seed.length > 1000) throw new Error('This galaxy did not provide a valid starting chart.');
   return data;
 }
@@ -150,7 +152,7 @@ export class FarwakeNetwork {
     if (config.worldContentVersion !== WORLD_CONTENT_VERSION) throw new Error(WORLD_CONTENT_REFRESH_MESSAGE);
     const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', worldContentVersion: WORLD_CONTENT_VERSION, realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, startMode, startSystemId, casualCrewCount, character, ...(create ? { galaxySeed, openingMission: openingMission === true, startTogether: startTogether === true } : {}), passport: this.passport }) });
     const registration = await response.json();
-    if (!response.ok || !registration.ok) throw new Error(registration.reason || 'The realm could not be joined.');
+    if (!response.ok || !registration.ok) throw responseError(registration, 'The realm could not be joined.');
     if (registration.worldContentVersion !== WORLD_CONTENT_VERSION) throw new Error(WORLD_CONTENT_REFRESH_MESSAGE);
     this.passport = savePassport(registration.passport || this.passport, this.storage);
     return this._open();
@@ -184,7 +186,7 @@ export class FarwakeNetwork {
           const now = this.wallNow(); this.rtt = Math.max(0, now - packet.sentAt); this.clockOffset += (packet.serverTime - (packet.sentAt + now) / 2 - this.clockOffset) * .25;
         } else if (packet.type === 'error') {
           this.onStatus({ state: 'error', reason: packet.reason, code: packet.code });
-          if (!welcomed) { clearTimeout(timeout); reject(new Error(packet.reason || 'The connection was rejected.')); }
+          if (!welcomed) { clearTimeout(timeout); reject(responseError(packet, 'The connection was rejected.')); }
         } else if (packet.type === 'status') this.onStatus(packet);
       });
       socket.addEventListener('error', () => { if (!welcomed) { clearTimeout(timeout); reject(new Error('The multiplayer server is unavailable.')); } });

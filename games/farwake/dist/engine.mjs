@@ -24,15 +24,15 @@
  * serialize() => JSON string; save() => object; Game.fromSave(string|object).
  * Authored content lives in content.mjs. No DOM, timers, fetch, or rendering dependencies.
  */
-import { FACTIONS, NAMED_SYSTEMS, ENCOUNTERS, STORY_CHAPTERS, UPGRADES, LORE } from './content.mjs';
+import { FACTIONS, ENCOUNTERS, STORY_CHAPTERS, UPGRADES, LORE } from './content.mjs';
 import { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, getShipClass, advanceShip, normaliseFlightInput, cabinLayout, isCabinWalkable, enemyHullProfile, enemyShipState } from './fleet.mjs';
 import { SIDEARM, ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidearmAim, clearSidearmSight } from './combat.mjs';
 import { PersonalFireRules } from './personal-fire.mjs';
 import { powerProfile, routeShipPower } from './ship-power.mjs';
 import { PersonalGearRules } from './personal-gear.mjs';
 import { GamblingRules } from './gambling.mjs';
-import { appendNeonSystem } from './neon-content.mjs';
-import { appendWarzoneSystem, CROSSWIND_SYSTEM_ID, CROSSWIND_ARRIVAL } from './warzone-content.mjs';
+import { buildCompactGalaxy } from './compact-galaxy.mjs';
+import { CROSSWIND_SYSTEM_ID, CROSSWIND_ARRIVAL } from './warzone-content.mjs';
 import { installWarzoneSpace, stepWarzoneSpace, captureWarzoneSpace, notifyWarzoneDestroyed, recordWarzoneAggression as recordFleetAggression } from './warzone-space.mjs';
 import { WarzoneRules } from './warzone-rules.mjs';
 import { GunneryRules, clampGunneryAim, applyGunneryAim } from './gunnery.mjs';
@@ -48,10 +48,11 @@ import { MilitaryCareerRules } from './military-career.mjs';
 import { MilitaryRecoveryRules } from './military-recovery.mjs';
 import { militaryGroundSite } from './military-sites.mjs';
 import { LivelihoodRules, normalizeStartMode, CASUAL_START_UPGRADES, publicStartingPort } from './livelihoods.mjs';
+import { casualStartingDrive, fittedFoldDrive } from './start-options.mjs';
 import { NpcContractRules } from './npc-contracts.mjs';
 import { OpeningMissionRules } from './opening-mission.mjs';
 import { advanceWorldDirector, syncDirectorWorld, recordDirectorDamage } from './world-director.mjs';
-import { expandGalaxy, systemCosmicBodies, applyCosmicHazards } from './galaxy-expansion.mjs';
+import { systemCosmicBodies, applyCosmicHazards } from './galaxy-expansion.mjs';
 import { systemContext } from './encounter-context.mjs';
 import { contextualSignals, materializeEncounterContacts, encounterSource, encounterFitsPlace, pendingSourceAvailable, resolvePhysicalEncounter } from './encounter-rules.mjs';
 import { RescueRules, rescueOccupants } from './rescue-rules.mjs';
@@ -65,14 +66,14 @@ import { conversation, normalizeConversations } from './npc-dialogue.mjs';
 import { normalizeSocialVisits } from './social-world.mjs';
 import { chooseNpcSpecies, normalizeSpecies, speciesName } from './species.mjs';
 import { createSystemTraffic, advanceTraffic, captureTraffic, restoreTraffic, TRAFFIC_ROLE_LABELS } from './traffic.mjs';
-import { appendFactionPorts } from './port-content.mjs';
 import { portProfile } from './port-traffic.mjs';
 import { PEACEKEEPER_ID, PEACEKEEPER_HAIL_DISTANCE, isPeacekeeper, trafficHailDistance, stepPeacekeeperDefense } from './peacekeeper.mjs';
 import { migrateGameSpace } from './space-migration.mjs';
 import { legacyStationGeography, migrateGameStationGeography } from './station-geography-migration.mjs';
 import { SYSTEM_SPACE_VERSION, SYSTEM_SPACE_SCALE, WORLD_RADIUS, systemBodyPosition, scaleSpacePoint } from './system-space.mjs';
-import { WORLD_TYPES_VERSION, decorateGalaxyTypes, bodyVisualRadius, applySystemActivity, flavorSystemSignals, migrateExpandedBodyPose } from './world-types.mjs';
-import { STATION_GEOGRAPHY_VERSION, decorateStationGeography } from './station-geography.mjs';
+import { WORLD_TYPES_VERSION, bodyVisualRadius, applySystemActivity, flavorSystemSignals, migrateExpandedBodyPose } from './world-types.mjs';
+import { STATION_GEOGRAPHY_VERSION } from './station-geography.mjs';
+import { GALAXY_EPOCH, requireCurrentGalaxy } from './galaxy-epoch.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
 
 export const SAVE_VERSION = 7;
@@ -134,47 +135,16 @@ export function seededRandom(seed) {
 }
 const pick = (r, array) => array[Math.floor(r() * array.length)];
 const normId = id => String(id).toLowerCase().replace(/[^a-z0-9]/g, '');
-const BIO = ['arid', 'ice', 'forest', 'ocean', 'volcanic', 'barren', 'desert'];
-const PREFIX = ['Aster', 'Vela', 'Sable', 'Cairn', 'Nacre', 'Lumen', 'Orin', 'Dusk', 'Vesper', 'Mica', 'Thorn', 'Ember', 'Aure', 'Hollow', 'Rill', 'Pale', 'Cobalt', 'Drift', 'Serein', 'Fallow'];
-const SUFFIX = ['Reach', 'Rest', 'Crossing', 'Veil', 'Anchor', 'Crown', 'Drift', 'Basin', 'Wake', 'Trace', 'March', 'Shoal', 'Haven', 'Spur', 'Depths', 'Fall'];
-
-/** A fixed connected lattice with authored places layered into it. */
+/** The complete compact chart, shared by solo and realm authority. */
 export function buildGalaxy(seed = 'farwake') {
-  const r = seededRandom(`${seed}:galaxy`);
-  const named = NAMED_SYSTEMS.map((s, i) => ({ ...clone(s), gx: finite(s.gx, i * 3), gy: finite(s.gy), authored: true, index: i }));
-  const systems = [...named];
-  for (let row = 0; row < 18; row++) {
-    for (let col = 0; col < 16; col++) {
-      const index = row * 16 + col;
-      let gx = (col - 7.5) * 3.8 + (r() - 0.5) * 1.2;
-      let gy = (row - 8.5) * 3.8 + (r() - 0.5) * 1.2;
-      // Near-identical marks on the map are difficult to select on a phone.
-      for (const fixed of named) {
-        if (Math.hypot(gx - fixed.gx, gy - fixed.gy) < 1.35) { gx += 1.55; gy += 0.75; }
-      }
-      const faction = factionIds()[(Math.floor((gx + 32) / 13) + Math.floor((gy + 35) / 17)) % Math.max(1, FACTIONS.length)] || 'freewake';
-      const danger = clamp(Math.floor(Math.hypot(gx, gy) / 10 + r() * 2), 1, 5);
-      const biome = pick(r, BIO);
-      const name = `${pick(r, PREFIX)} ${pick(r, SUFFIX)} ${String(index + 1).padStart(2, '0')}`;
-      systems.push({
-        id: `sector-${index}`, name, gx, gy, faction, biome, danger, authored: false, index: systems.length,
-        description: `${name} sits on a ${danger >= 4 ? 'contested' : 'quiet'} ${faction === 'freewake' ? 'independent' : 'charted'} route. ${biome === 'ice' ? 'Ice miners work beneath the slow pulse of a pale sun.' : biome === 'ocean' ? 'Water worlds carry settlements built from the hulls of the first arrivals.' : 'Old survey beacons still transmit claims nobody has agreed to honor.'}`,
-        bodies: [
-          { id: `port-${index}`, name: `${name.split(' ')[0]} Exchange`, kind: 'station', biome: 'station', faction, lore: 'A station survives on the promises captains keep.' },
-          { id: `world-${index}`, name: `${name.split(' ')[0]} ${['I', 'II', 'III'][index % 3]}`, kind: 'planet', biome, faction, lore: `Settlers here have made a home from ${biome === 'arid' || biome === 'desert' ? 'dust and water debts' : biome === 'ice' ? 'ice and geothermal warmth' : 'the remains of an older migration'}.` },
-          ...(index % 3 === 0 ? [{ id: `moon-${index}`, name: `${name.split(' ')[0]} Minor`, kind: 'moon', biome: 'barren', faction, lore: 'A scattered mining community watches the sky for supply ships.' }] : [])
-        ]
-      });
-    }
-  }
-  return appendWarzoneSystem(decorateStationGeography(decorateGalaxyTypes(appendFactionPorts(appendNeonSystem(expandGalaxy(systems, seed))), seed), seed),seed);
+  return buildCompactGalaxy(seed);
 }
 
 function initialState(seed, options = {}) {
   const starter = getShipClass(normalizeStarterShip(options.starterShip, options)), character = normalizeCharacter(options.character);
   const startMode=normalizeStartMode(options.startMode),shipless=startMode==='hardcore';
   return {
-    version: SAVE_VERSION, spaceVersion: SYSTEM_SPACE_VERSION, worldTypesVersion: WORLD_TYPES_VERSION, stationGeographyVersion: STATION_GEOGRAPHY_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
+    version: SAVE_VERSION, galaxyEpoch: GALAXY_EPOCH, spaceVersion: SYSTEM_SPACE_VERSION, worldTypesVersion: WORLD_TYPES_VERSION, stationGeographyVersion: STATION_GEOGRAPHY_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
     credits: 180, character, characterLocked: true, captainName: String(options.name || 'Captain').replace(/[<>\x00-\x1f]/g, '').trim().slice(0,32) || 'Captain', exploration: null, explorationRecords: {}, cargo: { ore: 0, crystal: 0 }, rep: Object.fromEntries(factionIds().map(id => [id, 0])), flags: [],
     upgrades: startMode==='casual'?{...CASUAL_START_UPGRADES}:{}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [], openingMission: null, conversations: { version: 1, people: [] }, socialVisits: normalizeSocialVisits(), socialEpoch: 0,
     crew: [], formerCrew: [], memorial: [], fleet:{owned:shipless?[]:[starter.id],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
@@ -191,6 +161,7 @@ export class Game {
     if (typeof supplied === 'string' && supplied.trim().startsWith('{')) supplied = JSON.parse(supplied);
     if (supplied?.state) supplied = supplied.state;
     const isSave = supplied && typeof supplied === 'object';
+    if (isSave) requireCurrentGalaxy(supplied);
     const fresh = initialState(isSave ? supplied.seed : supplied, isSave ? {} : options);
     this.galaxy = buildGalaxy(fresh.seed);
     this.state = isSave ? this._restore(fresh, supplied) : fresh;
@@ -202,6 +173,9 @@ export class Game {
       // Origin choices belong only to creation. Restoring a voyage must never
       // move its captain or replace equipment lost during play.
       const origin=this.galaxy.find(system=>system.id===options.startSystemId&&publicStartingPort(system))||this.galaxy.find(system=>system.id==='hearth');
+      const drive=casualStartingDrive(this.galaxy,origin.id);
+      if(!drive)throw new Error(`No starting fold drive can connect ${origin.name} to Hearth. Choose another starting system.`);
+      Object.assign(this.state.upgrades,drive.upgrades);
       this.state.systemId=origin.id;
       this.state.visited=[origin.id];this.state.discovered=[origin.id];
     }
@@ -239,7 +213,7 @@ export class Game {
       if(this.ownsShip){
         const port=this.system.bodies.find(body=>body.id===this.state.lastBodyId),origin=`${port?.name||'Your departure station'} is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping ${this.currentSystem.name} alive.`;
         const opening=this.state.openingMission?.status==='active'?'Cinder waits at Kettle’s berth. A dockworker near the landing has a small paid favor to ask. Your ship and the wider galaxy will be there when you are ready.':origin;
-        this._log('A ship of your own',opening+(casualStart?' Your Fold Drive I, Vector thrusters and Echo scanner are already fitted. Nearby stars are within reach; local dangers and port clearances still apply.':''),'story');
+        this._log('A ship of your own',opening+(casualStart?` Your ${fittedFoldDrive(this.state.upgrades).name}, Vector thrusters and Echo scanner are already fitted, giving you ${this.state.ship.warpRange} ly fold range. Open the Galaxy chart to plot a jump. Local dangers and port clearances still apply.`:''),'story');
       }
       else this._log('Your first ship is still ahead', 'You arrive on Morrow with 180 credits and no ship. The contract exchange offers paid maintenance shifts, the clinic hires assistants, and crew contracts pay for work aboard someone else’s ship. Passenger ferries connect the inhabited ports. A used starter hull costs credits, with no ore or trade-in required.', 'story');
       this._flag('started');

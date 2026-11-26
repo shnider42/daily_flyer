@@ -1,8 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.37.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.38.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.38.0 — A compact chart with 26 systems
+
+Farwake now has **26 playable star systems**. The 22 established authored systems remain, including Hearth, Sol, Crosswind and Voltage. Alpha Centauri, Epsilon Eridani, Tau Ceti and Sirius add four recognizable stellar settings with fictional Farwake worlds and settlements. The 880 repetitive generated systems are retired; the runtime constructs the compact chart directly.
+
+The retained systems still hold the authored quest threads, military assignments, expedition showcases, alien homeworlds and recurring residents. The five cavern families and seven small social-place variants have deliberate homes on the compact map. A cave, port or community can give a system more depth without requiring another star. Interstellar coordinates are a schematic fold-travel chart; local authored geography remains stable. The drive tiers still expand the routes available. Casual starts supply the least powerful drive that connects the selected origin to the main network; remote beginnings include the required upgrade and show it during setup. Regular and Hardcore starts retain their usual progression.
+
+**This WIP release starts fresh saves and shared galaxies.** Start a new solo voyage, or create a new shared galaxy and give friends its new invitation code. Earlier saves and codes belong to the retired chart and cannot be imported into this version. New progress saves and reloads normally. The client and authority both use world content revision **14**; refresh existing tabs before reconnecting.
+
+The [compact-universe direction](docs/compact-universe-direction.md) records the map, content decisions and clarified Earth-story direction. The underlying cause of Earth's silence remains unresolved. The proposed faction barriers to Sol and the full rewrite of Earth's ending require their own narrative implementation.
+
+### Earlier release history
+
+The entries below describe their releases at the time. References to 300, 900 or 902 systems and compatibility with their saves are historical; the current chart is the 26-system version above.
 
 ## 0.37.0 — A fiercer Bellwether and leaner shared galaxies
 
@@ -905,7 +919,7 @@ A deterministic local simulation checks client prediction at **60 and 120 FPS**,
 
 | Content | Current scope |
 | --- | --- |
-| Galaxy | **900 systems:** 20 authored hubs and 880 procedural systems |
+| Galaxy | **26 systems:** 22 retained authored systems and four real-star settings with fictional settlements |
 | Campaign | Eight linked chapters involving both gameplay modes |
 | Factions | Five, with persistent reputation and an authored alliance decision |
 | Encounters | 25 authored choice events, including conditional follow-ups |
@@ -923,7 +937,7 @@ A deterministic local simulation checks client prediction at **60 and 120 FPS**,
 | Starting origins | Casual with a fold-equipped ship and selectable system; Regular with a small ship; Hardcore on foot; all begin with 180 credits |
 | Shared play | Up to 10 simultaneous captains per galaxy, independent travel, shared vessels, and persistent homes |
 
-The procedural systems supply seeded places, encounters, resources, traffic, and threats around reusable surface layouts. They are not 880 separate handcrafted campaigns. The original campaign and encounters are authored in [dist/content.mjs](dist/content.mjs); the additional threads and recurring contacts are in [dist/quest-content.mjs](dist/quest-content.mjs).
+The compact systems contain seeded resources, traffic, encounters and local details around deliberate destinations. The original campaign and encounters are authored in [dist/content.mjs](dist/content.mjs); the additional threads and recurring contacts are in [dist/quest-content.mjs](dist/quest-content.mjs). The chart and four additional stellar settings are defined in [dist/compact-galaxy.mjs](dist/compact-galaxy.mjs).
 
 ### How the dynamic story works
 

@@ -101,3 +101,5 @@
 .quiet-earth-scene .combat-panel{width:min(275px,28vw);padding:10px 12px;background:#0b1929bd;box-shadow:none}
 .quiet-earth-scene .combat-panel .combat-controls,.quiet-earth-scene .combat-panel .combat-count,.quiet-earth-scene .combat-panel .combat-feed{display:none}
 .quiet-earth-scene .combat-panel .aim-status{font-size:.82rem;margin-top:7px}
+
+.welcome-reset{max-width:38rem;margin:1rem 0;color:#d7d8c4;font-size:.86rem;line-height:1.5}

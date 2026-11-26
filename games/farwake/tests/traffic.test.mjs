@@ -11,8 +11,8 @@ import { stepWarzoneSpace } from '../dist/warzone-space.mjs';
 const clone = value => JSON.parse(JSON.stringify(value));
 const close = (a, b, tolerance = 1e-7) => assert.ok(Math.abs(a - b) < tolerance, `${a} differs from ${b}`);
 const system = {id:'working-lanes', faction:'freewake', danger:1, gx:0, gy:0};
-// Current ports carry their authored type; untyped released charts are covered
-// separately below and by the independent 900-system compatibility fixture.
+// Current ports carry their authored type; untyped component inputs are covered
+// separately below without requiring a procedural playable chart.
 const bodies = [
   {id:'hub',name:'City Port',kind:'station',stationTypeId:'transit-hub',portType:'hub',x:0,y:0,radius:90},
   {id:'small',name:'Small Dock',kind:'station',stationTypeId:'frontier-triangle',portType:'outpost',x:1100,y:650,radius:70},
@@ -136,7 +136,8 @@ test('lane evaluation is independent of tick subdivision and catchup does not re
 
 test('routes clear intervening small stations and the gravity wells in remote observatory systems', () => {
   const game=new Game('full-lanes-audit');
-  for(const systemId of ['sector-172','umbra','lacuna']){
+  for(const systemId of ['alpha-centauri','umbra','lacuna']){
+    assert.ok(game.galaxy.some(system=>system.id===systemId),'the route audit uses a real playable destination');
     game.state.systemId=systemId;game._loadSystem(systemId);
     const scheduled=game.system.traffic.filter(ship=>ship.trafficRole);
     assert.ok(scheduled.length>0);
@@ -209,10 +210,10 @@ test('physical distress contacts keep their source position and ordinary traffic
 
 test('civilian ferries and dispatch runners cannot inherit a military patrol transmission', () => {
   let civilians=0,patrols=0;
-  // The original seed remains a full civilian audit. The expanded-catalog
-  // fixture supplies an actual Kingfisher escort outside the core;
+  // The original seed remains a full civilian audit. The compact-chart
+  // fixture supplies an actual Marten escort serving Threshold outside the core;
   // assistance is still a rare hash choice, never guaranteed in every galaxy.
-  for(const seed of ['patrol-source-audit','cooperative-traffic-audit-10']){
+  for(const seed of ['patrol-source-audit','compact-patrol-audit-315']){
    const game=new Game(seed);
    for(const system of game.galaxy){
     game.state.systemId=system.id;game._loadSystem(system.id);
@@ -222,6 +223,12 @@ test('civilian ferries and dispatch runners cannot inherit a military patrol tra
         assert.equal(contact.faction,'concord');
         assert.ok(['patrol','escort','carrier'].includes(contact.trafficRole),`${contact.id} is a working military hull`);
         assert.notEqual(game.system.context.region,'core');
+        const home=game.system.bodies.find(body=>body.id===contact.homePortId);
+        assert.ok(home && canHullUsePort(contact.classId,portProfile(system,home)),'the escort uses a real berth that can accommodate it');
+        Object.assign(game.state.ship,{x:contact.x+100,y:contact.y});
+        assert.equal(game.triggerEncounter('patrol',{sourceType:'traffic',sourceId:contact.id}).ok,true);
+        assert.equal(game.applyChoice('patrol','directions').ok,true);
+        assert.ok(game.state.flags.includes('patrol_directions'),'the physical contact still offers a completable encounter');
       }
       if(['passenger','courier'].includes(contact.trafficRole)){civilians++;assert.notEqual(contact.encounterId,'patrol');}
     }

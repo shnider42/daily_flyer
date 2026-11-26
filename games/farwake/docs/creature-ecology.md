@@ -42,7 +42,23 @@ Use the existing `planetTypeFor(body)` / `planetTypeId` context. It already dist
 
 `service-tunnel` is a constrained compatibility pool for existing built interiors such as Relay Nine. It does not turn an ordinary port, clinic or inhabited service room into a random monster habitat. `tinbell-hollow` remains a named, authored exception, not a general population family.
 
-Vary geography as well as palette: room proportions, bends, loops, shelves, water edges and optional recesses should change the route a player takes. Required objects, spawns and exits must still connect using real movement collision. Keep entrances, existing interaction IDs, reward receipts and saved actors stable when old content is loaded.
+Vary geography as well as palette: room proportions, bends, loops, shelves, water edges and optional recesses should change the route a player takes. Required objects, spawns and exits must still connect using real movement collision. Within the current galaxy version, keep entrances, interaction IDs, reward receipts and saved actors stable when a scene is loaded again.
+
+### Permanent homes in the compact galaxy
+
+The 26-system galaxy has one deliberate field cave for each geological family. Every one is present for every galaxy seed; finding a family no longer requires visiting a large procedural map or winning a distribution roll. These fictional worlds belong to systems named after real stars. Their inhabited surfaces and local ecology are setting inventions.
+
+| System | World | Family | Visit |
+| --- | --- | --- | --- |
+| Alpha Centauri | Shelf (`alpha-centauri-shelf`) | `glacial` | Blue-Ice Fractures on an ice moon. |
+| Epsilon Eridani | Forge (`epsilon-eridani-forge`) | `lava-tube` | Basalt Flow Tubes on a volcanic moon. |
+| Epsilon Eridani | Bough (`epsilon-eridani-forest`) | `root-grotto` | Root Galleries below a fungal forest. |
+| Tau Ceti | Tidemark (`tau-ceti-tide`) | `tidal` | Tidal Shelves on an ocean world. |
+| Tau Ceti | Whitecliff (`tau-ceti-karst`) | `limestone` | Skylight Karst in dry canyon country. |
+
+`COMPACT_CAVERN_HOMES` in `dist/cavern-content.mjs` owns that placement. A galaxy seed still changes the passages, entrance location, population and eligible lighting conditions. Entrances fit around existing sites and settlement buildings without moving them, and the surface path must connect each entrance to the landing. The named Hearth caves, Bellwether, expedition stories and their original interaction IDs remain in place.
+
+The older procedural eligibility path remains available for standalone generation fixtures. It does not add systems or caves to the compact runtime roster.
 
 ## Restraint is part of the ecology
 
@@ -52,7 +68,7 @@ The pure catalog marks some species as eligible for peaceful encounters. That is
 
 Use small, habitat-appropriate groups. A menu of fifteen species does not mean fifteen creatures in every room. Quiet and mixed sites should remain common enough that exploration retains uncertainty. The existing peaceful expedition stories and species communities should continue to exist and function.
 
-The current field caves are additive entrances on a seeded subset of eligible generated worlds; they do not replace released stories or named Hearth places. A cave contains no animals, two unprovoked animals, a mixed group with one unprovoked neighbor, or two to three hostile animals. The five equally sized disposition buckets are empty, quiet, mixed, hostile and hostile. A mixed group's different species use separate local aggression groups: defending against one animal does not recruit every other animal in the cave. No population roll happens on reconnect.
+The five field caves add visits to the worlds listed above; they do not replace existing stories or named Hearth places. A cave contains no animals, two unprovoked animals, a mixed group with one unprovoked neighbor, or two to three hostile animals. The five equally sized disposition buckets are empty, quiet, mixed, hostile and hostile. A mixed group's different species use separate local aggression groups: defending against one animal does not recruit every other animal in the cave. No population roll happens on reconnect. All fourteen ordinary species remain eligible in their actual habitats, but a single galaxy does not force all fourteen into its five caves. Population variety across new galaxy seeds preserves empty and peaceful visits.
 
 No biological creature in this catalog is automatically a product, soldier or symptom of The Collective. The homeworld mystery remains an investigation. Ordinary predation, nesting, thermal attraction, migration and accidental human disturbance can explain a local encounter without a universal corruption explanation.
 
@@ -113,8 +129,8 @@ A creature's silhouette and name do not reveal why it is there. Do not casually 
 
 ## Verification targets
 
-Check meaningful coverage of the fourteen ordinary biological types in reachable sites; a catalog entry alone is not playable content. Verify matching galaxy seeds produce matching habitat layouts and compositions, mismatched seeds can vary them, and normal caves can be peaceful or visibly lit. Validate collision reachability to required objects and exits.
+Check that every compact galaxy contains all five fixed cavern families and that representative galaxy seeds provide meaningful coverage of the fourteen ordinary biological types in reachable sites; a catalog entry alone is not playable content. `tests/cavern-ecology.test.mjs` checks the live compact catalog across 32 seeds, all five entrances on representative surfaces, unchanged existing story placements, and seeded geometry with reachable evidence, wildlife and exits. Matching galaxy seeds must produce matching habitat layouts and compositions; different seeds can vary them, and normal caves can be peaceful or visibly lit.
 
 For behavior, verify each distinct attack has a preparation the player can perceive, a bounded range, wall-aware resolution and a useful escape or recovery window. Shared authority must apply a hit once, and a replay or reconnect must not multiply an attack. Preserve the Bellwether's separate boss behavior and Relay Nine's danger gate, music boundaries and old payment receipts. Change only the relevant tests unless another release gate requires broader verification.
 
-`tests/server/creature-ecology.test.mjs` exercises two actual Realm captains entering generated cave entrances. It checks shared geometry and one simulation step per site, attack preparation in full and compact snapshots, saved captain positions, neutral behavior, mixed-species aggression boundaries, evidence and survey claims, casualties and wounds across a flush/restart, and leaving while a threat remains alive.
+`tests/server/creature-ecology.test.mjs` exercises two actual Realm captains entering the compact galaxy's cave entrances. The deterministic `shared-creature-ecology-1` fixture includes peaceful ice fauna and a mixed basalt-tube population with a coilworm. It checks shared geometry and one simulation step per site, attack preparation in full and compact snapshots, saved captain positions, neutral behavior, mixed-species aggression boundaries, evidence and survey claims, casualties and wounds across a flush/restart, and leaving while a threat remains alive.

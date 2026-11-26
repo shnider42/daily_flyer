@@ -112,7 +112,7 @@ test('all fifty archetypes have stable chart coverage without changing bodies, s
   assert.deepEqual([...showcaseIds].sort(), fresh.map(story => story.id).sort());
   for (const seed of ['farwake', 'catalog-independent-stream']) {
     const galaxy = buildGalaxy(seed), before = JSON.stringify(galaxy), covered = new Set();
-    assert.ok(galaxy.length >= 900);
+    assert.equal(galaxy.length,26);
     const byBody = new Map();
     for (const system of galaxy) for (const body of system.bodies) {
       const context = { ...body, systemId: system.id }, sites = expeditionStorySites(context, seed);

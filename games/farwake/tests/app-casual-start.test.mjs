@@ -10,6 +10,8 @@ import {publicStartingPort} from '../dist/livelihoods.mjs';
 import {systemIdentity} from '../dist/world-identity.mjs';
 import {earthCampaignPresentation} from '../dist/earth-campaign-ui.mjs';
 import {situationView} from '../dist/situation-guidance.mjs';
+import {fittedFoldDrive} from '../dist/start-options.mjs';
+import {NEW_GALAXY_REQUIRED} from '../dist/galaxy-epoch.mjs';
 
 // Run the real HUD and connection handlers with Game state; only browser and
 // transport boundaries are replaced. The assertions observe displayed advice
@@ -39,7 +41,7 @@ function fixture(game){
   async connect(){this.connected=true;const packet={state:arrival.state};this.options.onSnapshot(packet);return packet;}
   disconnect(){this.connected=false;}setInput(){}
  }
- context=vm.createContext({powerProfile,POWER_LABELS,Game,FACTIONS,getShipClass,publicStartingPort,systemIdentity,earthCampaignPresentation,situationView,narrativeUI:{refreshCampaign:noop},warzoneUI:{refresh:noop},game,network:null,onlineSnapshot:null,stored:null,playing:true,testSession:null,connectionState:'offline',
+ context=vm.createContext({powerProfile,POWER_LABELS,Game,FACTIONS,getShipClass,publicStartingPort,systemIdentity,earthCampaignPresentation,situationView,fittedFoldDrive,NEW_GALAXY_REQUIRED,narrativeUI:{refreshCampaign:noop},warzoneUI:{refresh:noop},game,network:null,onlineSnapshot:null,stored:null,playing:true,testSession:null,connectionState:'offline',
   tracked:'kettle',trackedThreadId:'previous-story',narrativeWaypoint:{id:'old-waypoint'},narrativeMarkerKey:'old-story',openingMarkerKey:'old-opening',dutyMarkerKey:'old-duty',militaryMarkerKey:'old-military',guideIntent:'scan',foldDriveTarget:{kind:'beacon'},
   surface:null,surfaceKey:'',surfaceTarget:null,combatPreview:null,personVisualOffset:{x:0,y:0},personPredictedAt:null,personVisualAt:null,
   touchLayout:false,settings:{guidance:'simple',showPerformance:false},hudDirty:true,labelLayoutDirty:false,cameraSaveTimer:null,cameraScope:'local',cameraKey:null,localCameraPreferences:{},militaryValue:null,narrativeValue:null,
@@ -60,12 +62,12 @@ function shared(game,captainId){
 }
 
 test('remote Casual onboarding names its local port and usable fold drive on the actual HUD',()=>{
- for(const startSystemId of ['sol','lacuna','sector-0']){
+ for(const startSystemId of ['sol','lacuna','alpha-centauri']){
   const game=new Game('app-casual-hud',{startMode:'casual',startSystemId}),f=fixture(game),before=JSON.stringify(game.state);
   f.context.updateHUD();
   assert.ok(f.hint().includes(publicStartingPort(game.system).name));assert.match(f.hint(),/fold drive is ready.*Galaxy chart/);
   assert.doesNotMatch(f.hint(),/Kettle|Iona/);assert.equal(JSON.stringify(game.state),before);
-  delete game.state.upgrades.fold_1;game._updateStats(false);f.context.updateHUD();
+  for(const id of ['fold_1','fold_2','fold_3'])delete game.state.upgrades[id];game._updateStats(false);f.context.updateHUD();
   assert.doesNotMatch(f.hint(),/fold drive is ready/);assert.ok(f.hint().includes(publicStartingPort(game.system).name));
  }
 });
@@ -99,6 +101,13 @@ test('resuming the same shared captain preserves an intentional navigation marke
  await f.context.connectGalaxy({passport:{realmCode:'ABC12345',captainId:'same-captain',token:'saved-token'}});
  assert.equal(f.context.dialog.opened,false);assert.equal(f.context.tracked,'lilt');assert.equal(f.context.trackedThreadId,'local-story');
  assert.equal(f.context.narrativeWaypoint.id,'intentional-waypoint');assert.equal(f.context.guideIntent,'dock');
+});
+
+test('shared Casual arrival names the drive supplied for a distant origin',async()=>{
+ const incoming=shared(new Game('app-distant-drive',{startMode:'casual',startSystemId:'lacuna'}),'new-distant-captain');
+ const f=fixture(new Game('app-distant-drive'));f.arriveAs(incoming);
+ await f.context.connectGalaxy({startMode:'casual',startSystemId:'lacuna',realmCode:'ABC12345'});
+ assert.ok(f.toasts.some(([text])=>text.includes('Farwake field coil is ready (15 ly range)')));
 });
 
 test('the real Solo setup boundary carries a crew-capable hull into the new voyage',()=>{

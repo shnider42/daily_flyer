@@ -1,4 +1,5 @@
 import { Game, buildGalaxy, distance, seededRandom } from '../dist/engine.mjs';
+import { GALAXY_EPOCH, requireCurrentGalaxy } from '../dist/galaxy-epoch.mjs';
 import { advanceWorldDirector, syncDirectorWorld, recordDirectorDamage } from '../dist/world-director.mjs';
 import { questThread } from '../dist/quest-content.mjs';
 import { getShipClass, SHIP_CLASSES, STATION_ROLES, cabinLayout } from '../dist/fleet.mjs';
@@ -67,6 +68,7 @@ const helmPoint = vessel => {
 export class Realm extends BoardingAuthority {
   constructor({ id, name, seed, settings = {}, persistence, version = 0, snapshot = null, onConflict = () => {} }) {
     super();
+    if (snapshot) requireCurrentGalaxy(snapshot, 'realm');
     this.id = id; this.name = snapshot?.name || cleanName(name, 'Farwake friends'); this.seed = snapshot?.seed || seed || `realm-${id}`;
     this.galaxy = buildGalaxy(this.seed);
     if (snapshot) {
@@ -1764,7 +1766,7 @@ export class Realm extends BoardingAuthority {
       captains[c.id] = { id: c.id, name: c.name, launchStatus: c.launchStatus || null, launchReady: c.launchReady === true, tokenHash: c.tokenHash, createdAt: c.createdAt, lastSeen: c.lastSeen, home: clone(c.home), cameraPreferences: clone(c.cameraPreferences), cameraRevision: c.cameraRevision, ownedVesselId: c.ownedVesselId, aboard: c.aboard, crewRole: c.crewRole, returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, boardingTeam: c.boardingTeam || null, combatAtDisconnect: c.combatAtDisconnect || false, recentCommands: clone(c.recentCommands), game };
     }
     const vessels = Object.fromEntries([...this.vessels].map(([id, vessel]) => { const { actor, ...data } = vessel; return [id, clone(data)]; }));
-    return { format: 1, spaceVersion: SYSTEM_SPACE_VERSION, worldTypesVersion: WORLD_TYPES_VERSION, stationGeographyVersion: STATION_GEOGRAPHY_VERSION, planetLayoutVersion: PLANET_LAYOUT_MIGRATION_VERSION, realmId: this.id, name: this.name, seed: this.seed, settings: clone(this.settings), groupStart: clone(this.groupStart), militaryOperations:clone(this.militaryOperations), ownerId: this.ownerId, createdAt: this.createdAt, socialEpochAt: this.socialEpochAt, updatedAt: now(), director:clone(this.director), npcHolds: Object.fromEntries([...this.npcHolds].map(([id, holds]) => [id, clone(holds)])), captains, vessels, worlds: clone(this.worlds), sites: clone(this.sites), leases: clone(this.leases) };
+    return { format: 1, galaxyEpoch: GALAXY_EPOCH, spaceVersion: SYSTEM_SPACE_VERSION, worldTypesVersion: WORLD_TYPES_VERSION, stationGeographyVersion: STATION_GEOGRAPHY_VERSION, planetLayoutVersion: PLANET_LAYOUT_MIGRATION_VERSION, realmId: this.id, name: this.name, seed: this.seed, settings: clone(this.settings), groupStart: clone(this.groupStart), militaryOperations:clone(this.militaryOperations), ownerId: this.ownerId, createdAt: this.createdAt, socialEpochAt: this.socialEpochAt, updatedAt: now(), director:clone(this.director), npcHolds: Object.fromEntries([...this.npcHolds].map(([id, holds]) => [id, clone(holds)])), captains, vessels, worlds: clone(this.worlds), sites: clone(this.sites), leases: clone(this.leases) };
   }
   async flush(targetRevision = this.revision) {
     if (this.failed) throw new Error('This realm must be reloaded from its last durable state.');

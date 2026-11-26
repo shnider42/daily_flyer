@@ -8,6 +8,7 @@ import { WebSocketServer } from 'ws';
 import { Realm } from './realm.mjs';
 import { normalizeStartMode } from '../dist/livelihoods.mjs';
 import { WORLD_CONTENT_VERSION, WORLD_CONTENT_REFRESH_MESSAGE } from '../dist/world-content.mjs';
+import { NEW_GALAXY_REQUIRED } from '../dist/galaxy-epoch.mjs';
 import { persistenceFromEnvironment } from './persistence.mjs';
 import { FixedStepClock } from './timing.mjs';
 import { AuthorityPerformance } from './performance.mjs';
@@ -125,7 +126,10 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
         // The seed is already part of every captain snapshot. Previewing it
         // creates no captain, passport, ship, or departure grant.
         return json(response, 200, { ok: true, seed: realm.seed, settings: realm.settings });
-      } catch { return json(response, 503, { ok: false, reason: 'This galaxy is temporarily unavailable. Try again shortly.' }); }
+      } catch (error) {
+        if (error.code === NEW_GALAXY_REQUIRED) return json(response, 409, { ok: false, code: error.code, reason: error.message });
+        return json(response, 503, { ok: false, reason: 'This galaxy is temporarily unavailable. Try again shortly.' });
+      }
     }
     if (pathname === '/api/privacy/export') {
       if (request.method !== 'POST') return json(response, 405, { ok: false, reason: 'Use POST to request your captain data.' });
@@ -176,7 +180,10 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
         }
         if (!captain.session && realm.onlineCount >= MAX_ONLINE) return json(response, 409, { ok: false, reason: 'This realm already has ten online captains.' });
         return json(response, 200, { ok: true, passport, realm: { code: realm.id, name: realm.name, capacity: MAX_ONLINE, online: realm.onlineCount, settings: realm.settings }, protocol: PROTOCOL_VERSION, worldContentVersion: WORLD_CONTENT_VERSION });
-      } catch (error) { return json(response, /ten online|limit/.test(error.message) ? 409 : /JSON|large/.test(error.message) ? 400 : 503, { ok: false, reason: error.message.includes('Storage') || error.message.includes('storage') ? 'Durable storage is temporarily unavailable.' : error.message }); }
+      } catch (error) {
+        if (error.code === NEW_GALAXY_REQUIRED) return json(response, 409, { ok: false, code: error.code, reason: error.message });
+        return json(response, /ten online|limit/.test(error.message) ? 409 : /JSON|large/.test(error.message) ? 400 : 503, { ok: false, reason: error.message.includes('Storage') || error.message.includes('storage') ? 'Durable storage is temporarily unavailable.' : error.message });
+      }
     }
     if (pathname.startsWith('/api/') || pathname === '/ws') return json(response, 404, { ok: false, reason: 'Endpoint not found.' });
     if (!['GET', 'HEAD'].includes(request.method)) return json(response, 405, { ok: false, reason: 'Method not allowed.' });
@@ -233,7 +240,12 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
           if (!result.ok) { send({ type: 'error', ...result }); captain = null; ws.close(result.code === 'realm-full' ? 4003 : 1013, result.reason); return; }
           if (packet.snapshotDelta === SNAPSHOT_DELTA_VERSION) session.deltaEncoder = new SnapshotDeltaEncoder();
           clearTimeout(helloTimer); const snapshot = realm.snapshotFor(captain); session.lastFullAt = Date.now(); session.lastRoomId = snapshot.room.id; session.lastSystemId = snapshot.room.systemId; session.lastShipClass = snapshot.state.ship.classId; send({ type: 'welcome', ...snapshot, worldContentVersion: WORLD_CONTENT_VERSION });
-        } catch (error) { send({ type: 'error', code: 'authentication', reason: error.message }); ws.close(4001, 'Authentication failed.'); }
+        } catch (error) {
+          const oldGalaxy = error.code === NEW_GALAXY_REQUIRED;
+          clearTimeout(helloTimer);
+          send({ type: 'error', code: oldGalaxy ? error.code : 'authentication', reason: error.message });
+          ws.close(4001, oldGalaxy ? 'New shared galaxy required.' : 'Authentication failed.');
+        }
         return;
       }
       if (captain.session !== session) { ws.close(4009, 'This passport connected in another window.'); return; }

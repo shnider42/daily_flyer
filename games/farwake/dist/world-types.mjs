@@ -155,7 +155,9 @@ export function planetTypeFor(body={}){
  return{...type,...WORLD_SIZES[sizeClass],name:type.name,sizeClass};
 }
 export function systemTypeFor(value={}){
- return systemById.get(value.systemTypeId)||systemById.get(authoredSystems[value.id])||pick(SYSTEM_TYPES,`${value.id||'system'}:system-type-v1`);
+ const type=systemById.get(value.systemTypeId)||systemById.get(authoredSystems[value.id])||pick(SYSTEM_TYPES,`${value.id||'system'}:system-type-v1`);
+ const stellar=value.stellarProfile||value.stellar;
+ return stellar?{...type,stellar}:type;
 }
 function assignPlanetType(body,seed,systemId,systemTypeId){
  const compatible=PLANET_TYPES.filter(type=>type.compatibleBiomes.includes(String(body.biome||'temperate')));
@@ -180,7 +182,7 @@ export function decorateGalaxyTypes(galaxy,seed='farwake'){
    }
    return{...body};
   });
-  return{...system,bodies,systemTypeId:type.id,typeLabel:type.name,typeDescription:type.description,stellar:type.stellar,activity:type.activity};
+  return{...system,bodies,systemTypeId:type.id,typeLabel:type.name,typeDescription:type.description,stellar:system.stellarProfile||type.stellar,activity:type.activity};
  });
 }
 

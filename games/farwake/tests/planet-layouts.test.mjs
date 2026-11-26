@@ -46,11 +46,11 @@ test('worlds of one type have different landing districts, service relationships
   assert.ok(firstViews.size >= 12, 'arrival views already show the different arrangements');
 });
 
-test('all regional plans retain reachable services, work and site doors over generated worlds and size classes', () => {
+test('all regional plans retain reachable services, work and site doors across compact worlds and size classes', () => {
   const seed = 'regional-layout-regression', galaxy = buildGalaxy(seed), selected = new Map();
-  for (const system of galaxy.filter(s=>!s.authored)) for (const body of system.bodies.filter(b=>b.kind==='planet')) {
+  for (const system of galaxy) for (const body of system.bodies.filter(b=>b.kind==='planet')) {
     const key = planetSettlementPlan(body,seed).id;
-    if (!selected.has(key)) selected.set(key,{...body,systemId:system.id});
+    if (PLANET_LAYOUTS.some(plan=>plan.id===key) && !selected.has(key)) selected.set(key,{...body,systemId:system.id});
   }
   assert.equal(selected.size,PLANET_LAYOUTS.length);
   for (const body of selected.values()) for (const sizeClass of ['moon','terrestrial','supermassive']) {

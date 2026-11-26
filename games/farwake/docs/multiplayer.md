@@ -10,6 +10,8 @@ This is a small-group authoritative multiplayer implementation. It is not a dist
 
 ## Playing together
 
+Version 0.38 starts the compact 26-system chart with galaxy epoch `compact-v1`. Create a new shared galaxy and use its new invitation code. Browser passports use a new storage key, and old realm documents are rejected before any captain or world state is restored. The server returns a clear new-galaxy-required response; it does not reinterpret old locations or delete the historical record. New realm documents and captain saves carry the epoch and restore normally. Client and server world content revision 14 must match.
+
 Open **Crew / Online**, create a realm, and share its invitation code. A joining player receives a separate captain and starter ship. Joining does not import or overwrite a solo save.
 
 For a new Regular galaxy, **Start together** opens a departure lobby at Kettle. Connected waiting captains unlock Lark at two, Puffin at four, and Osprey at seven. The selected hull must have room for the entire connected departure crew. Each guest marks Ready; changing the selection clears guest readiness. The host's **Board together** action places everyone on one docked vessel, with personal piloting/station grants and installed bunks. A pilot then launches through the existing deck controls. Guest compact hulls remain docked at Kettle.
@@ -137,7 +139,7 @@ Interest management is by star system and by character location/interior. Space 
 
 One `Game` vessel actor advances each physical vessel. A separate system coordinator calls `stepWorld` **once per occupied star system**, with all physical vessels as targets and individual captains as reward recipients. Ten humans on one capital therefore do not advance NPCs or projectiles ten times. Their person movement remains independent.
 
-Empty systems sleep after ten seconds. On waking, traffic receives at most fifteen seconds of harmless movement catch-up. Combat and all 300 systems do not continue running unattended. Persistent world records restore mining depletion, resolved signals, enemies, and other saved changes when a room wakes.
+Empty systems sleep after ten seconds. On waking, traffic receives at most fifteen seconds of harmless movement catch-up. Combat does not continue running in every unattended system. Persistent world records restore mining depletion, resolved signals, enemies, and other saved changes when a room wakes.
 
 ## Running locally
 
