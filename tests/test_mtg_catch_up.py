@@ -21,8 +21,10 @@ def test_evidence_dates_and_scope_are_consistent():
     assert data['coverage_from'] == min(s['date'] for s in data['stories'])
     assert data['coverage_through'] == max(s['date'] for s in data['stories'])
     for s in data['sources']:
-        assert s['checked_at'] == data['reviewed_at']
+        assert s['checked_at'] <= data['reviewed_at']
         assert s['published_at'] is None or s['published_at'] <= s['checked_at']
+    assert sources['m2010']['checked_at'] == '2026-10-27'
+    assert sources['arena-nov23']['checked_at'] == data['reviewed_at']
     for s in data['stories']:
         assert s['source_ids'] and set(s['source_ids']) <= sources.keys()
         assert set(s['terms']) <= terms
@@ -47,14 +49,17 @@ def test_flask_export_and_fallback():
     assert all(img.get('alt') is not None for img in soup.select('img'))
     assert soup.select_one('#art-credits')
     assert '@@' not in page
-    assert len(json.loads(soup.select_one('#mtg-data').string)['stories']) == 16
+    assert len(json.loads(soup.select_one('#mtg-data').string)['stories']) == 21
+    assert soup.select_one('.edition-bar time').get_text() == '26 NOV 2026'
+    assert soup.select_one('.edition-bar time')['datetime'] == '2026-11-26'
+    assert '21 selected milestones' in soup.select_one('.source-explanation').get_text()
 
 
 def test_selected_date_does_not_make_edition_appear_fresh():
     earlier = build_flyer_experience('mtg_catch_up', '2020-01-01')
     later = build_flyer_experience('mtg_catch_up', '2030-01-01')
     assert earlier.data == later.data
-    assert earlier.date_label == later.date_label == '2026-10-27'
+    assert earlier.date_label == later.date_label == '2026-11-26'
 
 
 def test_embedded_content_and_fallback_are_escaped():

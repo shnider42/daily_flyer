@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-10-27",
+  "reviewed_at": "2026-11-26",
   "coverage_from": "2009-06-10",
-  "coverage_through": "2026-09-22",
-  "coverage_note": "16 selected milestones, 2009–2026. Rules, formats, packs, and Arena changes; not a complete archive of releases, bans, or tournament results.",
+  "coverage_through": "2026-11-23",
+  "coverage_note": "21 selected milestones, June 2009–November 23, 2026. This edition adds Star Trek rules and set codes, the mana-ability explanation, Pioneer’s planned competitive return, and Arena Contender Draft. Coverage is selective, not a complete archive of releases, bans, or tournament results.",
   "sources": [
     {
       "id": "m2010",
@@ -184,6 +184,78 @@
       "published_at": null,
       "checked_at": "2026-10-27",
       "kind": "Official reference"
+    },
+    {
+      "id": "star-trek-notes",
+      "title": "Magic: The Gathering | Star Trek Release Notes",
+      "url": "https://magic.wizards.com/en/news/feature/star-trek-release-notes",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2026-10-30",
+      "checked_at": "2026-11-26",
+      "kind": "Official release notes; revised November 4, 2026"
+    },
+    {
+      "id": "star-trek-prerelease",
+      "title": "Magic: The Gathering | Star Trek Prerelease Guide",
+      "url": "https://magic.wizards.com/en/news/feature/star-trek-prerelease-guide",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2026-10-30",
+      "checked_at": "2026-11-26",
+      "kind": "Official release schedule"
+    },
+    {
+      "id": "star-trek-mechanics",
+      "title": "Magic: The Gathering | Star Trek Mechanics",
+      "url": "https://magic.wizards.com/en/news/feature/star-trek-mechanics",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2026-10-20",
+      "checked_at": "2026-11-26",
+      "kind": "Official mechanics guide"
+    },
+    {
+      "id": "star-trek-rules",
+      "title": "Magic: The Gathering | Star Trek Update Bulletin",
+      "url": "https://magic.wizards.com/en/news/announcements/star-trek-update-bulletin",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2026-11-06",
+      "checked_at": "2026-11-26",
+      "kind": "Official rules announcement"
+    },
+    {
+      "id": "mana-abilities",
+      "title": "Magic Rules Blog: Mana Abilities",
+      "url": "https://magic.wizards.com/en/news/feature/magic-rules-blog-mana-abilities",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2026-11-19",
+      "checked_at": "2026-11-26",
+      "kind": "Official rules explanation"
+    },
+    {
+      "id": "hobbit-rules",
+      "title": "Magic: The Gathering | The Hobbit Update Bulletin",
+      "url": "https://magic.wizards.com/en/news/announcements/the-hobbit-update-bulletin",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2026-08-10",
+      "checked_at": "2026-11-26",
+      "kind": "Official rules announcement"
+    },
+    {
+      "id": "competitive-2027",
+      "title": "Everything New for Competitive Play in 2027",
+      "url": "https://magic.wizards.com/en/news/announcements/everything-new-for-competitive-play-in-2027",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2026-11-14",
+      "checked_at": "2026-11-26",
+      "kind": "Official announced schedule"
+    },
+    {
+      "id": "arena-nov23",
+      "title": "MTG Arena Announcements – November 23, 2026",
+      "url": "https://magic.wizards.com/en/news/mtg-arena/announcements-november-23-2026",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2026-11-23",
+      "checked_at": "2026-11-26",
+      "kind": "Official Arena announcement"
     }
   ],
   "stories": [
@@ -663,6 +735,163 @@
       "terms": [],
       "status": "Upcoming",
       "effective_on": "2027-02-02"
+    },
+    {
+      "id": "star-trek-legality",
+      "date": "2026-11-13",
+      "date_kind": "Tabletop release",
+      "formats": [
+        "standard",
+        "modern",
+        "pioneer",
+        "commander",
+        "limited",
+        "casual"
+      ],
+      "platform": "both",
+      "category": "sets",
+      "title": "Star Trek is out. Check the set code.",
+      "summary": "The worldwide tabletop release arrived November 13, with different legality for the main set and Commander cards.",
+      "before": "A crossover’s name alone did not tell you where every card could be played.",
+      "after": "Main-set cards marked TRK join Standard, Pioneer, Modern and Commander. New cards marked TRC are for Commander, Legacy and Vintage.",
+      "context": "Reprinted TRC cards and Stardates cards marked SDS follow the legality of the same card name. The release notes were revised November 4. This entry describes the set’s release rules, not an individual deck check.",
+      "meaning": "Two cards from the same franchise can belong in different formats.",
+      "source_ids": [
+        "star-trek-notes",
+        "star-trek-prerelease"
+      ],
+      "visual": [
+        "TRK main set",
+        "TRC / SDS: check scope"
+      ],
+      "priority": 2,
+      "terms": [
+        "legality",
+        "format"
+      ],
+      "status": "Released",
+      "effective_on": null
+    },
+    {
+      "id": "beam-me-up",
+      "date": "2026-11-06",
+      "date_kind": "Rules bulletin published",
+      "formats": [
+        "all"
+      ],
+      "platform": "both",
+      "category": "mechanics",
+      "title": "Beam me up casts from the graveyard.",
+      "summary": "Star Trek added a way to reuse an instant or sorcery by returning one of your creatures to hand.",
+      "before": "A spell in your graveyard needs specific permission before you can cast it again.",
+      "after": "Pay the beam me up cost and return a creature you control to its owner’s hand to cast the spell from your graveyard.",
+      "context": "Returning the creature is part of the cost, so opponents cannot remove it in response to that payment. Normal timing still applies: a sorcery stays a sorcery. The spell is exiled when it leaves the stack, even if it is countered.",
+      "meaning": "You can reuse a spell and save a creature, but you must plan the timing and payment first.",
+      "source_ids": [
+        "star-trek-rules",
+        "star-trek-mechanics"
+      ],
+      "visual": [
+        "Graveyard + return creature",
+        "Cast → exile"
+      ],
+      "priority": 3,
+      "terms": [
+        "stack",
+        "sorcery-timing"
+      ],
+      "status": "Mechanic introduced",
+      "effective_on": null
+    },
+    {
+      "id": "pioneer-competitive-return",
+      "date": "2026-11-14",
+      "date_kind": "Announced",
+      "formats": [
+        "pioneer"
+      ],
+      "platform": "both",
+      "category": "formats",
+      "title": "Pioneer has a competitive return scheduled.",
+      "summary": "Wizards announced Pioneer Regional Championships for April 10–May 23, 2027, and a later return to qualifiers.",
+      "before": "Pioneer had not been part of the recent tabletop qualifying rotation.",
+      "after": "Pioneer returns for that Regional Championship round, then for RCQs running July 3–September 26, 2027.",
+      "context": "Arena’s first Championship of 2027 also supports Pioneer. These are future tournament plans, not changes to the format’s card pool. The announcement also expands Regional Championship seasons from three rounds to four.",
+      "meaning": "An event schedule and a legality update answer different questions; check both before preparing a deck.",
+      "source_ids": [
+        "competitive-2027"
+      ],
+      "visual": [
+        "Announced November 2026",
+        "Pioneer events in 2027"
+      ],
+      "priority": 3,
+      "terms": [
+        "format",
+        "legality"
+      ],
+      "status": "Upcoming",
+      "effective_on": "2027-04-10"
+    },
+    {
+      "id": "mana-ability-clarification",
+      "date": "2026-11-19",
+      "date_kind": "Rules explanation published",
+      "formats": [
+        "all"
+      ],
+      "platform": "both",
+      "category": "rules",
+      "title": "Making mana does not always mean “mana ability.”",
+      "summary": "A November rules explainer revisits the Hobbit-era change affecting cards such as Chromatic Sphere, Millikin and Selvala, Explorer Returned.",
+      "before": "These abilities could produce mana without using the stack, including during the process of casting another spell.",
+      "after": "An activated ability whose own cost or effect moves a card to or from a library no longer qualifies as a mana ability. It uses the stack.",
+      "context": "Activate these abilities when you have priority, before starting the spell you want to pay for. The rule change accompanied The Hobbit; November 19 is the explanation’s publication date, not a new effective date. Ordinary land mana abilities are unaffected.",
+      "meaning": "An opponent can respond to the affected ability, and you cannot activate it midway through paying for another spell.",
+      "source_ids": [
+        "mana-abilities",
+        "hobbit-rules"
+      ],
+      "visual": [
+        "Produces mana",
+        "May still use the stack"
+      ],
+      "priority": 0,
+      "terms": [
+        "stack",
+        "oracle"
+      ],
+      "status": "Rule explained",
+      "effective_on": null
+    },
+    {
+      "id": "star-trek-contender-draft",
+      "date": "2026-11-23",
+      "date_kind": "Event opened",
+      "formats": [
+        "limited"
+      ],
+      "platform": "arena",
+      "category": "digital",
+      "title": "Arena added Star Trek Contender Draft.",
+      "summary": "The event opened November 23 with a competitive queue and reward structure separate from ordinary Premier Draft.",
+      "before": "Premier Draft was the familiar Arena route for drafting against people and playing a run of matches.",
+      "after": "Contender Draft uses Premier Draft’s structure with dedicated matchmaking and a run ending at seven wins or three losses.",
+      "context": "The published entry is 3,000 gems or 20,000 gold, with no prizes for zero to two wins. This is an event option, not a change to every Draft queue. Check the event panel for current availability and the full reward table.",
+      "meaning": "Choose the event deliberately: similar drafting rules can come with a different entry cost and prize structure.",
+      "source_ids": [
+        "arena-nov23"
+      ],
+      "visual": [
+        "Premier-style Draft",
+        "Separate competitive event"
+      ],
+      "priority": 3,
+      "terms": [
+        "limited"
+      ],
+      "status": "Available in this edition",
+      "effective_on": "2026-11-23"
     }
   ],
   "glossary": [

@@ -68,13 +68,37 @@ the interactive controls; a normal hosted browser page is the full experience.
 
 ## Editorial scope
 
-The first edition has 16 selected milestones from June 10, 2009 through
+The October 27 first edition had 16 selected milestones from June 10, 2009 through
 September 22, 2026, including the September announcement of a planned 2027
 Alchemy retirement. Twenty official references were reviewed October 27,
 2026. That review date does not imply complete coverage through October.
 Rules, formats, card mechanics, packs, and a small selection of Arena changes
 are covered. Set-by-set archives, all bans, deck rankings, prices, tournament
 results and most individual cards are not. Modern/Pioneer coverage is sparse.
+
+### November 26, 2026 edition
+
+The updated edition contains 21 selected milestones through November 23 and
+28 official references. Five entries cover Star Trek set-code legality and
+beam me up, the November explanation of the Hobbit-era mana-ability change,
+Pioneer's announced 2027 competitive return, and Arena's Star Trek Contender
+Draft. The source notebook links the relevant official Wizards announcements,
+release notes and rules explanations. The November 19 mana-ability entry is
+explicitly an explanation date; it does not claim the rule took effect that day.
+
+Eight newly reviewed sources are dated November 26. The original 20 sources
+retain their October 27 review dates, and all 16 historical entries retain
+their original milestone dates and content. The page distinguishes the latest
+edition review from individual source checks. Coverage messages, review labels
+and the scope paragraph now come from the dataset, avoiding stale hard-coded
+dates or counts in subsequent exports.
+
+Validation: 10 Python checks and 14 JavaScript checks passed, including unchanged
+RLCS output, exact Magic export parity, independent source review dates,
+inclusive date filtering and upcoming-change handling. A responsive browser
+check could not run in this workspace because the available Chromium launcher
+has no browser executable; the existing layout, theme, motion and preference
+behavior were not modified.
 
 `daily_flyer_v2/data/mtg_catch_up.json` is the source of truth. Each entry carries
 scope tags, a dated comparison, explanation, evidence IDs and optional terms.

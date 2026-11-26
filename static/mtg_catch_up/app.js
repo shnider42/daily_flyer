@@ -52,12 +52,13 @@
   }
   function shareHash(state) {return '#view=' + encodeURIComponent(JSON.stringify(normalize(state)));}
   function coverageMessage(data, state, count) {
+    const label = value => new Date(value + 'T12:00:00Z').toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
     if (!compatible(state)) return 'That format and platform do not go together. Commander and Modern are not Arena formats; Historic, Timeless, Brawl, and Alchemy are Arena choices. Change either selection.';
     if (state.when === 'custom' && !state.since) return 'Choose a valid past date. Showing the full edition until a date is selected.';
-    if (state.since > data.coverage_through) return 'Your selected period is beyond the latest included milestone (22 September 2026). This edition has no reviewed entries for that period; it does not mean nothing changed.';
+    if (state.since > data.coverage_through) return `Your selected period is beyond the latest included milestone (${label(data.coverage_through)}). This edition has no reviewed entries for that period; it does not mean nothing changed.`;
     if (count === 0) return 'No entries in this selected edition match all your choices. Broaden a filter to explore the available coverage; no matches does not mean no changes.';
     if (state.since && state.since < data.coverage_from) return 'This edition begins in June 2009. Earlier changes are not covered. The entries below are selected milestones, not a complete account of your time away.';
-    return 'Selected milestones, not every change. Latest included milestone: 22 September 2026. Sources checked: 27 October 2026. Open any entry’s evidence for its dates.';
+    return `Selected milestones, not every change. Latest included milestone: ${label(data.coverage_through)}. Edition reviewed: ${label(data.reviewed_at)}. Open each source for its own review date.`;
   }
   const api = {validDay,normalize,selectStories,safeURL,sharedState,shareHash,compatible,coverageMessage};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

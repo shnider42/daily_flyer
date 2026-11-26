@@ -2,6 +2,7 @@
 import html
 import json
 import re
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -21,5 +22,7 @@ def render_mtg_catch_up(experience):
         '@@DATA@@': payload,
         '@@FALLBACK@@': ''.join(fallback),
         '@@REVIEWED@@': html.escape(data['reviewed_at']),
+        '@@REVIEWED_LABEL@@': html.escape(date.fromisoformat(data['reviewed_at']).strftime('%d %b %Y').upper()),
+        '@@COVERAGE@@': html.escape(data['coverage_note']),
     }
-    return re.sub(r'@@(?:CSS|JS|DATA|FALLBACK|REVIEWED)@@', lambda m: slots[m.group()], Path(__file__).with_suffix('.html').read_text(encoding='utf-8'))
+    return re.sub(r'@@(?:CSS|JS|DATA|FALLBACK|REVIEWED|REVIEWED_LABEL|COVERAGE)@@', lambda m: slots[m.group()], Path(__file__).with_suffix('.html').read_text(encoding='utf-8'))
