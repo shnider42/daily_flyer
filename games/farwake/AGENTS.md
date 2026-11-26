@@ -20,6 +20,7 @@ Farwake is an existing DailyFlyer game with solo saves and server-authoritative 
 - Corridor exploration uses visible environmental events, stretches of quiet, staged light restoration, and clear nearby guidance. Required actions must remain reachable. Optional investigation can deepen the story without blocking ordinary exploration.
 - New galaxy seeds may change routes and optional details. Reentry, loading, and multiplayer synchronization must not reroll an existing galaxy. Preserve released interaction IDs, reward claims, lit relays, and occupied walkable positions.
 - The Earth mystery unfolds through evidence and attributed interpretations. Keep author-only revelations out of early player-facing records, UI, music labels, and guidance. Preserve the people rescued and choices already made in the earlier campaigns.
+- The Earth campaign ends in Earth's irreversible loss followed by recognition of humanity's worthwhile future elsewhere. It is a long main campaign interwoven with independent stories, not an extinction ending for the setting. Earn its metaphor through concrete relationships and consequences; keep ordinary dialogue and objectives clear, and let play continue after its conclusion.
 - Use short, plain instructions on mobile. Navigation can be uncertain; the player's current objective and available action should be understandable.
 - Validate the behaviors changed, including save and server boundaries when affected. Use the existing release gates; avoid adding redundant tests that only restate implementation constants.
 

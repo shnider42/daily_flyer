@@ -113,6 +113,8 @@ Competing faction accounts have become inherited explanations and institutional 
 
 The desired ending is a real loss: hope of saving Earth remains credible through much of the investigation, and the eventual evidence establishes that Earth cannot be restored as the home people hoped to recover. Knowing the truth does not guarantee the power to repair it. Rescuing people, helping communities and deciding what to carry forward can still matter within that tragedy.
 
+The latest clarification makes the Earth investigation the long main campaign among other substantial campaigns. Its ending should move from despair directly into retrospective recognition of what people have accomplished across the galaxy. Humanity and life have a future even though Earth does not have the future the player hoped for. The metaphor concerns moving on and accepting a changed identity: a worthwhile life does not require repairing one's place of origin. Let actual relationships, inhabited places and consequences carry that meaning. The campaign ends; the wider game and its other stories continue.
+
 The user cites Defender (PS2) and The Thing (1982) as creative references. Preserve the desired hope, dread and eventual grief without relying on obscure dialogue to produce mystery. The user wants the eventual explanation to be a surprise.
 
 Older released narration that presents permanent planetary recovery as settled must be revised in the later story pass. The compact-map release preserves those runtime campaigns and their destinations; it does not claim to have completed that narrative rewrite.

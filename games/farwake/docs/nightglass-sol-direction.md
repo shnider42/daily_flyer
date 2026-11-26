@@ -12,6 +12,7 @@ Sources checked: Farwake `feat/farwake-galaxy` at `f057e535a3ff548f112f4d0b0bb3c
 | Accepted | Each chapter is a puzzle about an immediate situation. Completing the anthology need not explain the origin or full history of the disaster. |
 | Accepted | Farwake's entire Sol system is under a cordon because a real infestation has affected part of the galaxy. The hazard is not merely a bureaucratic invention. |
 | Accepted from the preceding discussion | Farwake can eventually discover the historical truth, but Earth cannot be restored as the home people hoped to recover. Local rescues and other consequential work remain meaningful. |
+| Accepted in the latest clarification | The Earth investigation is the long main campaign among other substantial campaigns. Its final loss is followed immediately by recognition of the lives and communities already built across the galaxy. Earth is lost; humanity and life are not. The metaphor concerns grief, changing identity, and accepting that a worthwhile future does not require restoring one's place of origin. |
 | Accepted | The playable chart remains 26 systems, with 30 as the ceiling. Hearth, Sol and Crosswind remain. Ordinary instructions and conversations use clear language. |
 | Requested exploration | Large ring habitats can exist in existing systems as a visual and playable homage. Their number, locations, construction history and function are not settled canon. |
 | Open | The infestation's origin, exact transmission rules, intelligence, responsibility, age, and relationship to the earlier Collective records. Opening a radio channel is not established as a means of infection. |
@@ -67,6 +68,54 @@ The channel event must not accidentally establish a radio-transmitted organism. 
 For later chapters, vary both the puzzle and the ending. Communications, pressure, exterior visibility and missing arrivals offer distinct forms of investigation. Silence, a continued machine cycle, an unanswered connection or a last view can carry an ending without repeating the same loud interruption. Every sound clue needs a written equivalent.
 
 Keep the existing illustrated scene-by-scene format, compact in-scene navigation and readable task strip. The user deferred further 3D work. Do not introduce a larger interface to explain the new lore.
+
+## Farwake's main campaign: loss and recognition
+
+The latest clarification makes the emotional endpoint more specific than a tragic revelation. The player has spent a long campaign pursuing a reasonable hope of returning to Earth and making it a home again. The final evidence establishes that this cannot happen. Despair is followed immediately by a retrospective recognition: while pursuing the old home, people have built meaningful lives, relationships and communities throughout the galaxy. Those accomplishments already exist. Humanity and life retain a future.
+
+The metaphor is about changing identity and accepting change. Recovering a place cannot restore the person or society one used to be. Earth still mattered, and its loss deserves grief. The story should not ridicule attachment to an earlier home, portray the past as worthless, or suggest that every loss is a necessary improvement. The recognition is that a future does not require repairing the origin first.
+
+The investigation can still have been necessary. It can establish truth, end destructive uncertainty, expose responsibility, save people and let communities make informed choices. What turns out to be unnecessary is making all future life conditional on Earth's restoration. Do not tell the player that the hours spent investigating were pointless.
+
+### Make the hope reasonable
+
+Give hopeful people specific evidence and personal reasons. A recent authenticated transmission, a living community, a functioning shelter or a successful local repair can all be real. The error is extending a limited success into a promise that a whole planet can recover. Avoid a chorus of obvious liars whose confidence only exists to prepare a twist.
+
+Nightglass shows catastrophe during an earlier crisis. Its protagonists cannot diagnose Earth's permanent condition ninety-three years later. Their final experiences must not reveal the later campaign's prognosis. The player can know terrible things happened and still reasonably hope that time, knowledge, survivors or a controlled expedition have changed what is possible.
+
+The final proof must make the limit understandable. Do not punish the player for missing an obscure collectible, make a hidden “perfect” route restore Earth, or explain the loss only in an opaque scientific monologue. The exact physical mechanism remains open in this direction document. Once selected, earlier evidence should support it fairly without announcing it in advance.
+
+### Interweave the campaign without making every story an Earth clue
+
+Use the existing galaxy as an inhabited present. Main-campaign leads take the player into communities with their own urgent needs, arguments, humor, ambitions and histories. Some of that work reveals relevant evidence. Some matters because those people matter. A medical rescue or water dispute does not need a secret connection to the infestation to justify its place.
+
+The long campaign should alternate investigation, ordinary work, difficult choices, returns to familiar people, and evidence that changes the next question. It should not become a checklist requiring every unrelated side quest, every system, or five identical faction approvals. Other campaigns remain substantial and can be played for their own purposes.
+
+Build a small number of genuine relationships into the main path so its ending is supported even for a player who ignores optional work. Then use actual optional outcomes to deepen the recognition. Never display a grateful person, completed settlement or rescue the player did not help. The galaxy also needs accomplishments other people achieved independently; the protagonist did not single-handedly make civilization worth saving.
+
+Possible existing anchors include Hearth's recurring people, Newshore's settlement, Brindle's food and relief work, Nacre's medicine and refugees, and protected civilians at Crosswind. Crosswind can remain at war while a particular rescue or medical intervention still matters. Ledger Ring, if expanded, should first be experienced as a functioning home with ordinary lives. These examples do not decide which exact characters appear in the finale.
+
+The existing Morrow condenser and reconstruction follow-up can show a repair continuing to help a district. The debt-crew rescue and Kettle follow-up can support a remembered relationship when the actual rescue and delivery succeeded. Aru Sen and Sada Ilyan can demonstrate people brought to safety later helping others. Kettle and Newshore already represent homes built from evacuation and settlement; do not falsely credit their existence to the captain. Use a few earned details rather than an exhaustive montage of quest completions.
+
+The currently released conclusions about reopening Earth's sky and completing the investigation should become intermediate achievements where appropriate: establish contact, protect a limited route, expose an abusive order, or secure local consent. Completing those undertakings is real progress even while the larger question remains open.
+
+### Shape the final sequence
+
+1. **Establish the loss.** The player earns clear evidence that Earth cannot become the recovered home they hoped for. Let the realization stand without immediately explaining its moral.
+2. **Bring the existing galaxy back into the scene.** Within the same ending sequence, a practical response comes from a familiar place or person: a berth is available, a clinic can take the people being brought out, a community is waiting for the captain, or ongoing work needs a decision. Choose the callback from what actually happened in that voyage.
+3. **Let the player recognize the accumulated life.** The significance comes from earlier experience. These are people with their own lives, not strangers introduced to supply a comforting speech. Grief and recognition can coexist; the first does not need to vanish for the second to arrive.
+4. **Give the player a next action.** Decide whom to help, what evidence or memory to carry, who should hear the truth, or where to return. The action belongs to the future already present in the world.
+5. **Continue play.** Finish the Earth campaign while other campaigns, communities and relationships remain. Do not end the whole galaxy or turn the rest of the game into a reward lobby after the supposed only meaningful story.
+
+“Immediately” concerns the emotional relationship inside the finale; do not delay the recognition behind several hours of epilogue errands. Equally, avoid a triumphant musical switch or a character delivering the thesis a moment after the loss. A brief, concrete human response can make the larger recognition available without replacing the grief.
+
+### Put the metaphor in consequences
+
+The player should understand the literal objective of every scene. Routine NPC speech can be simple: someone needs a shipment, wants news of a friend, has opened a shop, or asks when the captain will return. Repeated visits and remembered decisions carry the meaning. Characters need not all speak in quotations about belonging, echoes, roots or the meaning of home.
+
+Earth need not cease to matter for people to move on. Memory, cultural continuity, mourning and historical truth remain worthwhile. A ring habitat or a new settlement can provide a future home without being presented as an interchangeable replacement for Earth.
+
+The intended ending is neither human extinction nor a secret failure state. Earth's loss is the campaign's settled endpoint. The player's agency concerns the real people, truths and possibilities that remain.
 
 ## What the infestation establishes in Farwake
 
@@ -140,7 +189,7 @@ Production should represent the full structure clearly in the system view, then 
 1. Reauthor the existing Luna case as the first-person incident 93 years earlier. Change the briefing, observations, records, objective flow, endings, notebook/report voice and completion music together. Preserve the useful circuit puzzle and accessible scene navigation.
 2. Reconcile the Farwake source case that Nightglass adapts, so it does not contradict the new historical viewpoint or reveal facts the witness could not establish.
 3. Implement the Sol access rules in travel and shared authority, then reconcile origins, map messages, Threshold staging and Earth permissions. A multiplayer client must not grant itself access.
-4. Rework the main Earth campaign and The Long Silence. Their current claims of lasting planetary recovery conflict with the intended ending. Preserve concrete rescues and people while rewriting conclusions that no longer fit.
+4. Rework the main Earth campaign and The Long Silence as a long investigation interwoven with independent lives and campaigns. Their current claims of lasting planetary recovery conflict with the intended ending. Seed and remember the relationships that make despair followed by recognition possible; preserve concrete rescues while rewriting conclusions that no longer fit.
 5. Add the Mars chapter with its own investigation and ending. Use it to prove the anthology can vary its structure before making many additional chapters.
 6. Develop one inhabited ring district and its system-view presentation before committing to a second large environment.
 
