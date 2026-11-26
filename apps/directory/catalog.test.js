@@ -49,7 +49,7 @@ test('game subtype filter distinguishes sports from the other games',()=>{
 
 
 function sampleProject(id,type='games',best='both',featureWeight=3) {
-  return {id,title:id,type,subtype:'Example',art:'dsl',url:`https://example.com/${id}`,linkKind:'app',createdAt:'2020-01-01',datePrecision:'day',device:{best,note:'A device recommendation.'},featureWeight};
+  return {id,title:id,type,subtype:'Example',art:'dsl',url:`https://example.com/${id}`,linkKind:'app',createdAt:'2020-01-01',datePrecision:'day',device:{best,note:'A device recommendation.'},featureEligible:true,featureWeight};
 }
 const sampleTypes=['games','tools','catch-up','stories'];
 const variedCatalog=sampleTypes.flatMap(type=>['mobile','desktop','both'].flatMap(best=>[1,2].map(n=>sampleProject(`${type}-${best}-${n}`,type,best))));

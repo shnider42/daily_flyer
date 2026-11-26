@@ -25,7 +25,7 @@ function matchesDevice(project,device) {
   return device==='all'||(Object.hasOwn(DEVICE_LABELS,device)&&(project.device?.best===device||(device!=='both'&&project.device?.best==='both')));
 }
 function featurePool(projects,weekIndex) {
-  const eligible=projects.filter(p=>Number.isInteger(p.featureWeight)&&p.featureWeight>0&&p.linkKind!=='source'&&projectLink(p));
+  const eligible=projects.filter(p=>p.featureEligible===true&&Number.isInteger(p.featureWeight)&&p.featureWeight>0&&p.linkKind!=='source'&&projectLink(p));
   const requestedFocus=['all','mobile','all','desktop'][modulo(weekIndex,4)];
   const focused=eligible.filter(p=>matchesDevice(p,requestedFocus));
   const supportsFocus=focused.length>=3&&new Set(focused.map(p=>p.type)).size>=3;
@@ -141,6 +141,7 @@ export function validateCatalog(projects) {
     ids.add(p.id);
     if(!p.title || !TYPE_LABELS[p.type] || !p.art) throw new Error('A project is missing its name, type, or artwork.');
     if(!p.device || !Object.hasOwn(DEVICE_LABELS,p.device.best) || typeof p.device.note!=='string' || !p.device.note.trim()) throw new Error('A project needs a device recommendation and explanation.');
+    if(p.featureEligible!==undefined && typeof p.featureEligible!=='boolean') throw new Error('Feature eligibility must be a boolean when provided.');
     if(!Number.isInteger(p.featureWeight) || p.featureWeight<0 || p.featureWeight>5) throw new Error('A project feature weight must be an integer from 0 to 5.');
     if(!projectLink(p)) throw new Error('A project has no valid HTTPS destination.');
     if(!['day','month','unknown'].includes(p.datePrecision)) throw new Error('A project has an invalid date precision.');

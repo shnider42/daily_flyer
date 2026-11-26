@@ -1,6 +1,7 @@
 [
   {
     "id": "dsl",
+    "featureEligible": true,
     "title": "DSL",
     "subtitle": "Double Secret Probation Squad Leader",
     "description": "Command infantry, armor and support units in WWII hex battles, solo or with friends.",
@@ -33,6 +34,7 @@
   },
   {
     "id": "gridiron",
+    "featureEligible": true,
     "title": "Pocket Gridiron",
     "subtitle": "American football, pocket-sized",
     "description": "Call plays and run the field with NFL teams, special teams and College Classics.",
@@ -66,6 +68,7 @@
   },
   {
     "id": "infierno",
+    "featureEligible": true,
     "title": "Infierno Liberado",
     "subtitle": "Hell Let Loose: Vietnam field notes",
     "description": "Follow Hell Let Loose: Vietnam bugs, content changes, suggestions and returning-player briefings.",
@@ -100,6 +103,7 @@
   },
   {
     "id": "further-in",
+    "featureEligible": true,
     "title": "Further In",
     "subtitle": "The rooms keep going",
     "description": "Descend through six floors of first-person psychological horror, with puzzles, exploration and saved progress.",
@@ -131,6 +135,7 @@
   },
   {
     "id": "breach",
+    "featureEligible": true,
     "title": "BREACH",
     "subtitle": "Enter. Adapt. Get out.",
     "description": "Take on first-person missions with weapons, exploration, progression and co-op.",
@@ -279,6 +284,7 @@
   },
   {
     "id": "saltbound",
+    "featureEligible": true,
     "title": "Saltbound",
     "subtitle": "Bring your crew home",
     "description": "Sail for island loot, take on contracts and extract with your crew or on your own.",
@@ -334,6 +340,7 @@
   },
   {
     "id": "huddle",
+    "featureEligible": true,
     "title": "Huddle",
     "subtitle": "NFL and soccer, caught up",
     "description": "Catch up on NFL teams and games in four languages, or follow Manchester City in the Brazilian Portuguese soccer edition.",
@@ -586,6 +593,7 @@
   },
   {
     "id": "skyward",
+    "featureEligible": true,
     "title": "SKYWARD",
     "subtitle": "A century of flight",
     "description": "Fly 20 aircraft through solo missions and passenger routes, plus multiplayer dogfights and co-op.",
@@ -655,6 +663,7 @@
   },
   {
     "id": "soccer",
+    "featureEligible": true,
     "title": "Pocket Soccer",
     "subtitle": "Under the floodlights",
     "description": "Play 11-a-side soccer with European clubs, historic Dortmund teams, cup play and directional passes and crosses.",
@@ -922,6 +931,7 @@
   },
   {
     "id": "farwake",
+    "featureEligible": true,
     "title": "FARWAKE",
     "subtitle": "The Quiet Earth",
     "description": "Pilot ships, explore planets and stations, join faction crews and fight through ground and space battles in a shared galaxy.",
@@ -958,6 +968,7 @@
   },
   {
     "id": "dayboard",
+    "featureEligible": true,
     "title": "Dayboard",
     "subtitle": "A little room for what is next",
     "description": "Plan tasks with a personal Kanban board, custom areas, recurring tasks and a Today shortlist. Adjust text, contrast and spacing; keep browser-local saves with JSON backup and CSV export.",
@@ -996,6 +1007,7 @@
   },
   {
     "id": "pocket-baseball",
+    "featureEligible": true,
     "title": "Pocket Baseball",
     "subtitle": "Read the pitch. Play the whole field.",
     "description": "Play solo or private 1v1 baseball with a Fenway-inspired park, varied pitchers, rosters and baserunning choices.",
@@ -1368,6 +1380,7 @@
   },
   {
     "id": "chalk",
+    "featureEligible": true,
     "title": "CHALK",
     "subtitle": "Stay with your squad",
     "description": "Lead a four-person squad or follow a human or AI leader through four top-down missions inspired by Mogadishu in 1993. Play solo or invite a friend for two-player online co-op, with two AI squadmates and swappable roles. Reach crash survivors, guide the relief convoy and bring the squad to safety. Fictional characters and compressed maps, with civilian protection and squad survival at the center.",
@@ -1722,6 +1735,7 @@
   },
   {
     "id": "ball-knowledge",
+    "featureEligible": true,
     "title": "Ball Knowledge",
     "subtitle": "Every subject. Every second.",
     "description": "Race the clock through general trivia, from common knowledge to one-of-one deep cuts. Rarer answers earn more points on a shared leaderboard.",
