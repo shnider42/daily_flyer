@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from html import unescape
 
 from daily_flyer.orchestrator import build_daily_page
 from daily_flyer.renderer import build_html
@@ -66,7 +67,7 @@ class HellLetLooseThemeTests(unittest.TestCase):
         html = build_html(context)
 
         self.assertIn("HELL LET LOOSE // FIELD BRIEF", html)
-        self.assertIn("COMMANDER'S INTENT // DAILY", html)
+        self.assertIn("COMMANDER'S INTENT // DAILY", unescape(html))
         self.assertIn("MAP OF THE DAY", html)
         self.assertIn("GAME MECHANIC OF THE DAY", html)
         self.assertIn("RADIO DISCIPLINE", html)
@@ -85,6 +86,20 @@ class HellLetLooseThemeTests(unittest.TestCase):
         self.assertIn("Smolensk", map_titles)
         self.assertIn("Remagen", map_titles)
         self.assertIn("Lanchester SMG", weapon_titles)
+        self.assertIn("M1903A3 Springfield", weapon_titles)
+
+    def test_catch_up_separates_release_plans_and_historical_dates(self) -> None:
+        current = hell_let_loose.build_theme_page("2026-11-26", seed=7)
+        catch_up = current.cards[0]
+        self.assertEqual(catch_up.card_type, "hll_catch_up")
+        self.assertIn("2026-11-26", catch_up.body)
+        self.assertIn("early December", catch_up.body)
+        self.assertIn("not treated as playable", catch_up.body)
+        self.assertNotIn("Lake Balaton", {item[0] for item in hell_let_loose.MAPS})
+        historical = hell_let_loose.build_theme_page("2026-10-10", seed=7).cards[0]
+        self.assertIn("Update 21", historical.body)
+        self.assertNotIn("Lake Balaton", historical.body)
+        self.assertNotIn("2026-10-16", historical.body)
 
 
 if __name__ == "__main__":

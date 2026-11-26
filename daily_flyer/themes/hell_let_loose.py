@@ -9,6 +9,33 @@ from daily_flyer.utils import resolve_date
 
 
 THEME_NAME = "hell_let_loose"
+CONTENT_REVIEWED_AT = "2026-11-26"
+U21_SOURCE = "https://www.hellletloose.com/blog/hll-u21-changelog"
+
+# Publication dates stay separate from the date this briefing was checked.
+# Announced work is never added to the released battlefield pool.
+CATCH_UP_UPDATES = [
+    {
+        "date": "2026-11-12", "status": "PLANNED", "title": "Lake Balaton moves to early December",
+        "body": "The revised Update 22 plan targets Lake Balaton for early December. Other deferred content, including new vehicles, is targeted for early 2027. An exact release date was not announced; Lake Balaton is not treated as playable in this edition.",
+        "source": "https://www.hellletloose.com/blog/release-dates-update-2026",
+    },
+    {
+        "date": "2026-10-16", "status": "UNDER INVESTIGATION", "title": "Performance and loadout issues remain open",
+        "body": "The developers reproduced the severe temporary FPS drops but had not identified their root cause. The Level 1 / locked-loadout issue remains under investigation, with more work planned for 2027. This report is not a released fix.",
+        "source": "https://www.hellletloose.com/blog/dev-brief-222-hll-community-feedback",
+    },
+    {
+        "date": "2026-10-09", "status": "KNOWN ISSUE", "title": "Tank HE needs more than a radius comparison",
+        "body": "The developers confirmed an unintended HE damage calculation problem after Update 21 and targeted a correction for Update 22. Conquest also remains under review; it is an additional mode, while Warfare continues.",
+        "source": "https://www.hellletloose.com/blog/dev-brief-221-u21-community-update",
+    },
+    {
+        "date": "2026-09-22", "status": "RELEASED", "title": "Update 21 expands weapons and game modes",
+        "body": "Update 21 added Conquest, rifle grenades, weapon fire selectors, new loadouts and weapons, plus armor and anti-tank changes. Returning players should check their controls and their server's mode before applying an older guide.",
+        "source": U21_SOURCE,
+    },
+]
 
 THEME_CONFIG = {
     "page_title": "Hell Let Loose Field Brief — Daily Flyer",
@@ -114,6 +141,27 @@ MAPS = [
 # title, lesson, leadership use, common failure, source
 MECHANICS = [
     (
+        "Conquest: Assign the Objective",
+        "Conquest arrived in Update 21 with multiple active objectives. Warfare remains available as a separate mode.",
+        "Name the objective your squad owns and the condition for rotating. Keep someone responsible for the ground you leave.",
+        "Everyone follows the nearest capture marker and the previous objective becomes a donation.",
+        "https://www.hellletloose.com/blog/dev-brief-221-u21-community-update",
+    ),
+    (
+        "Fire Selectors: Check Before Contact",
+        "Update 21 added selectable fire modes to supported weapons. Confirm the selected mode and key binding before engaging.",
+        "Use the practice range to learn the control, then choose a mode that fits your lane and ammunition needs.",
+        "Expecting a burst and discovering that the weapon and the plan held different meetings.",
+        U21_SOURCE,
+    ),
+    (
+        "Rifle Grenades: Call the Shot",
+        "Update 21 added rifle-grenade variants for the Karabiner 98k, M1 Garand and SMLE. They can also function as ordinary rifles.",
+        "Tell nearby friendlies before launching into a contested position; a new weapon does not replace a clear target call.",
+        "The squad clears the doorway at exactly the moment its supporting fire arrives.",
+        U21_SOURCE,
+    ),
+    (
         "Garrisons: The Actual Front Line",
         "Team-wide spawns create options, reveal pressure when locked, and decide whether a team can recover after losing ground.",
         "Ask where the team will spawn after the current position fails. Build before the emergency.",
@@ -200,6 +248,7 @@ LOADOUTS = [
 
 # title, historical fact, field note, source
 WEAPONS = [
+    ("M1903A3 Springfield", "Update 21 added the M1903A3 bolt-action rifle for US forces.", "Work from cover and coordinate follow-up fire; the squad is allowed to compensate for a slower action.", U21_SOURCE),
     ("M1 Garand", "The U.S. semi-automatic service rifle fed from an eight-round en-bloc clip.", "Fast follow-up shots do not remove the need for cover and spacing.", "https://www.nps.gov/spar/learn/historyculture/m1-garand.htm"),
     ("Karabiner 98k", "Germany's standard bolt-action service rifle developed from the Mauser 98 system.", "The slower action rewards the unfashionable skill of aiming.", "https://www.iwm.org.uk/collections/item/object/30029425"),
     ("Lee-Enfield No. 4 Mk I", "The British and Commonwealth rifle used a ten-round magazine and smooth bolt action.", "A fast bolt is still weaker than a squad that identified the correct hedge.", "https://www.iwm.org.uk/collections/item/object/30035386"),
@@ -266,6 +315,7 @@ MONTHLY_HISTORY = {
 
 
 EXTRA_CSS = r"""
+.card.card--hll_catch_up{grid-column:1/-1;min-height:0}.catch-up-entries{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.catch-up-entry{padding-top:12px;border-top:2px solid rgba(34,37,29,.4)}.catch-up-entry h3{margin:6px 0;font-size:1.05rem;color:#191b15}.catch-up-entry p{margin:6px 0 10px}.catch-up-status{font-weight:900;font-size:.76rem;letter-spacing:.04em}.catch-up-dates{font-size:.84rem}.catch-up-entry a{font-weight:700}.card--hll_catch_up .icon-badge::before{content:"INTEL"}@media(max-width:720px){.catch-up-entries{grid-template-columns:1fr}.card.card--hll_catch_up{grid-column:1/-1!important}}
 :root{--bg:#151711;--bg-deep:#0d0f0b;--bg-soft:#20231a;--card:#dfd2aa;--card-strong:#e6d9b0;--border:#171912;--border-strong:#171912;--ink:#191b15;--ink-soft:#2c3026;--muted:#555b47;--irish-green:#525943;--gold:#c7aa64;--teal:#70785b;--blue:#9b4f31;--radius-xl:0;--radius-lg:0;--radius-md:0;--max-width:1240px}
 html{background:#151711}body{font-family:"Courier New",monospace;color:#e5dcc2;background:linear-gradient(rgba(22,24,18,.92),rgba(15,17,13,.98)),repeating-linear-gradient(0deg,transparent 0 39px,rgba(215,199,155,.09) 40px),repeating-linear-gradient(90deg,transparent 0 39px,rgba(215,199,155,.09) 40px),#181a14}
 body::before{width:580px;height:580px;top:-220px;left:-180px;background:radial-gradient(circle,transparent 0 22%,rgba(215,199,155,.08) 22.5% 23%,transparent 23.5% 38%,rgba(215,199,155,.08) 38.5% 39%,transparent 39.5%),linear-gradient(45deg,transparent 49.5%,rgba(215,199,155,.09) 50%,transparent 50.5%),linear-gradient(-45deg,transparent 49.5%,rgba(215,199,155,.09) 50%,transparent 50.5%);filter:none;opacity:1}
@@ -330,14 +380,37 @@ def _card(card_type: str, eyebrow: str, title: str, body: str, source: str | Non
     return CardItem(card_type=card_type, eyebrow=eyebrow, title=title, body=body, source_url=source)
 
 
+def _catch_up_card(day_key: str) -> CardItem | None:
+    updates = [item for item in CATCH_UP_UPDATES if item["date"] <= day_key]
+    if not updates:
+        return None
+    body = (
+        f'<p class="catch-up-dates">Sources checked {CONTENT_REVIEWED_AT}. '
+        'Published dates are shown below. Planned work is not a released patch.</p>'
+        '<div class="catch-up-entries">'
+        + "".join(
+            '<article class="catch-up-entry">'
+            f'<div class="catch-up-status">{escape(item["status"])} · '
+            f'<time datetime="{item["date"]}">{item["date"]}</time></div>'
+            f'<h3>{escape(item["title"])}</h3><p>{escape(item["body"])}</p>'
+            f'<a href="{escape(item["source"], quote=True)}" target="_blank" rel="noopener noreferrer">Official report ↗</a>'
+            '</article>' for item in updates
+        )
+        + '</div>'
+    )
+    return _card("hll_catch_up", "CATCH UP // RELEASES & OPEN ISSUES", "Returning to the front", body)
+
+
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
     today = resolve_date(date_str)
     day_key = today.isoformat()
     year, week, _ = today.isocalendar()
 
     map_title, theater, game_note, history, tactical, map_source = _pick(MAPS, day_key, "map", seed)
-    mechanic_title, lesson, mechanic_leadership, failure, mechanic_source = _pick(MECHANICS, day_key, "mechanic", seed)
-    weapon_title, weapon_fact, weapon_note, weapon_source = _pick(WEAPONS, day_key, "weapon", seed)
+    mechanic_pool = MECHANICS if day_key >= "2026-09-22" else [item for item in MECHANICS if item[-1] not in {U21_SOURCE, "https://www.hellletloose.com/blog/dev-brief-221-u21-community-update"}]
+    weapon_pool = WEAPONS if day_key >= "2026-09-22" else [item for item in WEAPONS if item[-1] != U21_SOURCE]
+    mechanic_title, lesson, mechanic_leadership, failure, mechanic_source = _pick(mechanic_pool, day_key, "mechanic", seed)
+    weapon_title, weapon_fact, weapon_note, weapon_source = _pick(weapon_pool, day_key, "weapon", seed)
     intent_title, objective, principle, radio = _pick(COMMAND_INTENTS, day_key, "intent", seed)
     radio_title, radio_lesson, radio_joke = _pick(RADIO_NOTES, day_key, "radio", seed)
     community_title, community_body = _pick(COMMUNITY_NOTES, day_key, "community", seed)
@@ -370,6 +443,10 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
               "https://www.hellletloose.com/game/hll"),
     ]
 
+    catch_up = _catch_up_card(day_key)
+    if catch_up:
+        cards.insert(0, catch_up)
+
     return PageContext(
         page_title=THEME_CONFIG["page_title"],
         header_title=THEME_CONFIG["header_title"],
@@ -380,6 +457,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
         metadata={
             "theme_name": THEME_NAME,
             "date_key": today.strftime("%m-%d"),
+            "content_reviewed_at": CONTENT_REVIEWED_AT,
             "hero_kicker": THEME_CONFIG["hero_kicker"],
             "hero_summary_pill": THEME_CONFIG["hero_summary_pill"],
             "extra_css": EXTRA_CSS,

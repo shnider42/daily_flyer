@@ -73,6 +73,22 @@ All visual changes are contained in the theme's `extra_css` and `extra_js`; the 
 
 ## Content maintenance
 
-Current game additions should be verified against official Hell Let Loose changelogs before editing the pools. Update 20 material includes Juno Beach, Canadian forces, and armor changes. Update 19 material includes Smolensk, artillery squads, and self-propelled artillery.
+The November 26, 2026 refresh adds a dated catch-up briefing above the rotating
+cards. It separates released Update 21 content, acknowledged HE/performance/loadout
+issues, and the revised Update 22 roadmap. Lake Balaton is targeted for early
+December; deferred content is targeted for early 2027. Neither is presented as
+released. November 12's release update supersedes October's November target.
+
+Current game additions should be verified against official Hell Let Loose
+changelogs before editing the pools. Update 21 adds Conquest, rifle grenades,
+fire selectors and the M1903A3 Springfield to the applicable pools. Update 20
+material includes Juno Beach, Canadian forces, and armor changes. Update 19
+material includes Smolensk, artillery squads, and self-propelled artillery.
+
+`CATCH_UP_UPDATES` retains each source's publication date; `CONTENT_REVIEWED_AT`
+is the separate review date and must only advance after source review. Historical
+date navigation omits announcements published after the requested date. Practical
+leadership/field notes are editorial advice. The official source links support
+game changes, not claims that the advice appears in the patch notes.
 
 Historical summaries should stay short, non-graphic, and tied directly to the represented battlefield or equipment. Prefer official museums, military history institutions, national parks, or the game's own historical development briefs.
