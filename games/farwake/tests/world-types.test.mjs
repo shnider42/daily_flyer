@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { Game, buildGalaxy } from '../dist/engine.mjs';
 import { STATION_TYPES, PLANET_TYPES, SYSTEM_TYPES, WORLD_SIZES, WORLD_TYPES_VERSION, decorateGalaxyTypes, stationTypeFor, planetTypeFor, systemTypeFor, bodyVisualRadius, applySystemActivity, flavorSystemSignals, migrateExpandedBodyPose } from '../dist/world-types.mjs';
 import { systemContext } from '../dist/encounter-context.mjs';
+import { applySystemIdentityContext } from '../dist/system-identity.mjs';
 import { portProfile, trafficHullWeights, MILITARY_PORT_FACTIONS } from '../dist/port-traffic.mjs';
 import { systemBodyPosition } from '../dist/system-space.mjs';
 
@@ -63,7 +64,7 @@ test('system identity changes traffic and resource activity without multiplying 
   const {trafficCount:actualTraffic,typeLabel,...actualSafety}=runtime.context,{trafficCount:originalTraffic,...originalSafety}=context;
   assert.deepEqual(actualSafety,originalSafety,'security, encounter chances and cooldowns retain their geographical rules');
   assert.ok(runtime.asteroids.length>=46&&runtime.asteroids.length<=102);
-  assert.equal(runtime.context.trafficCount,applySystemActivity(chart,context).trafficCount);
+  assert.equal(runtime.context.trafficCount,applySystemIdentityContext(chart,applySystemActivity(chart,context)).trafficCount,'the authored local profile takes precedence after system-type activity');
   if(context.region==='core')assert.ok(runtime.context.trafficCount>=16);
  }
  assert.ok(counts.size>=10,'systems contain meaningfully different resource-field densities');

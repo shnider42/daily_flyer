@@ -261,7 +261,7 @@ test('a remote Casual origin submits the selected system and omits the Hearth op
 test('the selected origin updates the supplied drive in both setup steps', async t => {
   const systems = startSystemChoices(buildGalaxy('setup-compact-drives'));
   const f = fixture(t, { startMode: 'casual', startSystems: systems });
-  for (const [id, name, range] of [['sol', 'Fold Drive II', 9], ['lacuna', 'Farwake field coil', 15], ['hearth', 'Fold Drive I', 5]]) {
+  for (const [id, name, range] of [['alpha-centauri', 'Fold Drive II', 9], ['lacuna', 'Farwake field coil', 15], ['hearth', 'Fold Drive I', 5]]) {
     await f.chooseSystem(id);
     assert.ok(f.find('.captain-system-detail').textContent.includes(`Starting drive: ${name} · ${range} ly range`));
     assert.ok(f.find('[data-start-equipment]').textContent.includes(`includes ${name}, Vector thrusters`));

@@ -1,5 +1,7 @@
 import { Game, buildGalaxy, distance, seededRandom } from '../dist/engine.mjs';
 import { GALAXY_EPOCH, requireCurrentGalaxy } from '../dist/galaxy-epoch.mjs';
+import { personalSolClearance } from '../dist/sol-access.mjs';
+import { bossMusicContext } from '../dist/ship-bosses.mjs';
 import { advanceWorldDirector, syncDirectorWorld, recordDirectorDamage } from '../dist/world-director.mjs';
 import { questThread } from '../dist/quest-content.mjs';
 import { getShipClass, SHIP_CLASSES, STATION_ROLES, cabinLayout } from '../dist/fleet.mjs';
@@ -397,6 +399,7 @@ export class Realm extends BoardingAuthority {
     this.worlds[room.systemId] = { spaceVersion: SYSTEM_SPACE_VERSION, record: clone(room.record), enemies: room.runtime.enemies.map(fields), traffic: captureTraffic(room.runtime.traffic), savedAt: now() };
   }
   _bindCaptain(captain) {
+    captain.game._solExpeditionClearance=()=>this._solClearanceFor(captain);
     captain.game._directorShared=this.director;
     captain.game._warzoneCeasefireContext=()=>this._warzoneCeasefireContext(captain);
     captain.game._voyagePersonalContext=()=>{
@@ -640,6 +643,13 @@ export class Realm extends BoardingAuthority {
     for (const captain of this.captains.values()) if (captain.aboard === vessel.id || captain.id === owner.id) captain.events.push(...events);
     if (vessel.dockedAt && vessel.dockedAt !== previousDock) this._notifyDockedCrew(vessel);
   }
+  _solClearanceFor(captain, vessel = this.vessels.get(captain.aboard || captain.portVesselId)) {
+    const state=captain.game.state;
+    if(!vessel||vessel.destroyed||!(vessel.ship?.hull>0)||vessel.systemId!==state.systemId)return {entry:false,landing:false};
+    if(captain.aboard!==vessel.id&&(captain.portVesselId!==vessel.id||!vessel.dockedAt||vessel.dockedAt!==state.locationId||state.interior||!this._canBoard(captain,vessel)))return {entry:false,landing:false};
+    const permits=[vessel.solClearance||{},...([...this.captains.values()].filter(other=>other.aboard===vessel.id).map(other=>personalSolClearance(other.game)))];
+    return {entry:permits.some(value=>value.entry===true),landing:permits.some(value=>value.landing===true)};
+  }
   _withShip(captain, vessel, callback, { forceShip = false } = {}) {
     this._syncCasualCrew(vessel);
     const fields = ['cargo', 'upgrades', 'crew', 'formerCrew', 'memorial', 'boardingHistory'], inventory = this._inventoryFor(vessel), game = captain.game, state = game.state;
@@ -648,7 +658,7 @@ export class Realm extends BoardingAuthority {
     const primary = captain.id === vessel.ownerId && captain.ownedVesselId === vessel.id;
     vessel.ship.humanOccupants = Math.max(1, [...this.captains.values()].filter(other => other.aboard === vessel.id).length);
     state.ship = vessel.ship; for (const field of fields) state[field] = inventory[field];
-    state.multiplayer={serverAuthoritative:true,ownedVesselId:captain.ownedVesselId,aboardVesselId:vessel.id,crewRole:captain.crewRole,weaponsAllowed:this._canRole(captain,vessel,'weapons'),dockedAt:vessel.dockedAt||null};game._permittedVessel=vessel.ship;
+    state.multiplayer={serverAuthoritative:true,ownedVesselId:captain.ownedVesselId,aboardVesselId:vessel.id,crewRole:captain.crewRole,weaponsAllowed:this._canRole(captain,vessel,'weapons'),dockedAt:vessel.dockedAt||null,solClearance:this._solClearanceFor(captain,vessel)};game._permittedVessel=vessel.ship;
     // Reservations belong to their physical carrier; the underlying quests and
     // patients remain on the captain who accepted them, including a visiting pilot.
     game.narrativeBerths = () => this._passengerBerths(vessel).narrative;
@@ -1138,11 +1148,11 @@ export class Realm extends BoardingAuthority {
       const definition=questThread(a.threadId),quest=game.state.narrative?.quests?.[a.threadId],step=quest&&definition?.stages[quest.stage];
       const supplyCost=definition?.localCampaign&&a.action==='choose'&&step?.kind==='choice'?step.options?.find(option=>option.id===a.choiceId)?.cost:null;
       if((supplyCost?.ore>0||supplyCost?.fuel>0)&&(!owned||owned.destroyed||owned.systemId!==game.state.systemId||owned.dockedAt!==game.state.locationId||game.state.interior))return fail('Dock your own supply ship at this port before committing its ore or fuel to the repair. A nearby or borrowed vessel cannot supply your personal cargo.','vessel');
-      if (a.threadId === 'earth_long_silence' && ['earth-scan', 'earth-rescue', 'earth-defense'].includes(step?.kind)) {
+      if ((definition?.earthOperations === true || a.threadId === 'earth_long_silence') && ['earth-scan', 'earth-rescue', 'earth-defense'].includes(step?.kind)) {
         if (!this._helm(c, active)) return fail('Take the helm of a vessel you are permitted to fly for this mission.', 'helm');
         return this._withShip(c, active, () => game.threadAction(a));
       }
-      if (a.threadId === 'earth_long_silence' && step?.kind === 'earth-deliver') {
+      if ((definition?.earthOperations === true || a.threadId === 'earth_long_silence') && step?.kind === 'earth-deliver') {
         const carrier = this.vessels.get(quest.earth?.passenger?.shipId);
         if (!carrier || carrier.destroyed || carrier.systemId !== game.state.systemId || carrier.dockedAt !== game.state.locationId || game.state.interior || !this._canBoard(c, carrier))
           return fail('Dock the ship carrying your survivors at this port, then meet the receiving contact on foot.', 'vessel');
@@ -1213,7 +1223,7 @@ export class Realm extends BoardingAuthority {
       if (!this._helm(c, active)) return fail('Only the current helmsman may dock this vessel.', 'helm');
       if(active.boarding?.phase==='active'||active.pvp?.phase==='active')return fail('Clear the boarders before docking this ship.','boarding');
       const result = this._withShip(c, active, () => game.dock(id));
-      if (result.ok) { active.dockedAt = id; active.helmOwner = null; this._landCharacter(c, active.systemId, id); this._notifyDockedCrew(active); }
+      if (result.ok) { if(id==='earth')active.solClearance={entry:true,landing:true};active.dockedAt = id; active.helmOwner = null; this._landCharacter(c, active.systemId, id); this._notifyDockedCrew(active); }
       else if(game.state.boarding?.source==='rescued-pirates'&&game.state.boarding.phase==='active'){active.boarding=game.state.boarding;active.actor=null;this._cabin(c,active);active.helmOwner=null;}
       return result;
     }
@@ -1237,8 +1247,10 @@ export class Realm extends BoardingAuthority {
     if (name === 'travel') {
       if (!this._helm(c, active)) return fail('Only the current helmsman may engage the fold drive.', 'helm');
       if (this._inCombat(active)) return fail('Clear the immediate attack before engaging the fold drive.', 'combat');
+      const expeditionClearance=this._solClearanceFor(c,active);
       const result = this._withShip(c, active, () => game.travel(id));
       if (result.ok) {
+        if(id==='sol')active.solClearance={entry:true,landing:expeditionClearance.landing};
         active.systemId = game.state.systemId; active.dockedAt = null;
         for (const other of this.captains.values()) if (other.aboard === active.id) { other.game.state.systemId = active.systemId; other.game._flag(`visited_${active.systemId}`); other.game._flag(`jumped_to_${active.systemId}`); if (!other.game.state.visited.includes(active.systemId)) other.game.state.visited.push(active.systemId); this._bindCaptain(other); if(other!==c)other.game.warzoneArrival(); }
         active.actor = null;
@@ -1689,7 +1701,7 @@ export class Realm extends BoardingAuthority {
     else if (state.interior?.kind === 'derelict') state.interior.location = clone(this._location(c));
     const currentDock = c.aboard ? this._dockedBody(vessel) : null;
     state.multiplayer = { groupStartStatus: c.launchStatus || null, waitingForGroupStart: this._isGroupWaiting(c), captainId: c.id, name: c.name, realmCode: this.id, ownedVesselId: c.ownedVesselId, aboardVesselId: c.aboard || null, crewRole: c.crewRole, weaponsAllowed:!!c.aboard&&this._canRole(c,vessel,'weapons'),powerAllowed:!!c.aboard&&((ownState.mode==='ship'&&vessel?.helmOwner===c.id&&this._canRole(c,vessel,'helm'))||(ownState.interior?.kind==='ship'&&this._canRole(c,vessel,'engineering')&&this._atStation(c,'engineering'))), home: clone(c.home), serverAuthoritative: true,
-      dockedAt: currentDock?.id || null, dockedName: currentDock?.name || null, dockedKind: currentDock?.kind || null,
+      dockedAt: currentDock?.id || null, dockedName: currentDock?.name || null, dockedKind: currentDock?.kind || null, solClearance:this._solClearanceFor(c),
       canUseBoardingAirlock: this._canUseBoardingAirlock(c), boardingTargets: this._boardingTargets(c),
       returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, hostileBoarding: !!(c.aboard && (vessel.npcHostile || c.boardingTeam && c.boardingTeam !== vessel.ownerId)), canReturn: this._canReturn(c), canTakeHelm: this._canTakeCapturedHelm(c, vessel) };
     const opening = c.game.openingMissionStatus();
@@ -1699,7 +1711,7 @@ export class Realm extends BoardingAuthority {
     state.npcLife = this._npcView(c, timestamp);
     state.gamblingView = c.game.gamblingStatus({ includeReplay: false });
     state.militaryOperationsView = this._militaryOperationsView(c);
-    state.earthCampaignView = c.game.earthCampaignStatus?.() || null;
+    state.earthCampaignView = c.game.earthLiveCampaignStatus?.() || c.game.earthCampaignStatus?.() || null;
     // The visible deck may belong to someone else. This private view retains
     // the authenticated captain's own company and its real physical berth.
     if(!compact)state.voyageView={crewWhereabouts:clone(c.game.crewWhereabouts())};
@@ -1711,7 +1723,8 @@ export class Realm extends BoardingAuthority {
     // Crew inside a hull do not receive its full exterior scene. Retain only
     // current, explicitly targeted danger so their score follows the same
     // attack as the pilot's without exposing distant actors or planned events.
-    state.musicThreat = c.aboard ? occupiedVesselThreats(relevantWorld, ship, c.id) : null;
+    const bossThreat=c.aboard?bossMusicContext(relevantWorld,ship.id):null;
+    state.musicThreat = c.aboard ? {...occupiedVesselThreats(relevantWorld, ship, c.id),...(bossThreat?.bossObserved?bossThreat:{})} : null;
     // The broadcaster may reuse neutral world data only within this one
     // synchronous batch. It creates a fresh map after every simulation pass;
     // commands and standalone snapshots do not keep or use this cache.

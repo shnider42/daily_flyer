@@ -26,19 +26,30 @@ const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('h
 // A clean 0.35 comparison in farwake, hearth-preservation and floodworks proved
 // identical outdoor maps and every interior after removing only Relay hostiles.
 // No cave geometry, entity, route, service or other Hearth catalog row changed.
+// 0.39 compares directly against 0.38 in both seeds: only public system
+// identity metadata, one Relay Nine record clarification, and Tinbell’s sealed
+// sample change. All outdoor tiles, solids, services, spawn and exits match.
 const baseline={
- farwake:{
-  surfaces:{kettle:'c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb',morrow:'9d202827a467ffd09d28b52cbbe9e2d69090407c64566b175e6a0cc339aaada8',tinbell:'6b7fbf5ee76524bcef84817ebaeb2746376ea9fbf5de775d752519ceef83b176'},
-  sites:'daedb4627d93f42f537ebba7ce5ec19332ab0b48f56845406e90c4e851e2fa8f'
- },
- 'hearth-preservation':{
-  surfaces:{kettle:'c70a921cf8db4cdcde5ae6b1f47a2e26bde5b39c1ee84e2b2d2222059e43e45f',morrow:'6794e879a956dfe585ef6a724ab2f5224e62a805b3e4238675c0d1470f6b8931',tinbell:'8fd24814ddfe782233667c3e83ddedc635c8de9b9d63dead0c42e9f3057761f0'},
-  sites:'f539fd75ca54071b39a6b68da784176cbd5787e912a8cf4470702113fdb3d1e6'
- }
+  "farwake": {
+    "surfaces": {
+      "kettle": "c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb",
+      "morrow": "68337f585cc064754edb8dbc82394b98506194f91a4eadd52911093be9d5c60b",
+      "tinbell": "024de84b793eabd1bd054e25ef48b8ab7e4291ea20e5695f106737e3682efd3b"
+    },
+    "sites": "843e25fc95e1cfb9cc73e43b601da478e84a59a82af02a37a5c9ad41a884c3a2"
+  },
+  "hearth-preservation": {
+    "surfaces": {
+      "kettle": "c70a921cf8db4cdcde5ae6b1f47a2e26bde5b39c1ee84e2b2d2222059e43e45f",
+      "morrow": "ed41ab81e96ab6136d13b1bb77109633605b8add413e2738dfb41d5d75a481e0",
+      "tinbell": "fb31e0e0278d52e9b020513382af2846ac4048bae5fe22a058334979f9951907"
+    },
+    "sites": "eb9e5d3d1ef8ce03a90105d9a226381d77e5782a4cc9f5a3fb1a9f249d9308b8"
+  }
 };
 for(const [seed,expected] of Object.entries(baseline))test(`Hearth preserves its baseline with the authored Relay Nine variation and roster (${seed})`,()=>{
  const hearth=buildGalaxy(seed).find(system=>system.id==='hearth');
- assert.equal(digest(hearth),'e001d59d987c94f04bc2064a643306fc7281b73ac1afdf226bcb5d0a67f62570','authored bodies, station positions, story and opening geography');
+ assert.equal(digest(hearth),'9600a12f21fdcdd6d447e4f0d4061362662b86124f9b13d980d79054a677b268','authored bodies, station positions, story and opening geography');
  assert.deepEqual(Object.fromEntries(hearth.bodies.map(body=>[body.id,digest(generateSurface(body,seed,[]))])),expected.surfaces,'every outdoor tile, entity, service and arrival');
  assert.equal(digest(hearth.bodies.map(body=>explorationSites(body,seed))),expected.sites,'all existing Hearth exploration');
 });

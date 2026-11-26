@@ -175,7 +175,7 @@ function notebookContext(current, extra = {}) {
     createNotebookNavigation: (key, select) => createNotebookNavigation(key, select, { document }),
     syncNoticePresentation() {}, noticeHistory: () => [],
     appendNoticeHistory: (parent, entries, options) => appendNoticeHistory(parent, entries, { ...options, document }),
-    appendQuietEarthEntry() {}, appendFieldWorkEntry() {}, militaryCareerUI: { appendEntry() {} }, openingUI: { appendEntry() {} },
+    appendAftermathStatus() {}, appendQuietEarthEntry() {}, appendFieldWorkEntry() {}, militaryCareerUI: { appendEntry() {} }, openingUI: { appendEntry() {} },
     appendFoldDriveLink() {}, ...extra });
   context.recoveryReportUI = createRecoveryReportUI({ getGame: () => context.game, dialog: context.dialog,
     invoke: (...args) => context.invoke(...args), acceptResult: answer => context.result(answer) });

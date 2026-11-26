@@ -130,7 +130,8 @@ test('every authored mission completes through real surface interactions, physic
   else ok(act(game));
   if(current(game)?.id==='bastion-drop'){game=Game.fromSave(game.save());assert.equal(game.narrativeBerths(),1);}
  }
- const done=record(game);assert.equal(done.stage,EARTH_CAMPAIGN.stages.length);assert.equal(done.earth.delivered.length,3);assert.equal(done.choices['earth-legacy'],'public-record');assert.equal(done.earth.failures,0);
+ const done=record(game);assert.equal(done.stage,EARTH_CAMPAIGN.stages.length);assert.equal(done.earth.delivered.length,3);assert.equal(done.choices['earth-account'],'public');assert.equal(done.choices['earth-allegiance'],'concord');assert.equal(done.earth.failures,0);
+ assert.equal(game.earthAftermathStatus().truthKnown,true);assert.equal(game.earthAftermathStatus().continuing,true);assert.ok(game.knownLore?.some?.(entry=>entry.id==='earth-limits-of-repair')||game.state.knownLore.includes('earth-limits-of-repair'));assert.match(done.outcome,/cannot be restored/);
  assert.equal(game.state.credits,startCredits+300+900);for(const flag of canonicalBefore)assert.ok(game.hasFlag(flag));assert.ok(game.hasFlag('thread:earth_long_silence_resolved'));assert.equal(game.narrativeBerths(),0);
  const saved=Game.fromSave(game.save());assert.deepEqual(record(saved),done);assert.equal(saved.earthCampaignStatus().status,'completed');assert.equal(saved.threadAction({threadId:id,action:'advance'}).code,'duplicate');assert.equal(saved.state.credits,game.state.credits);
 });

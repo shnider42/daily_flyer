@@ -9,7 +9,10 @@ test('Hearth remains the central starter system and describes its busy inhabited
  for(const seed of ['farwake','quiet-earth','compact-chart']){
   const hearth=buildGalaxy(seed).find(system=>system.id==='hearth'),kettle=hearth.bodies.find(body=>body.id==='kettle');
   assert.equal(hearth.gx,0);assert.equal(hearth.gy,0);
-  assert.equal(hearth.description,'The crowded heart of the settled lanes. Ferries, supply ships, port tugs and watch patrols cross beneath a tired orange star; emergencies usually reach a staffed service long before a passing captain.');
+  assert.match(hearth.description,/Hearth feeds, repairs, and trains/);
+  assert.ok(hearth.localActivities.some(activity=>activity.bodyId==='kettle'));
+  assert.ok(hearth.localActivities.some(activity=>activity.bodyId==='morrow'));
+  assert.ok(hearth.localActivities.some(activity=>activity.bodyId==='tinbell'));
   assert.equal(kettle.lore,'A busy city of welded ship corridors, markets and apartment rings. Ferries queue beside the freight locks while the port watch directs traffic. Cinder is a small name on a very long departure board.');
  }
 });

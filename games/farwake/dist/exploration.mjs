@@ -1,3 +1,4 @@
+import {withTinbellResidue} from './tinbell-evidence.mjs';
 /** Deterministic surface expeditions. Geometry, rewards and combat are shared by solo and authority. */
 import { ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidearmAim, clearSidearmSight } from './combat.mjs';
 import { isCabinWalkable } from './interior-layouts.mjs';
@@ -53,7 +54,7 @@ function legacyExplorationSites(body={},seed='farwake'){
 /** Replace only repeatable frontier slots; authored places and Hearth stay intact. */
 export function explorationSites(body={},seed='farwake'){
  if(typeof body==='string')body={id:body,name:body};
- const existing=legacyExplorationSites(body,seed),stories=expeditionStorySites(body,seed);
+ const existing=legacyExplorationSites(body,seed).map(withTinbellResidue),stories=expeditionStorySites(body,seed);
  if(!stories.length)return[...existing,...cavernSites(body,seed,existing)];
  const bodyId=String(body.id||'world');
  const authored=stories.map(item=>freeze({...defaults[item.kind],...item,bodyId,key:`${bodyId}:site:${item.id}`,entrance:pt(item.tileX,item.tileY),hostile:!!item.hostile,empty:!!item.empty,caches:item.caches||[],records:item.records||[],choices:item.choices||[]}));

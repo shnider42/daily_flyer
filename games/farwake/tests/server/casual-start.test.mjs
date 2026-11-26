@@ -223,7 +223,7 @@ test('the real multiplayer client creates and joins the same seeded galaxy with 
 });
 
 test('shared remote starts receive usable drive tiers and keep them through authority restart', async t => {
-  const f = await serverFixture(t), host = await f.connect({ create: true, name: 'Remote host', galaxySeed: 'remote-drive-tiers', startMode: 'casual', startSystemId: 'sol' });
+  const f = await serverFixture(t), host = await f.connect({ create: true, name: 'Remote host', galaxySeed: 'remote-drive-tiers', startMode: 'casual', startSystemId: 'alpha-centauri' });
   const guest = await f.connect({ name: 'Distant guest', realmCode: host.passport.realmCode, startMode: 'casual', startSystemId: 'lacuna' });
   assert.equal(host.latest.state.ship.warpRange, 9); assert.equal(guest.latest.state.ship.warpRange, 15);
   assert.deepEqual(host.latest.state.upgrades, { ...starterEquipment, fold_2: 1 });

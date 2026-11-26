@@ -18,6 +18,7 @@ import {explorationSites} from './exploration.mjs';
 import {buildExpeditionStoryLayout} from './expedition-story-layouts.mjs';
 import {buildCavernInterior} from './cavern-layouts.mjs';
 import {settlementFootprints} from './settlement-footprints.mjs';
+import {ringHabitatFor,createRingHabitatSurface,drawRingHorizon} from './ring-habitats.mjs';
 import {drawCreatureTell,creatureArtHeight} from './creature-art.mjs';
 import {drawExpeditionProp,drawExpeditionWildlife,drawExpeditionFactionKit,expeditionFactionColor} from './expedition-story-art.mjs';
 import {expeditionHostileTo,storySurfaceView} from './expedition-story-rules.mjs';
@@ -134,7 +135,7 @@ function storyResident(location){
  if(location.id==='listening')return{role:'archivist',name:DIALOGUE.archivist.name,roleLabel:DIALOGUE.archivist.role,text:`${DIALOGUE.archivist.greeting} Our array at Listening House is missing a stable relay. Help me restore it, and we can read what your census fragment is trying to tell us.`,rumors:DIALOGUE.archivist.rumors,data:{storyKey:'listening_house'}};
  if(location.id==='ledger')return{role:'governor',name:'Liaison Evin Raye',roleLabel:'Charter council liaison',text:'Continuity asks for jurisdiction. Meridian asks for the routes. Freewake asks for the evidence to be public. Ledger Ring can record an alliance, but you will be the one living with its promises.',rumors:['An alliance is a name that reaches the next port before your ship.','The original lane patent is still in this archive. Read it before deciding who owns a route.'],data:{storyKey:'three_claims',representative:true}};
  if(location.id==='stillwater')return{role:'archivist',name:'Custodian Nemi Ives',roleLabel:'Vault records custodian',text:'The vault kept its climate records through every silent year. The irrigation messages are still addressed to Earth. If you have come to carry those records home, we should talk.',rumors:['These seeds were chosen for farmers who might never see the weather their grandparents knew.','The climate record includes a safe approach to Sol. The people there deserve to choose who follows it.'],data:{storyKey:'witness_vault',loreId:'seedvault'}};
- if(location.id==='earth')return{role:'governor',name:DIALOGUE.governor.name,roleLabel:'Earth council representative',text:'Welcome to Earth. We kept the landing light for people, not for claims. Our council is ready to discuss reopening contact. Tell us what kind of relationship you came to build.',rumors:DIALOGUE.governor.rumors,data:{storyKey:'open_sky',representative:true}};
+ if(location.id==='earth')return{role:'governor',name:DIALOGUE.governor.name,roleLabel:'Protected district representative',text:'You are cleared for this landing district. Stay inside the marked boundary. We can discuss relief and let you examine our records; permission to land here says nothing about the rest of Earth.',rumors:DIALOGUE.governor.rumors,data:{storyKey:'open_sky',representative:true}};
  const role=location.kind==='station'?({concord:'warden',freewake:'dockworker',meridian:'broker',lantern:'archivist',cinder:'salvager'}[location.faction]||'archivist'):location.biome==='ruin'?'archivist':'governor';
  return{role};
 }
@@ -833,7 +834,7 @@ function addQuestEntities(m,location){
 export function generateSurface(location={},seed='farwake',flags=[]){
  location=resolveLocation(location);
  if(location.kind==='detention')return detentionSurface(location,seed);
- const kind=kindOf(location),outdoorWarzone=location.id==='crosswind-vey'&&kind==='planet';const m=outdoorWarzone?expeditionSurface({...location,parentId:location.id,site:explorationSites(location,seed).find(site=>site.warzone)},seed,true):isNeonCity(location)?createNeonCity(location,seed,{makeMap,rect,line,room,point,entity,personEntity,prop,label,addArchive,addLocalWork,TILE}):kind==='eva'?evaSurface(location,seed):kind==='site'?expeditionSurface(location,seed):kind==='station'?station(location,seed):kind==='ship'?ship(location,seed):kind==='derelict'?derelict(location,seed):planet(location,seed);
+ const kind=kindOf(location),outdoorWarzone=location.id==='crosswind-vey'&&kind==='planet';const m=outdoorWarzone?expeditionSurface({...location,parentId:location.id,site:explorationSites(location,seed).find(site=>site.warzone)},seed,true):isNeonCity(location)?createNeonCity(location,seed,{makeMap,rect,line,room,point,entity,personEntity,prop,label,addArchive,addLocalWork,TILE}):kind==='eva'?evaSurface(location,seed):kind==='site'?expeditionSurface(location,seed):kind==='station'?(ringHabitatFor(location)?createRingHabitatSurface(location,seed,{makeMap,rect,line,room,point,entity,personEntity,prop,label,addStoryResident,addArchive,addLocalWork,TILE}):station(location,seed)):kind==='ship'?ship(location,seed):kind==='derelict'?derelict(location,seed):planet(location,seed);
  if(m.kind==='planet'&&!m.authoredCity&&!m.outdoorWarzone)scalePlanetRegion(m,location);
  m.faction=location.faction||null;m.systemId=location.systemId;m.systemName=location.systemName;m.localLore=location.localLore;m.loreId=location.loreId;m.flags=Array.isArray(flags)?[...flags]:[];
  // Interactive spaces always remain clear. Furniture is collision-enabled,
@@ -873,7 +874,7 @@ function text(ctx,value,x,y,color='#d8e2d7',size=9,align='left'){ctx.font=`${siz
 function tileDraw(ctx,m,x,y,p,time){
  if(drawNeonTile(ctx,m,x,y,time))return;
  const tile=m.tiles[y][x],wx=x*T,wy=y*T,n=noise(x,y,m.seed);
- if(tile===TILE.VOID){if(m.outdoors){pixel(ctx,p.ground,wx,wy,T,T);return;}if(m.kind==='site'){pixel(ctx,'#080f17',wx,wy,T,T);return;}if(n>.89){pixel(ctx,n>.98?'#b4d3d0':'#416677',wx+Math.floor(n*17),wy+Math.floor(noise(y,x,m.seed)*20),1,1);if(n>.99)pixel(ctx,'#253f51',wx+Math.floor(n*17)-2,wy+Math.floor(noise(y,x,m.seed)*20),5,1);}return;}
+ if(tile===TILE.VOID){if(m.ringHabitat)return;if(m.outdoors){pixel(ctx,p.ground,wx,wy,T,T);return;}if(m.kind==='site'){pixel(ctx,'#080f17',wx,wy,T,T);return;}if(n>.89){pixel(ctx,n>.98?'#b4d3d0':'#416677',wx+Math.floor(n*17),wy+Math.floor(noise(y,x,m.seed)*20),1,1);if(n>.99)pixel(ctx,'#253f51',wx+Math.floor(n*17)-2,wy+Math.floor(noise(y,x,m.seed)*20),5,1);}return;}
  if(m.biome==='cave'&&[TILE.WALL,TILE.FLOOR,TILE.PATH,TILE.GROUND,TILE.RUBBLE].includes(tile)){
   if(tile===TILE.WALL){
    pixel(ctx,'#242d2b',wx,wy,T,T);
@@ -1475,6 +1476,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  const suppliedAim=options.combat?.aim,aim=combatActive?(visibility?sidearmAim(person,actors.filter(a=>a.team==='hostile'),suppliedAim?.manual?{aiming:true,aimX:Math.cos(suppliedAim.angle),aimY:Math.sin(suppliedAim.angle)}:{},surface.combatLayout):(suppliedAim||sidearmAim(person,actors.filter(a=>a.team==='hostile'),{},surface.combatLayout||surface.shipClass))):null;
  const actorCues=actor=>{const id=actor.id||actor.captainId||(actor===person?options.localCaptainId||'local':null);return{firing:effects.some(e=>e.kind==='shot'&&e.attackerId===id&&e.age<.13),hurtUntil:effects.some(e=>e.kind==='hit'&&e.targetId===id&&e.age<.2)?combatTime+.1:actor.hurtUntil||actor.hitUntil};};
  beginPixelFrame(ctx);ctx.save();pixel(ctx,surface.kind==='planet'||surface.outdoors?'#13292c':'#07141f',0,0,width,height);ctx.translate(-cameraX,-cameraY);
+ drawRingHorizon(ctx,surface,{cameraY});
  const minX=Math.max(0,Math.floor(cameraX/T)-1),maxX=Math.min(surface.cols,Math.ceil((cameraX+width)/T)+1),minY=Math.max(0,Math.floor(cameraY/T)-1),maxY=Math.min(surface.rows,Math.ceil((cameraY+height)/T)+1);
  for(let y=minY;y<maxY;y++)for(let x=minX;x<maxX;x++)tileDraw(ctx,surface,x,y,p,time);
  for(const room of surface.rooms||[]){ctx.globalAlpha=.10;if(surface.kind==='ship'){for(let y=Math.max(minY,room.y+1);y<Math.min(maxY,room.y+room.h-1);y++)for(let x=Math.max(minX,room.x+1);x<Math.min(maxX,room.x+room.w-1);x++)if([TILE.FLOOR,TILE.PATH].includes(surface.tiles[y]?.[x]))pixel(ctx,room.color,x*T,y*T,T,T);}else pixel(ctx,room.color,(room.x+1)*T,(room.y+1)*T,(room.w-2)*T,(room.h-2)*T);ctx.globalAlpha=1;}

@@ -12,7 +12,7 @@ function routeHome(galaxy,originId,range){
  for(const path of paths){
   const from=galaxy.find(system=>system.id===path.at(-1));
   if(from.id==='hearth')return path;
-  for(const to of galaxy)if(!seen.has(to.id)&&Math.hypot(from.gx-to.gx,from.gy-to.gy)<=range){seen.add(to.id);paths.push([...path,to.id]);}
+  for(const to of galaxy)if(to.id!=='sol'&&!seen.has(to.id)&&Math.hypot(from.gx-to.gx,from.gy-to.gy)<=range){seen.add(to.id);paths.push([...path,to.id]);}
  }
  return null;
 }
@@ -38,7 +38,7 @@ test('Casual equips every starter for an immediate first fold without completing
 test('Casual validates compact origins against the actual seeded galaxy and discovers nearby stars',()=>{
  for(const seed of ['casual-chart-a','casual-chart-b']){
   const galaxy=buildGalaxy(seed);
-  for(const startSystemId of ['brindle','sol','lacuna','alpha-centauri','tau-ceti']){
+  for(const startSystemId of ['brindle','witness','lacuna','alpha-centauri','tau-ceti']){
    const game=casual(seed,{startSystemId}),source=galaxy.find(system=>system.id===startSystemId),port=publicStartingPort(game.system);
    assert.equal(game.state.systemId,startSystemId);assert.equal(game.currentSystem.name,source.name);
    assert.equal(game.currentSystem.faction,source.faction);assert.equal(game.currentSystem.danger,source.danger);
@@ -58,8 +58,8 @@ test('Casual validates compact origins against the actual seeded galaxy and disc
 
 test('every Casual origin gets the minimum drive tier for a real route back to Hearth',()=>{
  const seed='compact-casual-routes',galaxy=buildGalaxy(seed),choices=startSystemChoices(galaxy);
- assert.equal(choices.length,galaxy.length,'Every origin remains available.');
- for(const origin of galaxy){
+ assert.equal(choices.length,galaxy.length-1,'Sol remains charted but cannot be a new origin.');
+ for(const origin of galaxy.filter(system=>system.id!=='sol')){
   const game=casual(seed,{startSystemId:origin.id}),range=game.state.ship.warpRange,route=routeHome(galaxy,origin.id,range);
   assert.ok(route,`${origin.name} must connect to Hearth with its starting equipment.`);
   const previousRange=range===15?9:range===9?5:0;
@@ -76,7 +76,7 @@ test('every Casual origin gets the minimum drive tier for a real route back to H
   assert.equal(game.state.systemId,'hearth');
  }
  assert.equal(casual(seed,{startSystemId:'hearth'}).state.ship.warpRange,5);
- assert.equal(casual(seed,{startSystemId:'sol'}).state.ship.warpRange,9);
+ assert.equal(casual(seed,{startSystemId:'alpha-centauri'}).state.ship.warpRange,9);
  assert.equal(casual(seed,{startSystemId:'lacuna'}).state.ship.warpRange,15);
 });
 
@@ -95,7 +95,7 @@ test('origin fallback is Hearth and origin inputs do not change Regular or Hardc
 });
 
 test('remote Casual starts skip the Hearth opening while a Hearth Casual captain can play it',()=>{
- for(const startSystemId of ['vesper','sol','sirius']){
+ for(const startSystemId of ['vesper','witness','sirius']){
   const game=casual('remote-opening',{startSystemId,openingMission:true});
   assert.equal(game.state.systemId,startSystemId);assert.equal(game.state.mode,'ship');assert.equal(game.state.openingMission,null);
   assert.equal(game.state.lastBodyId,publicStartingPort(game.system).id);assert.deepEqual(game.state.upgrades,{...CASUAL_START_UPGRADES,...casualStartingDrive(game.galaxy,startSystemId).upgrades});
@@ -112,7 +112,8 @@ test('Casual origin grants neither military docking clearance nor Earth quaranti
  assert.ok(military);assert.notEqual(game.state.lastBodyId,military.id);
  Object.assign(game.state.ship,{x:military.x,y:military.y+military.radius+80});
  assert.equal(game.dock(military.id).ok,false);assert.equal(game.state.mode,'ship');
- const sol=casual('casual-quarantine',{startSystemId:'sol'}),earth=sol.system.bodies.find(body=>body.id==='earth');
+ assert.throws(()=>casual('casual-quarantine',{startSystemId:'sol'}),/quarantine/);
+ const sol=casual('casual-quarantine');sol.state.systemId='sol';sol._loadSystem('sol');const earth=sol.system.bodies.find(body=>body.id==='earth');
  Object.assign(sol.state.ship,{x:earth.x,y:earth.y+earth.radius+80});
  assert.equal(sol.dock('earth').code,'quarantine');assert.equal(sol.hasFlag('vault_recovered'),false);
 });

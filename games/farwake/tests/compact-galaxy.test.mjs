@@ -86,6 +86,7 @@ test('fold upgrades open useful regions without stranding the first campaign or 
   assert.ok(!first.has('sol') && second.has('sol'), 'the second drive makes the homeward route possible');
 
   const game = new Game('fold-routes');
+  game._flag('vault_recovered'); game._flag('homeward_signal');
   for (const [upgrade, routes] of [['fold_1', first], ['fold_2', second], ['fold_3', third]]) {
     game.state.upgrades[upgrade] = 1;
     game._updateStats();

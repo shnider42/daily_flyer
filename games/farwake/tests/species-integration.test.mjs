@@ -19,24 +19,30 @@ const ok=result=>{assert.equal(result.ok,true,result.reason);return result;};
 // Derived independently from committed0.10 after verifying its unrounded data
 // against all16 original0.7.1 signatures. Coordinates use released system units;
 // six decimals avoid binary rounding noise from multiplying then dividing by3.
+// The 0.39 identity changes were audited object-by-object against 0.38: all
+// bodies, rocks, retained enemy fields and signal positions are unchanged.
+// The nine revised signatures include only the deliberate smaller raider
+// rosters, the seed-selected Cinder/Sable heavy contacts, and (for the first
+// seed) Chorus signal6 becoming an ordinary survey under its quieter policy.
+// The seven unaffected signatures remain byte-for-byte identical.
 const physical={
   "species-compatibility": {
-    "kindred": "81c32c2dea74907708cd1de4142e5b67fe9a8b6cc78a37c8d99b142445d9c60e",
-    "brassfall": "b4ef7faff4ab83f06b2f0ee0943d5a392ede8c4a989ee33feada52d82cc7cb6d",
-    "chorus": "6525cdf8b46ca0d1199bbed5fafc81b989375fa6d0fa7addfd389ef42ee49e23",
+    "kindred": "5488985cfc8c68cd6e7c89eec68c87b40449f0f90b5bb08331d624f6e968273f",
+    "brassfall": "69a4ce1c613eb8be1f4eb59401bd3a5c3877a2f2db7b441d43060340981e9693",
+    "chorus": "18fa620eaa4d3db77ad43fde4c3327bf16ce38a39e51ca431d2b7d7f90ae7ca7",
     "brindle": "454c85a4a65f592efa014cb059dcc339410bb9cad583e2691738d924fb4a70ea",
     "nacre": "caab4d8125b3e7b616d1690b8e573bb1aedd07f2d1b2e987939013cea5fd0b0e",
-    "sable": "ee390ef7411b1807c4db55a6588ed4edc1a2a5f2836220019ac96539b240d92f",
+    "sable": "85cf93a5ab3d8a5880739e38534f4d3bc61efa87bbcab6c4e4b873a6aaa71b43",
     "vesper": "a68e870fb57e1345fe10b5619a6492236b8b13a1fd6ba7807480b05cd9f51908",
-    "cinder": "acca4e4830528d4e7b387f9b7d018758b180a7f55ddde75aa4b63301d05b0882"
+    "cinder": "f3d07bd2569986094dcddd2e4146d62e6aae81b6fd720d40dc0f343123004963"
   },
   "farwake": {
-    "kindred": "c0e97b6f8533c041af00cdcf86b05471f3b9738102c8376e27be60713eb57791",
-    "brassfall": "0ffa62d433ed1e044fcc499fd86251d3bc66f85f5bcf3294dcd1373274d09336",
-    "chorus": "a3ae113a13f505c4c5ae69321d82f9dd3fe13c24fcf8440254efeea01cbc592e",
+    "kindred": "6f1f64f7a4d92b8db5760b19226b5bc7a0261f99bf46cf0f757078cd73bb7601",
+    "brassfall": "da4e005b09d6d7b7ae1823a0724217968bd8091c5d6c0953dda4da7c5027e3d5",
+    "chorus": "2f94f4386a9d05c80a5e50a43ab953b1992a7ed8e5a847840c1dbb2a9eef6648",
     "brindle": "cc0fa73e15860f14b0117ace8eb6c3bae41c4891cb7b6db6ee6a881535488d40",
     "nacre": "0919f08cf7c7260e3b2bf279c1d35a13853bc0168c943b98146f6fddbd4ce241",
-    "sable": "cebd63f6c2676eeb5dc4be66704ec28350ffd089c139e6a75aaa08b2f97f0cfb",
+    "sable": "62d7e6e9a7377d3ad0b71d51746e0331b46d787f55134a46138affcc04cbb7be",
     "vesper": "d6be9ef19329d7dab5fa8cb3ef85cc87d454be0e9e3624dbb7f99205dcb2329d",
     "cinder": "60e2387da0db778cbbe6c279ea7f14add7510b0e590df607cbd33e402dbb813a"
   }
@@ -61,8 +67,8 @@ test('the compact chart keeps every established species homeworld and older auth
 test('population and traffic changes cannot consume other physical world random draws',()=>{
  for(const[seed,systems]of Object.entries(physical))for(const[systemId,expected]of Object.entries(systems)){
   const game=new Game(seed);game.state.systemId=systemId;game._loadSystem(systemId);
-  // Traffic and place appearance intentionally vary. Exclude only the explicit
-  // type additions; older physical objects retain their seeded fields exactly.
+  // Traffic and place appearance intentionally vary. The complete physical
+  // projection also fixes the reviewed local rosters and heavy encounters.
   const coordinates=items=>items.map(item=>({...item,x:Math.round(item.x/SYSTEM_SPACE_SCALE*1e6)/1e6,y:Math.round(item.y/SYSTEM_SPACE_SCALE*1e6)/1e6}));
   const projection=()=>({bodies:coordinates(releasedBodies(game.system.bodies).map(body=>releasedBody(body,{authored:game.currentSystem.authored,runtime:true}))),asteroids:coordinates(releasedAsteroids(game.system.asteroids)),enemies:coordinates(game.system.enemies),signals:coordinates(releasedSignals(game.system.signals))});
   assert.equal(checksum(projection()),expected);

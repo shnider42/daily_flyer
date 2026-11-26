@@ -6,6 +6,8 @@ import { appendFactionPorts } from './port-content.mjs';
 import { appendWarzoneSystem } from './warzone-content.mjs';
 import { decorateGalaxyTypes } from './world-types.mjs';
 import { decorateStationGeography } from './station-geography.mjs';
+import { decorateRingHabitats } from './ring-habitats.mjs';
+import { applySystemIdentity } from './system-identity.mjs';
 
 const freeze = value => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -101,5 +103,5 @@ export function buildCompactGalaxy(seed = 'farwake') {
   const additions = REAL_STAR_SYSTEMS.map((source, index) => ({
     ...structuredClone(source), authored: true, index: withCrosswind.length + index
   }));
-  return [...withCrosswind, ...decorateStationGeography(decorateGalaxyTypes(additions, seed), seed)];
+  return decorateRingHabitats([...withCrosswind, ...decorateStationGeography(decorateGalaxyTypes(additions, seed), seed)]).map(applySystemIdentity);
 }

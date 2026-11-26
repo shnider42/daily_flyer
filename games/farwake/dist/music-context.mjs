@@ -8,6 +8,7 @@ import { isFoggedSite, canSeeConcealedActor } from './site-visibility.mjs';
 import { clearSidearmSight } from './combat.mjs';
 import { FOREMAN_BAY, isFieldSite } from './floodworks.mjs';
 import { isBellwether } from './exploration.mjs';
+import { bossMusicContext } from './ship-bosses.mjs';
 const list = value => Array.isArray(value) ? value : [];
 const finite = (value, fallback = 0) => Number.isFinite(value) ? value : fallback;
 const text = value => typeof value === 'string' ? value : '';
@@ -174,10 +175,15 @@ export function musicContext({
     && site?.bodyId === 'tinbell' && site.id === 'hollow' && finite(state.person?.health) > 0 && !state.person?.down
     ? list(bossEncounter?.monsters).find(actor => isBellwether(actor) && finite(actor.health) > 0
       && actor.alert === true && actor.revealed === true && actor.phase !== 'dormant') : null;
+  const localBoss=bossMusicContext(game?.system,vesselId);
+  const spaceBoss = visible && onVessel && finite(state.person?.health,100)>0 && !state.person?.down && finite(occupiedHull?.hull,1)>0
+    ? localBoss.bossObserved ? localBoss : crewSpaceThreat?.bossObserved && text(crewSpaceThreat.bossEncounterKey)
+      ? {bossEncounterKey:crewSpaceThreat.bossEncounterKey,bossObserved:true} : {bossEncounterKey:null,bossObserved:false}
+    : {bossEncounterKey:null,bossObserved:false};
   const bossEncounterKey = foremanActive
     ? `${captainId}:${contextKey}:foreman:${bossEncounter?.attemptSerial || 0}`
-    : bellwether ? `${captainId}:${contextKey}:${bellwether.id}:${bossEncounter?.attemptSerial || 0}` : null;
-  const bossObserved = !!foremanActive || !!bellwether && !!layout
+    : bellwether ? `${captainId}:${contextKey}:${bellwether.id}:${bossEncounter?.attemptSerial || 0}` : spaceBoss.bossEncounterKey;
+  const bossObserved = spaceBoss.bossObserved || !!foremanActive || !!bellwether && !!layout
     && canSeeConcealedActor(layout, state.person, bellwether);
 
   const contract = state.npcContract?.active ? state.npcContract : null;

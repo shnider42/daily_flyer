@@ -100,7 +100,9 @@ The existing health, armor and weapon progression remain: an early sidearm attem
 
 The same authority steps the encounter once for one or four captains. Attack cues have attempt-specific identities, are filtered by local visibility, and cannot build up for disconnected captains or survive a reset. Reduced motion retains the warning geometry while freezing decorative motion. See [music direction](music-direction.md) for the locally observed engagement and recorded boss score; music does not itself discover the creature.
 
-Boss music remains limited to the existing Bellwether and Floodworks Foreman encounters. This release adds no boss placements. Ordinary cavern wildlife, prism sentinels and Relay Nine's creatures keep their existing ecology and mission pacing.
+The Bellwether and Floodworks Foreman retain their existing boss treatment. The compact story revision also adds three rare, optional heavy ship encounters with their own physical warning and objective rules; see [system identities and bosses](system-identity-and-bosses.md). These are ships, not additions to the biological catalog. Ordinary cavern wildlife, prism sentinels and Relay Nine's creatures keep their existing ecology and mission pacing.
+
+Tinbell Hollow contains an optional physical record of silver, black, and amber bands inside old beacon insulation. The sealed sample can later corroborate independent Earth evidence. Its initial description identifies neither the deposit's origin nor a cause for the Bellwether's behavior. The creature's profile, attacks, reveal rules, and V33B recording remain unchanged; defeating it is never required to finish the Earth campaign.
 
 ## Relay Nine stays a paced mission
 

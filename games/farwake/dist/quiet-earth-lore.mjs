@@ -9,11 +9,11 @@ const freeze = value => {
 
 /** These are attributed interpretations, never a faction's automatic truth or allegiance rule. */
 export const QUIET_EARTH_INTERPRETATIONS = freeze([
-  { factionId: 'concord', name: 'Terran Continuity', claim: 'Quarantine kept the disaster contained.' },
+  { factionId: 'concord', name: 'Terran Continuity', claim: 'Quarantine kept more settlements from being lost.' },
   { factionId: 'freewake', name: 'Freewake Union', claim: 'Powerful people made leaving a necessity.' },
   { factionId: 'meridian', name: 'Meridian Combine', claim: 'Collapsing supply chains made staying impossible.' },
-  { factionId: 'lantern', name: 'Lantern Assembly', claim: 'The same homeworld pattern may recur elsewhere.' },
-  { factionId: 'cinder', name: 'Cinder Clans', claim: 'A sealed home can become somebody else’s claim.' }
+  { factionId: 'lantern', name: 'Lantern Assembly', claim: 'Some older evacuation records may describe a similar problem. We need a physical comparison.' },
+  { factionId: 'cinder', name: 'Cinder Clans', claim: 'Closing a route can protect people. It can also let somebody seize what they left.' }
 ]);
 
 /** Stable IDs and order: layout seeds move the alcoves, not the meaning or ownership of evidence. */
@@ -36,7 +36,7 @@ export const QUIET_EARTH_FRAGMENT_RECORDS = freeze([
   },
   {
     id: 'five-annotations', loreId: 'quiet_earth_five_annotations', name: 'One missing page · Five explanations',
-    text: 'Archived arguments, not findings:\n' + QUIET_EARTH_INTERPRETATIONS.map(item => `${item.name}: ${item.claim}`).join('\n') + '\nNone explains all the readings.'
+    text: 'These archived arguments concern the cause and the response. Infested sites are documented; that does not settle who was responsible.\n' + QUIET_EARTH_INTERPRETATIONS.map(item => `${item.name}: ${item.claim}`).join('\n') + '\nThese are attributed claims, not one belief held by every member or a verified explanation.'
   }
 ]);
 

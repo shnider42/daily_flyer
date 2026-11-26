@@ -6,7 +6,7 @@ import { Game } from '../../dist/engine.mjs';
 import { GALAXY_EPOCH } from '../../dist/galaxy-epoch.mjs';
 import { cabinLayout, enemyHullProfile } from '../../dist/fleet.mjs';
 import { systemBodyPosition } from '../../dist/system-space.mjs';
-import { findDerelict } from '../helpers/combat-fixtures.mjs';
+import { findDerelict, derelictFixtureSeed } from '../helpers/combat-fixtures.mjs';
 
 const watchFixture = JSON.parse(readFileSync(new URL('../fixtures/crew-watch-space-010.json', import.meta.url)));
 // Isolate the historical space schema on the current chart; this is not support
@@ -76,7 +76,7 @@ test('an active shared boarding party retains its two hulls, wounded guard and r
 });
 
 test('a guest’s saved transmission uses the actual occupied hull, not their parked personal ship', async () => {
-  const seed = 'shared-space-transmission', { realm, owner, guest, carrier, personal } = await fixture(seed), finder = new Game(seed), signal = findDerelict(finder), systemId = finder.state.systemId;
+  const seed = derelictFixtureSeed('shared-space-transmission'), { realm, owner, guest, carrier, personal } = await fixture(seed), finder = new Game(seed), signal = findDerelict(finder), systemId = finder.state.systemId;
   carrier.systemId = systemId; carrier.dockedAt = null; Object.assign(carrier.ship, { x: signal.x + 200, y: signal.y, vx: 0, vy: 0 });
   realm._cabin(owner, carrier); realm._cabin(guest, carrier); guest.crewRole = 'scanner';
   personal.dockedAt = 'kettle'; personal.helmOwner = null; Object.assign(personal.ship, { x: 0, y: 145 });

@@ -1,6 +1,7 @@
 /** Place identities shared by the chart, flight renderer, landings and authority.
  * Independent hash streams keep released names, coordinates and story IDs fixed.
  */
+import {ringHabitatFor} from './ring-habitats.mjs';
 const hash=value=>{let h=2166136261;for(const c of String(value))h=Math.imul(h^c.charCodeAt(0),16777619);h^=h>>>16;h=Math.imul(h,0x7feb352d);h^=h>>>15;return(h^(h>>>16))>>>0;};
 const freeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 const pick=(items,key)=>items[hash(key)%items.length];
@@ -171,9 +172,10 @@ export function decorateGalaxyTypes(galaxy,seed='farwake'){
   const bodies=system.bodies.map(body=>{
    if(body.kind==='station'){
     const stationType=stationById.get(body.stationTypeId)||(militaryIds.has(body.id)||body.portType==='military'?stationById.get('defense-star'):stationById.get(authoredStations[body.id])||biasedPick(publicStations,systemPlaces[type.id]?.[0],`${seed}:${system.id}:${body.id}:station-type-v1`));
-    return{...body,stationTypeId:stationType.id,sizeClass:stationType.sizeClass,typeLabel:stationType.name,typeDescription:stationType.description,
+    const habitat=ringHabitatFor(body);
+    return{...body,stationTypeId:stationType.id,sizeClass:stationType.sizeClass,typeLabel:habitat?.role||stationType.name,typeDescription:stationType.description,
      // Existing authored capacities and all existing access declarations remain authoritative.
-     ...(!system.authored&&!body.portType?{portType:stationType.portType}:{}),visualRadius:system.authored?70:stationType.radius};
+     ...(!system.authored&&!body.portType?{portType:stationType.portType}:{}),visualRadius:habitat?260:system.authored?70:stationType.radius};
    }
    if(['planet','moon','asteroid'].includes(body.kind)){
     const planetType=assignPlanetType(body,seed,system.id,type.id),roll=hash(`${seed}:${system.id}:${body.id}:world-size-v1`)%100;

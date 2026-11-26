@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {Game} from '../../dist/engine.mjs';
 import {enemyHullProfile} from '../../dist/fleet.mjs';
+import {contextualSignals} from '../../dist/encounter-rules.mjs';
 
 let template;
 /** Explicit persisted attackers for combat tests; a new core system is peaceful. */
@@ -23,4 +24,18 @@ export function findDerelict(game){
   if(signal)return signal;
  }
  assert.fail('The fixture galaxy contains no remote derelict.');
+}
+
+/** Select a deterministic physical-contact fixture before building its realm.
+ * Migration needs a signal that normal catalog reconstruction will recreate;
+ * an ad hoc runtime signal would disappear on the very reload being tested. */
+export function derelictFixtureSeed(prefix){
+ const system=new Game(prefix).galaxy.find(system=>system.id==='cinder');
+ assert.ok(system,'The compact chart retains the Cinder salvage lanes.');
+ for(let index=0;index<1024;index++){
+  const seed=`${prefix}:derelict:${index}`;
+  const [signal]=contextualSignals(system,[{id:'cinder:signal:1',kind:'derelict'}],seed);
+  if(signal.encounterId==='ghost_freighter')return seed;
+ }
+ assert.fail('Cinder must still allow real physical derelicts.');
 }

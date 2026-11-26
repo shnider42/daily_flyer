@@ -1,14 +1,14 @@
-/** The compact chart starts a fresh WIP save generation; old voyages stay unused. */
-export const GALAXY_EPOCH = 'compact-v1';
-export const GALAXY_SAVE_STORAGE_KEY = 'dfe.farwake.save.compact.v1';
-export const GALAXY_PASSPORT_STORAGE_KEY = 'farwake.multiplayer.passport.compact.v1';
+/** The revised campaign starts a fresh WIP voyage; older records stay unused. */
+export const GALAXY_EPOCH = 'quiet-earth-v2';
+export const GALAXY_SAVE_STORAGE_KEY = 'dfe.farwake.save.quiet-earth.v2';
+export const GALAXY_PASSPORT_STORAGE_KEY = 'farwake.multiplayer.passport.quiet-earth.v2';
 export const NEW_GALAXY_REQUIRED = 'new-galaxy-required';
 
 export class GalaxyEpochError extends Error {
   constructor(kind = 'save') {
     super(kind === 'realm'
-      ? 'This shared galaxy uses a different map. Create a new shared galaxy and share its new invitation code.'
-      : 'This save uses a different galaxy map. Start a new solo voyage on the 26-system chart.');
+      ? 'This shared galaxy uses an earlier story and world revision. Create a new shared galaxy and share its new invitation code.'
+      : 'This save uses an earlier story and world revision. Start a new solo voyage on the 26-system chart.');
     this.name = 'GalaxyEpochError';
     this.code = NEW_GALAXY_REQUIRED;
   }

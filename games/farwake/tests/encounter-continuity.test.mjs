@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../dist/engine.mjs';
 import {materializeEncounterContacts} from '../dist/encounter-rules.mjs';
-import {placeRaider} from './helpers/combat-fixtures.mjs';
+import {placeRaider,derelictFixtureSeed} from './helpers/combat-fixtures.mjs';
 import {withHull} from './helpers/fleet-fixtures.mjs';
 import {generateSurface} from '../dist/surface.mjs';
 
@@ -88,8 +88,11 @@ for(const[encounterId,kind,choice]of [['cinder_toll','standoff','refuse'],['sign
 });
 
 test('evacuated freighters remain physical hulls but cannot duplicate their rescued occupants',()=>{
- const game=withHull(new Game('context-playtest-9'),'quill');game.state.systemId='afterlight';game._loadSystem('afterlight');
+ // Choose a physical-contact fixture that normal reconstruction recreates;
+ // an ad hoc signal could not prove continuity through the reload below.
+ const game=withHull(new Game(derelictFixtureSeed('context-playtest-9')),'quill');game.state.systemId='cinder';game._loadSystem('cinder');
  const signal=game.system.signals.find(value=>value.encounterId==='ghost_freighter');assert.ok(signal);
+ assert.ok(game.system.traffic.some(contact=>contact.id===signal.vesselId));
  Object.assign(game.state.ship,{x:signal.x+75,y:signal.y,vx:0,vy:0});
  ok(game.boardDerelict(signal.id));
  assert.ok(generateSurface(game.currentBody,game.state.seed).entities.some(entity=>entity.role==='survivor'));

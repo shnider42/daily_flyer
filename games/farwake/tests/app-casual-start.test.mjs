@@ -62,7 +62,7 @@ function shared(game,captainId){
 }
 
 test('remote Casual onboarding names its local port and usable fold drive on the actual HUD',()=>{
- for(const startSystemId of ['sol','lacuna','alpha-centauri']){
+ for(const startSystemId of ['witness','lacuna','alpha-centauri']){
   const game=new Game('app-casual-hud',{startMode:'casual',startSystemId}),f=fixture(game),before=JSON.stringify(game.state);
   f.context.updateHUD();
   assert.ok(f.hint().includes(publicStartingPort(game.system).name));assert.match(f.hint(),/fold drive is ready.*Galaxy chart/);

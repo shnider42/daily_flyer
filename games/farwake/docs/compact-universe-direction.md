@@ -1,7 +1,9 @@
 # Farwake: compact universe and Earth-story direction
 
-Implementation: version 0.38.0, recorded 2026-11-26.
+Chart implementation: version 0.38.0. Narrative, identity and cordon revision: version 0.39.0, recorded 2026-11-26.
 Previous runtime audited: `feat/farwake-galaxy`, commit `756fee9ba7456b028fda0dc714829edf33a713ed`.
+
+Later authoring clarification: [Nightglass, the Sol cordon, and ring habitats](nightglass-sol-direction.md). Farwake 0.39 implements the cordon, revised long campaign, separate public-account/allegiance decisions, continuing consequences, two ring districts and distinct system profiles. The original 0.38 audit below is retained as historical context.
 
 ## Accepted direction
 
@@ -105,32 +107,42 @@ World content revision 14 prevents mismatched clients and authority from simulat
 
 ## Clarified Earth story
 
-The user places Earth's crisis and silence roughly ninety years before Farwake. Existing source material uses 93 years for the evacuation/crisis anchor; the interval between evacuation and the final communications cutoff still needs a precise decision. Do not accidentally convert those into the same event while rewriting dialogue.
+The user now explicitly places Nightglass 93 years before Farwake, during the loss of contact. Its chapters inhabit the final experiences of isolated people at their locations. They are not later recovery visits, and finishing the anthology need not reveal the disaster's cause. Individual chapter timing and the scope of “last person” still require care; do not assume every world falls silent at the same instant or declare a whole world's population dead from one viewpoint.
 
-Competing faction accounts have become inherited explanations and institutional habits. The historical truth can eventually be discovered. The cause and responsibility remain open: scientific failure, resource collapse, outside involvement, human wrongdoing, an extinct institution or another coherent explanation are possibilities, not confirmed facts.
+Competing faction accounts have become inherited explanations and institutional habits. A real infestation has affected part of the galaxy, and Sol is cordoned off in the intended Farwake setting. The historical truth can eventually be discovered. The infestation's origin and responsibility remain open; scientific failure, outside involvement, human wrongdoing or a vanished institution remain possibilities. Resource collapse may be a cause, consequence or disputed explanation, not an automatic alternative that erases the accepted hazard.
 
 The desired ending is a real loss: hope of saving Earth remains credible through much of the investigation, and the eventual evidence establishes that Earth cannot be restored as the home people hoped to recover. Knowing the truth does not guarantee the power to repair it. Rescuing people, helping communities and deciding what to carry forward can still matter within that tragedy.
+
+The Earth investigation is the long main campaign among other substantial campaigns. Its ending should make retrospective recognition of what people have accomplished across the galaxy possible immediately after the loss. Humanity and life have a future even though Earth does not have the future the player hoped for. The metaphor concerns moving on and accepting a changed identity: a worthwhile life does not require repairing one's place of origin. Let actual relationships, inhabited places and consequences carry that meaning; the player can accept or reject the lesson.
+
+The latest clarification requires continued play after every campaign outcome. The captain learns what happened, then chooses what to communicate and what commitments to make. Supported directions include public truth, a sanitized cover story, knowingly misleading people into returning, joining what occupies Earth, or pursuing a concrete independent response. Factions shape the options without dictating every member's morality. A likely planetary intelligence is a development direction, with its nature still open. Private knowledge, public claims and allegiance must remain distinct, and no outcome ends the entire galaxy or another player's ability to play. See the detailed direction for proposed aftermaths and shared-world boundaries. Profanity is allowed where it suits the character and situation.
 
 The user cites Defender (PS2) and The Thing (1982) as creative references. Preserve the desired hope, dread and eventual grief without relying on obscure dialogue to produce mystery. The user wants the eventual explanation to be a surprise.
 
 Older released narration that presents permanent planetary recovery as settled must be revised in the later story pass. The compact-map release preserves those runtime campaigns and their destinations; it does not claim to have completed that narrative rewrite.
 
-## Proposed faction barriers to Sol
+## Accepted Sol cordon; proposed faction roles
 
-The user is exploring whether every major faction obstructs return for different reasons. This remains a story proposal. It does not establish a coordinated conspiracy, a guilty faction, the disaster's cause or a final travel gate.
+The user has established that the entire Sol system is cordoned off because of the infestation. The exact role each faction plays remains to be authored. This does not establish a coordinated conspiracy, a guilty faction, the disaster's origin or an agreed implementation of the travel gate.
 
 Possible practical motives include inherited quarantine orders, withheld fuel and transport, restricted observations, reluctance to sacrifice current communities, or old warnings enforced by people who no longer understand them. A faction can obstruct a return while some of its own people try to help.
 
 The eventual design must explain what physically or institutionally prevents return and how that works with ordinary fold travel. It should allow credible differences in motive, knowledge and local discretion. Five obligatory approval errands would make the factions feel interchangeable.
 
-Current landing permissions are not a blanket Sol blockade. Nightglass takes place on Luna, so a stronger Sol restriction also needs a clear relationship to its recovery operator's access and chronology. Do not silently turn Nightglass into a prequel or invent an exceptional route.
+Current landing permissions are not a blanket Sol blockade; the runtime still allows ordinary travel to Sol and Luna. Nightglass is now explicitly a prequel 93 years earlier, so its protagonist no longer needs a present-day exception to the cordon. The later recovery-operator setup must be reauthored. Do not describe the new travel restriction as implemented until the actual travel and shared-authority rules enforce it.
+
+## Ring habitats under consideration
+
+Large constructed rings with inhabitable inner surfaces can be placed within the existing 26 systems. The current proposal expands Meridian's Ledger Ring and considers a damaged ring in Cairnsea. Locations, histories and functions remain design proposals. The Halo reference concerns the visual idea and sense of place; a galaxy-clearing superweapon or shared origin for the infestation is not established. See the detailed direction for practical roles and preservation of existing stories.
 
 ## Remaining narrative work
 
 1. Rewrite unclear objectives and everyday conversations around concrete actions and distinct speakers.
 2. Reconcile the old Earth-recovery conclusions with the accepted tragic endpoint.
-3. Decide and implement the actual restrictions on returning to Sol if the faction proposal is adopted.
+3. Design and implement the accepted Sol cordon, with distinct faction roles and a coherent way to conduct the later investigation.
 4. Build a coherent evidence trail toward one discoverable explanation while keeping that explanation out of early UI and summaries.
+5. Reauthor Nightglass as a 93-year prequel with clear local puzzles and limited final viewpoints; additional chapters are not yet playable.
+6. Develop the ring-habitat proposals without expanding the system count or making them a universal explanation.
 
 The number of destinations is now constrained. Their depth, relationships and clarity remain the standard for future additions.
 

@@ -2,6 +2,7 @@
 import {SHIP_CLASSES,STARTER_SHIP_IDS} from './fleet.mjs';
 import {generateSurface} from './surface.mjs';
 import {LEGACY_WORLD_RADIUS,WORLD_RADIUS} from './system-space.mjs';
+import {solLandingAccess} from './sol-access.mjs';
 
 const finite=(value,fallback=0)=>typeof value==='number'&&Number.isFinite(value)?value:fallback;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -12,7 +13,7 @@ export const publicStartingPort=system=>(system?.bodies||[]).find(body=>body.kin
 export const isPassengerPort=body=>!!body&&body.portServices!==false&&body.landable!==false&&!['blackhole','site','ship','derelict'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome)));
 const validBerth=(game,value)=>value&&typeof value.vesselId==='string'&&game.galaxy.some(system=>system.id===value.systemId&&system.bodies.some(body=>body.id===value.bodyId&&isPassengerPort(body)));
 const landing=game=>!game.state.interior&&game.system.bodies.find(body=>body.id===game.state.locationId);
-const quarantineOpen=game=>game.hasFlag('vault_recovered')&&game.hasFlag('homeward_signal')&&game.hasFlag('threshold_answered');
+const quarantineOpen=game=>solLandingAccess(game,{id:'earth'}).ok;
 
 export const LivelihoodRules={
  initializeLivelihoods(){

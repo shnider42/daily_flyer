@@ -35,9 +35,11 @@ test('Field expeditions preserve Hearth outside the authored Relay Nine upgrade'
  // legacy-content preserved outdoor geometry/services, every non-Relay room,
  // and all released Relay walkable tiles/solids/spawn/exit. Only its briefing and
  // embedded catalog change outdoors; Kettle and Tinbell hashes remain unchanged.
+ // 0.39 additionally clarifies one Relay record and appends Tinbell’s physical
+ // sample. Direct 0.38 comparisons preserve the original geometry and services.
  // The creature pass changes only Relay hostiles in that embedded catalog and
  // interior metadata: clean 0.35 maps match after removing only that exact field.
- const expected={kettle:['4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945','c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb','4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945'],morrow:['8fd7dfcc7ee5f30914e748cc3d9fc6e91f5897221a0a268de6449a07ee48480b','9d202827a467ffd09d28b52cbbe9e2d69090407c64566b175e6a0cc339aaada8','12734f1bdd3dc4b30cca6d425870ca7edec9c2c1eee848a772188002222f14df'],tinbell:['2bac516ce8f612724dffbc6905f185cd59b89e5c2f80332092915392c0618f02','6b7fbf5ee76524bcef84817ebaeb2746376ea9fbf5de775d752519ceef83b176','f3833a3109bb31cefde5f29e4fe76385dace96bf9e9306706d500a35b09f0522']};
+ const expected={"kettle":["4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945","c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb","4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"],"morrow":["849a59c52285a0c0f4058ccb9a043a119551e9a56f3106d21dbbfe83ad5c1c36","68337f585cc064754edb8dbc82394b98506194f91a4eadd52911093be9d5c60b","4bf8dfa98a04c627cb482a6ba0e6b153ae01172200970e5805aa02658dc73fee"],"tinbell":["6b7c83bf437997e23766921e4c8cab0af4f4f230fd7438adeec38043332835cf","024de84b793eabd1bd054e25ef48b8ab7e4291ea20e5695f106737e3682efd3b","934e7a7b56d0afefcff893f1046b219d39cea013299730cc6d6d30bdec2d2f28"]};
  const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
  for(const value of NAMED_SYSTEMS.find(system=>system.id==='hearth').bodies){const sites=explorationSites(value,'farwake');assert.deepEqual([digest(sites),digest(generateSurface(value,'farwake')),digest(sites.map(site=>generateSurface(explorationLocation(value,site.id,'farwake'),'farwake')))],expected[value.id]);assert.deepEqual(fieldSites(value),[]);}
  assert.deepEqual(fieldSites({id:'orchard',kind:'planet',systemId:'hearth'}),[]);

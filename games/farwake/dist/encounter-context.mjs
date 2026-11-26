@@ -1,4 +1,5 @@
 /** Shared geography policy. A quiet shipping hub and an isolated border are different places. */
+import { applySystemIdentityContext, systemIdentityIncidentWeight } from './system-identity.mjs';
 const finite=(value,fallback=0)=>typeof value==='number'&&Number.isFinite(value)?value:fallback;
 const inhabited=system=>system?.bodies?.some(body=>body&&body.portServices!==false&&body.landable!==false&&!['blackhole','site','ship'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome))));
 
@@ -17,7 +18,7 @@ export function systemContext(system={}){
   frontier:{label:'Frontier lanes',security:'contested',trafficCount:5,backgroundHostileCount:Math.max(1,Math.min(3,danger-1)),ambientEncounterChance:.16,encounterMinSeconds:900,encounterMaxSeconds:1800,rescueSignalChance:.12,derelictSignalChance:.10,directorWeight:1,localIncidentCooldownSeconds:3600},
   deep:{label:'Remote space',security:'remote',trafficCount:2,backgroundHostileCount:Math.max(1,Math.min(4,danger-1)),ambientEncounterChance:.18,encounterMinSeconds:900,encounterMaxSeconds:1800,rescueSignalChance:.18,derelictSignalChance:.16,directorWeight:.8,localIncidentCooldownSeconds:3600}
  }[region];
- return{region,radius,danger,border,inhabited:!!inhabited(system),...rules};
+ return applySystemIdentityContext(system,{region,radius,danger,border,inhabited:!!inhabited(system),...rules});
 }
 
 /** Relative incident eligibility, not a per-frame chance. There are no core raids. */
@@ -26,5 +27,5 @@ export function incidentTypeWeight(system,type){
  const weights={core:{rescue:.001,outbreak:.12,raid:0,clash:0},settled:{rescue:.08,outbreak:.25,raid:0,clash:0},frontier:{rescue:.5,outbreak:.28,raid:.65,clash:.35},deep:{rescue:.7,outbreak:.16,raid:.5,clash:.25}}[context.region];
  if(type==='clash'&&!context.border)return 0;
  if(type==='raid'&&!context.border&&system.faction!=='cinder')return 0;
- return (weights[type]||0)*context.directorWeight;
+ return (weights[type]||0)*context.directorWeight*systemIdentityIncidentWeight(system,type);
 }

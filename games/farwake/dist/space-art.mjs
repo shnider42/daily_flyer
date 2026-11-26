@@ -8,6 +8,8 @@ import {portProfile} from './port-traffic.mjs';
 import {LEGACY_WORLD_RADIUS,WORLD_RADIUS} from './system-space.mjs';
 import {stationTypeFor,planetTypeFor,systemTypeFor} from './world-types.mjs';
 import {stationPlan,planetTerrainSample} from './place-geometry.mjs';
+import {ringHabitatFor,drawRingHabitat} from './ring-habitats.mjs';
+import {drawShipBossTelegraphs} from './ship-boss-art.mjs';
 import {WARZONE_FACTION_STYLE,WARZONE_HULL_TACTICS} from './warzone-content.mjs';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Chart coverage follows the system extent; ship and world sprites keep their
@@ -517,6 +519,7 @@ export function drawShip(ctx,x,y,angle=0,color='#c5d4c9',scale=1,thrust=false,ti
  return{length:profile.length*factor,width:profile.width*factor};
 }
 export function drawStation(ctx,x,y,r,time,body={},minScale=.62){
+ if(drawRingHabitat(ctx,x,y,r,time,body))return;
  const plan=stationPlan(body),type=stationTypeFor(body),blink=Math.sin(time*3)>0?1:0,cacheKey=plan.layoutVersion+':'+blink,scale=Math.max(minScale,r/80);
  let c=stationCache.get(cacheKey);
  if(!c){
@@ -668,6 +671,7 @@ export class SpaceRenderer{
     drawWarzoneEffect(ctx,effect,{x:p.x,y:p.y,clock:warzone.clock,zoom:z,rasterScale:r,motion});
    }
   }
+  if(!welcome)drawShipBossTelegraphs(ctx,sys,{to,scale:z,pixelRatio:r,reducedMotion:!motion,emit});
   // A boarding party leaves two physical hulls in the system. Draw their tether
   // from stable vessel IDs, including when the target is a shared vessel actor.
   const vessels=[ship,...remoteShips,...parkedShips,...(sys.enemies||[]).map(normalizeShip)],findVessel=id=>vessels.find(v=>v.id===id||v.vesselId===id||v.ship?.id===id),links=new Map();

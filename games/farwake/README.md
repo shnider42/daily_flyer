@@ -1,8 +1,30 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.38.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.39.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.39.0 — Distinct systems, the Sol cordon, and a continuing Earth campaign
+
+The chart remains **26 systems**. Each now has an authored public identity, three specific reasons to visit, and local traffic and encounter policies. The map names those activities and their destinations. Safe home ports stay protected; isolated research, relief, salvage, industrial and military places have different mixes of work and risk.
+
+The Quiet Earth investigation now separates local successes from what can be established about the whole planet. The first eight chapters lead into the longer evidence campaign. Its final findings are earned through physical records and field work. The captain then makes separate decisions about the public account and allegiance, with continuing stories and practical consequences after every outcome. This release note deliberately leaves the findings undisclosed. Actual rescues, living communities and the lives built beyond Sol remain real.
+
+**Sol is under a working cordon.** It cannot be selected as a new origin. A safe approach and expedition clearance are required before a jump, and Earth requires a separate arrival answer. A cleared shared expedition can transport friends without copying the investigating captain’s private evidence. A physical hull keeps the clearance it earned; an unprepared visitor can always leave Sol.
+
+Ledger Ring in Meridian and Still Berth in Cairnsea are now inhabited ring environments with visible inner landscapes, walkable districts, services, local work and a raised far horizon. Still Berth has sealed damage beside its functioning district. Existing destination IDs and the Empty Ward’s successful evacuation remain intact.
+
+Tinbell contains an optional physical sample with a later connection. The Bellwether remains its own creature and encounter. Three rare ship-boss archetypes add a locked cannon lane, a committed ram and a screened carrier with destructible relays. Their locations come from the galaxy seed, their warnings match their attacks, and damaged or defeated encounters persist. Heavy contacts are optional and listed in local navigation; ordinary wildlife and unrelated conflicts keep their own causes.
+
+**Start a new WIP voyage or shared galaxy.** The `quiet-earth-v2` epoch and content revision **15** replace the prior story state. Old records are left intact but cannot resume in this revision. New voyages save and reload normally. Refresh existing tabs before playing or reconnecting.
+
+Nightglass’s companion 0.4 release contains three first-person cases—Luna, Mars and a Callisto outpost—set 93 years earlier. Each solves a local practical problem and ends within its witness’s experience. It does not provide an omniscient account of the disaster. [Play Nightglass](https://dfe-farwake-lost-expeditions.onrender.com/).
+
+See [the implementation direction](docs/nightglass-sol-direction.md), [system identities and ship bosses](docs/system-identity-and-bosses.md), and [Quiet Earth canon](docs/quiet-earth-canon.md) before extending this release.
+
+### Earlier release history
+
+The entries below describe their versions at the time. Old system counts, conclusions and save compatibility statements are historical.
 
 ## 0.38.0 — A compact chart with 26 systems
 
@@ -13,10 +35,6 @@ The retained systems still hold the authored quest threads, military assignments
 **This WIP release starts fresh saves and shared galaxies.** Start a new solo voyage, or create a new shared galaxy and give friends its new invitation code. Earlier saves and codes belong to the retired chart and cannot be imported into this version. New progress saves and reloads normally. The client and authority both use world content revision **14**; refresh existing tabs before reconnecting.
 
 The [compact-universe direction](docs/compact-universe-direction.md) records the map, content decisions and clarified Earth-story direction. The underlying cause of Earth's silence remains unresolved. The proposed faction barriers to Sol and the full rewrite of Earth's ending require their own narrative implementation.
-
-### Earlier release history
-
-The entries below describe their releases at the time. References to 300, 900 or 902 systems and compatibility with their saves are historical; the current chart is the 26-system version above.
 
 ## 0.37.0 — A fiercer Bellwether and leaner shared galaxies
 

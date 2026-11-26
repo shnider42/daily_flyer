@@ -3,8 +3,8 @@
  * resource rocks are excluded. Station relocation is intentional: reconstruct
  * its recorded old pose, while every world/authored coordinate and rule stays in.
  */
-const systemFields=['systemTypeId','typeLabel','typeDescription','stellar','activity'];
-const bodyFields=['stationTypeId','planetTypeId','sizeClass','typeLabel','typeDescription','visualRadius','stationGeography'];
+const systemFields=['systemTypeId','typeLabel','typeDescription','stellar','activity','identityRole','localActivities'];
+const bodyFields=['stationTypeId','planetTypeId','sizeClass','typeLabel','typeDescription','visualRadius','stationGeography','ringHabitat','habitatDescription'];
 export const releasedRadius=body=>body.kind==='planet'?122:body.kind==='moon'?76:70;
 
 export function releasedBody(body,{authored=false,runtime=false}={}){
