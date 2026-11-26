@@ -1,16 +1,16 @@
 {
-  "as_of": "2026-11-16",
+  "as_of": "2026-11-26",
   "season": "2026/27",
   "competition": "Premier League",
-  "coverage_note": "Revisado em 16/11/2026: os dez resultados do City na Premier League até 07/11, jogos selecionados de copas e Champions, três próximos compromissos e notícias da pausa para seleções. A tabela oficial, conferida novamente hoje, continua datada de 10/11. Não houve novo jogo do City desde a última edição. Para outros clubes, só os confrontos com o City incluídos aqui estão cobertos. Não é um calendário completo nem um placar ao vivo; datas futuras podem mudar.",
-  "standings_as_of": "2026-11-10",
+  "coverage_note": "Revisado em 26/11/2026: os onze resultados do City na Premier League até 21/11, jogos selecionados de copas e Champions até 24/11 e quatro próximos compromissos. A tabela da Premier League é de 24/11; a notícia sobre a classificação da Champions usa a tabela de 26/11. Para outros clubes, só os confrontos com o City incluídos aqui estão cobertos. Não é um calendário completo nem um placar ao vivo; datas futuras podem mudar.",
+  "standings_as_of": "2026-11-24",
   "teams": [
     {
       "id": "MCI",
       "name": "Manchester City",
       "short": "Man City",
       "color": "#6CABDD",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png"
     },
@@ -19,7 +19,7 @@
       "name": "Arsenal",
       "short": "Arsenal",
       "color": "#EF4135",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png"
     },
@@ -28,7 +28,7 @@
       "name": "Brighton & Hove Albion",
       "short": "Brighton",
       "color": "#2C84D8",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/331.png"
     },
@@ -37,7 +37,7 @@
       "name": "Liverpool",
       "short": "Liverpool",
       "color": "#E63B48",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/364.png"
     },
@@ -46,7 +46,7 @@
       "name": "Chelsea",
       "short": "Chelsea",
       "color": "#4B6FD8",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/363.png"
     },
@@ -55,7 +55,7 @@
       "name": "Everton",
       "short": "Everton",
       "color": "#4169E1",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/368.png"
     },
@@ -64,7 +64,7 @@
       "name": "Bournemouth",
       "short": "Bournemouth",
       "color": "#DA3444",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/349.png"
     },
@@ -73,7 +73,7 @@
       "name": "Brentford",
       "short": "Brentford",
       "color": "#E94C59",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/337.png"
     },
@@ -82,7 +82,7 @@
       "name": "Leeds United",
       "short": "Leeds",
       "color": "#F5D45C",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/357.png"
     },
@@ -91,7 +91,7 @@
       "name": "Aston Villa",
       "short": "Aston Villa",
       "color": "#AD6283",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/362.png"
     },
@@ -100,7 +100,7 @@
       "name": "Tottenham Hotspur",
       "short": "Tottenham",
       "color": "#CBD5E1",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/367.png"
     },
@@ -109,7 +109,7 @@
       "name": "Newcastle United",
       "short": "Newcastle",
       "color": "#BAC4CE",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/361.png"
     },
@@ -118,7 +118,7 @@
       "name": "Hull City",
       "short": "Hull City",
       "color": "#F6A623",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/306.png"
     },
@@ -127,7 +127,7 @@
       "name": "Ipswich Town",
       "short": "Ipswich",
       "color": "#5591E4",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/373.png"
     },
@@ -136,7 +136,7 @@
       "name": "Fulham",
       "short": "Fulham",
       "color": "#E5E7EB",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/370.png"
     },
@@ -145,7 +145,7 @@
       "name": "Nottingham Forest",
       "short": "Nott. Forest",
       "color": "#F14C50",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/393.png"
     },
@@ -154,7 +154,7 @@
       "name": "Coventry City",
       "short": "Coventry",
       "color": "#8FCBE8",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/388.png"
     },
@@ -163,7 +163,7 @@
       "name": "Manchester United",
       "short": "Man United",
       "color": "#F05454",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/360.png"
     },
@@ -172,7 +172,7 @@
       "name": "Sunderland",
       "short": "Sunderland",
       "color": "#E85B66",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/366.png"
     },
@@ -181,7 +181,7 @@
       "name": "Crystal Palace",
       "short": "Crystal Palace",
       "color": "#6899E8",
-      "source": "https://www.mancity.com/tables",
+      "source": "https://www.mancity.com/tables/mens",
       "league": true,
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/384.png"
     },
@@ -215,6 +215,14 @@
       "short": "PSG",
       "color": "#7C9AC9",
       "source": "https://www.mancity.com/results",
+      "league": false
+    },
+    {
+      "id": "BAR",
+      "name": "FC Barcelona",
+      "short": "Barcelona",
+      "color": "#A83963",
+      "source": "https://www.mancity.com/fixtures/mens",
       "league": false
     }
   ],
@@ -455,33 +463,35 @@
       "id": "2026-11-21-mci-ful",
       "date": "2026-11-21T12:30:00Z",
       "competition": "Premier League",
-      "completed": false,
-      "status": "Scheduled",
+      "completed": true,
+      "status": "FT",
       "home": {
         "team": "MCI",
-        "score": null
+        "score": 1
       },
       "away": {
         "team": "FUL",
-        "score": null
+        "score": 1
       },
-      "source": "https://www.mancity.com/fixtures"
+      "source": "https://www.mancity.com/news/mens/manchester-city-v-fulham-premier-league-21-nov-match-report-63930859",
+      "venue": "Etihad Stadium"
     },
     {
       "id": "2026-11-24-mci-nap",
       "date": "2026-11-24T20:00:00Z",
       "competition": "Champions League",
-      "completed": false,
-      "status": "Scheduled",
+      "completed": true,
+      "status": "FT",
       "home": {
         "team": "MCI",
-        "score": null
+        "score": 2
       },
       "away": {
         "team": "NAP",
-        "score": null
+        "score": 2
       },
-      "source": "https://www.mancity.com/fixtures"
+      "source": "https://www.mancity.com/news/mens/manchester-city-v-napoli-uefa-champions-league-match-report-63931143",
+      "venue": "Etihad Stadium"
     },
     {
       "id": "2026-11-29-ars-mci",
@@ -497,278 +507,506 @@
         "team": "MCI",
         "score": null
       },
-      "source": "https://www.mancity.com/fixtures"
+      "source": "https://www.mancity.com/fixtures/mens",
+      "venue": "Emirates Stadium"
+    },
+    {
+      "id": "2026-12-02-mci-lee",
+      "date": "2026-12-02T19:30:00Z",
+      "competition": "Premier League",
+      "completed": false,
+      "status": "Scheduled",
+      "home": {
+        "team": "MCI",
+        "score": null
+      },
+      "away": {
+        "team": "LEE",
+        "score": null
+      },
+      "source": "https://www.mancity.com/fixtures/mens"
+    },
+    {
+      "id": "2026-12-05-bre-mci",
+      "date": "2026-12-05T20:00:00Z",
+      "competition": "Premier League",
+      "completed": false,
+      "status": "Scheduled",
+      "home": {
+        "team": "BRE",
+        "score": null
+      },
+      "away": {
+        "team": "MCI",
+        "score": null
+      },
+      "source": "https://www.mancity.com/fixtures/mens"
+    },
+    {
+      "id": "2026-12-08-bar-mci",
+      "date": "2026-12-08T20:00:00Z",
+      "competition": "Champions League",
+      "completed": false,
+      "status": "Scheduled",
+      "home": {
+        "team": "BAR",
+        "score": null
+      },
+      "away": {
+        "team": "MCI",
+        "score": null
+      },
+      "source": "https://www.mancity.com/fixtures/mens"
     }
   ],
   "standings": [
     {
       "team": "ARS",
       "rank": 1,
-      "played": 10,
+      "played": 11,
       "w": 9,
-      "d": 0,
+      "d": 1,
       "l": 1,
-      "gf": 15,
-      "ga": 5,
+      "gf": 17,
+      "ga": 7,
       "gd": 10,
-      "points": 27,
-      "form": []
+      "points": 28,
+      "form": [
+        "W",
+        "W",
+        "W",
+        "W",
+        "D"
+      ]
     },
     {
       "team": "BHA",
       "rank": 2,
-      "played": 10,
+      "played": 11,
       "w": 7,
       "d": 1,
-      "l": 2,
+      "l": 3,
       "gf": 26,
-      "ga": 7,
-      "gd": 19,
+      "ga": 9,
+      "gd": 17,
       "points": 22,
-      "form": []
+      "form": [
+        "W",
+        "L",
+        "W",
+        "W",
+        "L"
+      ]
     },
     {
       "team": "MCI",
       "rank": 3,
-      "played": 10,
+      "played": 11,
       "w": 7,
-      "d": 0,
+      "d": 1,
       "l": 3,
-      "gf": 21,
-      "ga": 13,
+      "gf": 22,
+      "ga": 14,
+      "gd": 8,
+      "points": 22,
+      "form": [
+        "W",
+        "L",
+        "L",
+        "L",
+        "D"
+      ]
+    },
+    {
+      "team": "LIV",
+      "rank": 4,
+      "played": 11,
+      "w": 6,
+      "d": 3,
+      "l": 2,
+      "gf": 18,
+      "ga": 10,
       "gd": 8,
       "points": 21,
       "form": [
         "W",
         "W",
         "L",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "team": "BOU",
+      "rank": 5,
+      "played": 11,
+      "w": 5,
+      "d": 3,
+      "l": 3,
+      "gf": 18,
+      "ga": 14,
+      "gd": 4,
+      "points": 18,
+      "form": [
+        "W",
+        "W",
+        "W",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "team": "BRE",
+      "rank": 6,
+      "played": 11,
+      "w": 4,
+      "d": 5,
+      "l": 2,
+      "gf": 20,
+      "ga": 11,
+      "gd": 9,
+      "points": 17,
+      "form": [
+        "L",
+        "D",
+        "W",
+        "L",
+        "W"
+      ]
+    },
+    {
+      "team": "LEE",
+      "rank": 7,
+      "played": 11,
+      "w": 4,
+      "d": 5,
+      "l": 2,
+      "gf": 14,
+      "ga": 9,
+      "gd": 5,
+      "points": 17,
+      "form": [
+        "D",
+        "D",
+        "L",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "team": "CHE",
+      "rank": 8,
+      "played": 11,
+      "w": 5,
+      "d": 1,
+      "l": 5,
+      "gf": 20,
+      "ga": 20,
+      "gd": 0,
+      "points": 16,
+      "form": [
+        "W",
+        "L",
+        "W",
         "L",
         "L"
       ]
     },
     {
-      "team": "LIV",
-      "rank": 4,
-      "played": 10,
-      "w": 5,
-      "d": 3,
-      "l": 2,
-      "gf": 14,
-      "ga": 10,
-      "gd": 4,
-      "points": 18,
-      "form": []
-    },
-    {
-      "team": "CHE",
-      "rank": 5,
-      "played": 10,
-      "w": 5,
-      "d": 1,
-      "l": 4,
-      "gf": 19,
-      "ga": 16,
-      "gd": 3,
-      "points": 16,
-      "form": []
-    },
-    {
       "team": "EVE",
-      "rank": 6,
-      "played": 10,
+      "rank": 9,
+      "played": 11,
       "w": 4,
       "d": 4,
-      "l": 2,
+      "l": 3,
       "gf": 12,
-      "ga": 10,
-      "gd": 2,
+      "ga": 14,
+      "gd": -2,
       "points": 16,
-      "form": []
+      "form": [
+        "L",
+        "L",
+        "W",
+        "W",
+        "L"
+      ]
     },
     {
-      "team": "BOU",
-      "rank": 7,
-      "played": 10,
+      "team": "TOT",
+      "rank": 10,
+      "played": 11,
       "w": 4,
       "d": 3,
-      "l": 3,
-      "gf": 16,
-      "ga": 14,
-      "gd": 2,
-      "points": 15,
-      "form": []
-    },
-    {
-      "team": "BRE",
-      "rank": 8,
-      "played": 10,
-      "w": 3,
-      "d": 5,
-      "l": 2,
-      "gf": 16,
+      "l": 4,
+      "gf": 12,
       "ga": 11,
-      "gd": 5,
-      "points": 14,
-      "form": []
+      "gd": 1,
+      "points": 15,
+      "form": [
+        "W",
+        "W",
+        "W",
+        "L",
+        "W"
+      ]
     },
     {
-      "team": "LEE",
-      "rank": 9,
-      "played": 10,
+      "team": "HUL",
+      "rank": 11,
+      "played": 11,
       "w": 3,
       "d": 5,
-      "l": 2,
-      "gf": 10,
-      "ga": 8,
+      "l": 3,
+      "gf": 13,
+      "ga": 11,
       "gd": 2,
       "points": 14,
-      "form": []
+      "form": [
+        "L",
+        "D",
+        "D",
+        "L",
+        "W"
+      ]
     },
     {
       "team": "AVL",
-      "rank": 10,
-      "played": 10,
+      "rank": 12,
+      "played": 11,
       "w": 3,
-      "d": 4,
+      "d": 5,
       "l": 3,
       "gf": 14,
       "ga": 17,
       "gd": -3,
-      "points": 13,
-      "form": []
-    },
-    {
-      "team": "TOT",
-      "rank": 11,
-      "played": 10,
-      "w": 3,
-      "d": 3,
-      "l": 4,
-      "gf": 10,
-      "ga": 11,
-      "gd": -1,
-      "points": 12,
-      "form": []
+      "points": 14,
+      "form": [
+        "W",
+        "W",
+        "D",
+        "D",
+        "D"
+      ]
     },
     {
       "team": "NEW",
-      "rank": 12,
-      "played": 10,
-      "w": 3,
-      "d": 3,
-      "l": 4,
-      "gf": 13,
-      "ga": 16,
-      "gd": -3,
-      "points": 12,
-      "form": []
-    },
-    {
-      "team": "HUL",
       "rank": 13,
-      "played": 10,
-      "w": 2,
-      "d": 5,
-      "l": 3,
-      "gf": 11,
-      "ga": 11,
-      "gd": 0,
-      "points": 11,
-      "form": []
+      "played": 11,
+      "w": 3,
+      "d": 4,
+      "l": 4,
+      "gf": 15,
+      "ga": 18,
+      "gd": -3,
+      "points": 13,
+      "form": [
+        "L",
+        "W",
+        "L",
+        "D",
+        "D"
+      ]
     },
     {
-      "team": "IPS",
+      "team": "COV",
       "rank": 14,
-      "played": 10,
-      "w": 3,
-      "d": 2,
-      "l": 5,
-      "gf": 15,
-      "ga": 20,
-      "gd": -5,
-      "points": 11,
-      "form": []
+      "played": 11,
+      "w": 4,
+      "d": 0,
+      "l": 7,
+      "gf": 13,
+      "ga": 21,
+      "gd": -8,
+      "points": 12,
+      "form": [
+        "L",
+        "L",
+        "W",
+        "L",
+        "W"
+      ]
     },
     {
       "team": "FUL",
       "rank": 15,
-      "played": 10,
+      "played": 11,
       "w": 2,
-      "d": 4,
+      "d": 5,
       "l": 4,
-      "gf": 10,
-      "ga": 12,
+      "gf": 11,
+      "ga": 13,
       "gd": -2,
-      "points": 10,
-      "form": []
+      "points": 11,
+      "form": [
+        "W",
+        "W",
+        "D",
+        "D",
+        "D"
+      ]
+    },
+    {
+      "team": "IPS",
+      "rank": 16,
+      "played": 11,
+      "w": 3,
+      "d": 2,
+      "l": 6,
+      "gf": 15,
+      "ga": 22,
+      "gd": -7,
+      "points": 11,
+      "form": [
+        "L",
+        "D",
+        "D",
+        "L",
+        "L"
+      ]
     },
     {
       "team": "NFO",
-      "rank": 16,
-      "played": 10,
+      "rank": 17,
+      "played": 11,
       "w": 2,
       "d": 3,
-      "l": 5,
+      "l": 6,
       "gf": 9,
-      "ga": 13,
-      "gd": -4,
+      "ga": 15,
+      "gd": -6,
       "points": 9,
-      "form": []
-    },
-    {
-      "team": "COV",
-      "rank": 17,
-      "played": 10,
-      "w": 3,
-      "d": 0,
-      "l": 7,
-      "gf": 10,
-      "ga": 19,
-      "gd": -9,
-      "points": 9,
-      "form": []
-    },
-    {
-      "team": "MUN",
-      "rank": 18,
-      "played": 10,
-      "w": 1,
-      "d": 5,
-      "l": 4,
-      "gf": 14,
-      "ga": 19,
-      "gd": -5,
-      "points": 8,
-      "form": []
+      "form": [
+        "L",
+        "D",
+        "L",
+        "W",
+        "L"
+      ]
     },
     {
       "team": "SUN",
-      "rank": 19,
-      "played": 10,
+      "rank": 18,
+      "played": 11,
       "w": 2,
-      "d": 2,
+      "d": 3,
       "l": 6,
       "gf": 8,
       "ga": 17,
       "gd": -9,
+      "points": 9,
+      "form": [
+        "L",
+        "D",
+        "L",
+        "W",
+        "D"
+      ]
+    },
+    {
+      "team": "MUN",
+      "rank": 19,
+      "played": 11,
+      "w": 1,
+      "d": 5,
+      "l": 5,
+      "gf": 14,
+      "ga": 23,
+      "gd": -9,
       "points": 8,
-      "form": []
+      "form": [
+        "D",
+        "L",
+        "L",
+        "D",
+        "L"
+      ]
     },
     {
       "team": "CRY",
       "rank": 20,
-      "played": 10,
+      "played": 11,
       "w": 2,
       "d": 1,
-      "l": 7,
-      "gf": 10,
-      "ga": 24,
-      "gd": -14,
+      "l": 8,
+      "gf": 12,
+      "ga": 27,
+      "gd": -15,
       "points": 7,
-      "form": []
+      "form": [
+        "L",
+        "L",
+        "L",
+        "L",
+        "L"
+      ]
     }
   ],
   "stories": [
+    {
+      "id": "city-champions-table-nov26",
+      "date": "2026-11-26",
+      "title": "City fecha a quinta rodada da Champions em oitavo",
+      "safe_title": "A situação do City na fase de liga da Champions",
+      "summary": "A tabela oficial de 26 de novembro mostra o City em oitavo, com 10 pontos em cinco jogos: três vitórias, um empate e uma derrota.",
+      "context": "Os oito primeiros ao fim da fase de liga avançam diretamente às oitavas. Do nono ao 24º, os clubes disputam um playoff. A posição atual ainda não garante a classificação.",
+      "detail": "O City soma 14 gols marcados e nove sofridos, saldo de cinco. Ainda enfrenta Barcelona fora, em 8 de dezembro, Lens fora, em 20 de janeiro, e Sporting em casa, em 27 de janeiro. A tabela de hoje inclui a rodada completa; a posição provisória após o jogo com o Napoli já mudou.",
+      "teams": [
+        "MCI"
+      ],
+      "spoiler": true,
+      "source": "https://www.mancity.com/tables/mens",
+      "publisher": "Manchester City",
+      "secondary_source": "https://www.uefa.com/uefachampionsleague/news/02a8-2176fa83582b-d99f0b27f405-1000--champions-league-league-phase-fixtures-and-results-by-team/"
+    },
+    {
+      "id": "arsenal-away-preview-nov25",
+      "date": "2026-11-25",
+      "title": "Arsenal fora de casa é o próximo desafio",
+      "safe_title": "O próximo compromisso do City",
+      "summary": "O City visita o Arsenal no domingo, 29 de novembro, às 13h30 de Brasília, no Emirates Stadium, pela Premier League.",
+      "context": "O calendário seguinte traz Leeds em casa em 2 de dezembro, Brentford fora no dia 5 e Barcelona fora no dia 8. O encontro com o Barcelona vale pela Champions, em uma classificação separada.",
+      "detail": "Os horários publicados para esses três jogos são 16h30, 17h e 17h de Brasília, respectivamente. A prévia do Arsenal informa que a entrevista de Enzo Maresca será em 27 de novembro; a disponibilidade final dos jogadores para domingo ainda depende dessa atualização. Datas e horários podem mudar.",
+      "teams": [
+        "MCI",
+        "ARS"
+      ],
+      "spoiler": false,
+      "source": "https://www.mancity.com/news/mens/arsenal-v-city-match-preview-pl-29-nov-63931129",
+      "publisher": "Manchester City",
+      "secondary_source": "https://www.mancity.com/fixtures/mens"
+    },
+    {
+      "id": "napoli-two-comebacks-nov24",
+      "date": "2026-11-24",
+      "title": "City busca o empate duas vezes contra o Napoli",
+      "safe_title": "O encontro com o Napoli pela Champions",
+      "summary": "O City empatou por 2 a 2 com o Napoli no Etihad. Ayyoub Bouaddi marcou seu primeiro gol pelo clube e Rayan Cherki fez o segundo empate aos 86 minutos.",
+      "context": "O ponto conta para a fase de liga da Champions e não altera a tabela da Premier League. O resultado manteve o City com uma vitória nos últimos cinco jogos, considerando todas as competições.",
+      "detail": "Rasmus Højlund abriu o placar no segundo tempo. Bouaddi igualou, Noa Lang recolocou o Napoli na frente e Cherki respondeu perto do fim. Kevin De Bruyne voltou ao Etihad como jogador do Napoli.",
+      "teams": [
+        "MCI"
+      ],
+      "spoiler": true,
+      "source": "https://www.mancity.com/news/mens/manchester-city-v-napoli-uefa-champions-league-match-report-63931143",
+      "publisher": "Manchester City",
+      "secondary_source": "https://www.mancity.com/news/mens/haaland-post-napoli-reaction-ucl-24-nov-63931155"
+    },
+    {
+      "id": "fulham-draw-nov21",
+      "date": "2026-11-21",
+      "title": "Anderson empata, mas City segue sem vencer na liga",
+      "safe_title": "A volta à Premier League contra o Fulham",
+      "summary": "City e Fulham empataram por 1 a 1 no Etihad. Rodrigo Muniz marcou aos 16 minutos, e Elliot Anderson respondeu aos 57.",
+      "context": "Depois das derrotas para Aston Villa, Brighton e Nottingham Forest, o City chegou ao quarto jogo seguido sem vencer na Premier League. O empate vale um ponto para cada time.",
+      "detail": "Anderson marcou de voleio após um escanteio. Haaland teve um gol anulado ainda no primeiro tempo. O resultado encerrou a sequência de 20 vitórias consecutivas do City contra o Fulham.",
+      "teams": [
+        "MCI",
+        "FUL"
+      ],
+      "spoiler": true,
+      "source": "https://www.mancity.com/news/mens/manchester-city-v-fulham-premier-league-21-nov-match-report-63930859",
+      "publisher": "Manchester City"
+    },
     {
       "id": "city-after-international-break",
       "date": "2026-11-16",
@@ -927,11 +1165,15 @@
     },
     {
       "label": "Próximos jogos do Manchester City",
-      "url": "https://www.mancity.com/fixtures"
+      "url": "https://www.mancity.com/fixtures/mens"
     },
     {
-      "label": "Classificação publicada pelo Manchester City — 10/11/2026",
-      "url": "https://www.mancity.com/tables"
+      "label": "Classificação da Premier League publicada pelo Manchester City — 24/11/2026",
+      "url": "https://www.mancity.com/tables/mens"
+    },
+    {
+      "label": "Classificação da Champions League publicada pelo Manchester City — 26/11/2026",
+      "url": "https://www.mancity.com/tables/mens"
     },
     {
       "label": "Premier League: horários revisados de novembro",
@@ -950,5 +1192,5 @@
   "complete_results_teams": [
     "MCI"
   ],
-  "standings_checked_at": "2026-11-16"
+  "standings_checked_at": "2026-11-26"
 }

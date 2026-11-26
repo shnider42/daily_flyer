@@ -75,6 +75,11 @@ def details(game):
             game['scoring_plays']=[{'text':p.get('text',''), 'team':p.get('team',{}).get('abbreviation',''),
                 'quarter':p.get('period',{}).get('number'), 'clock':p.get('clock',{}).get('displayValue',''),
                 'home':p.get('homeScore'), 'away':p.get('awayScore')} for p in data.get('scoringPlays',[])]
+            last_play = game['scoring_plays'][-1] if game['scoring_plays'] else None
+            game['scoring_status'] = ('available' if last_play and
+                last_play['home'] == game['home']['score'] and
+                last_play['away'] == game['away']['score'] else
+                'partial' if last_play else 'unavailable')
             game['player_stats']=[{'team':t['team']['abbreviation'], 'categories':[
                 {'name':c['name'],'labels':c.get('labels',[]),'descriptions':c.get('descriptions',[]),
                  'players':[{'name':a['athlete']['displayName'],'stats':a.get('stats',[])} for a in c.get('athletes',[])]}
@@ -110,7 +115,7 @@ def main():
             'schedule_weeks':18,'teams':sorted(teams.values(),key=lambda t:t['name']),
             'games':sorted(games,key=lambda g:(g['week'],g['date'],g['id']))}
     path=ROOT/'daily_flyer_v2/data/nfl_scores.json'
-    path.write_text(json.dumps(result,indent=2)+'\n')
+    path.write_text(json.dumps(result,separators=(',',':'))+'\n')
     print(f'Validated {len(games)} games and 32 teams; completed through week {args.through_week}')
 
 if __name__=='__main__':main()

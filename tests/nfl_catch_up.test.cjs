@@ -11,7 +11,7 @@ test('dated 2026 edition includes complete weeks and all 32 teams',()=>{
   for(const g of S.games){assert.ok(S.teams.some(t=>t.id===g.home.team));assert.ok(S.teams.some(t=>t.id===g.away.team));assert.equal(g.home.team===g.away.team,false);if(g.week<=8){assert.ok(g.completed);assert.ok(C.localDate(g.date)<S.as_of);}}
 });
 test('standings balance and account for ties without counting future games',()=>{
-  const rs=C.records(S);assert.equal(rs.reduce((n,t)=>n+t.gp,0),298);
+  const rs=C.records(S);assert.equal(rs.reduce((n,t)=>n+t.gp,0),330);
   assert.equal(rs.reduce((n,t)=>n+t.w,0),rs.reduce((n,t)=>n+t.l,0));
   assert.equal(rs.reduce((n,t)=>n+t.pf,0),rs.reduce((n,t)=>n+t.pa,0));
   const historical=C.records(S,"2026-11-04");
@@ -25,28 +25,29 @@ test('the date boundary uses Eastern Time and excludes that day from before reco
 });
 test('familiarity never changes which stories match',()=>{
   const state=C.normalize({since:'2026-10-28'},S);
-  assert.equal(C.stories(D,state).length,11);
+  assert.equal(C.stories(D,state).length,17);
   for(const depth of ['little','basics','well'])assert.deepEqual(C.stories(D,{...state,depth}).map(x=>x.id),C.stories(D,state).map(x=>x.id));
 });
 test('date, team, topic and search intersect, including explicit empty coverage',()=>{
   const s=C.normalize({since:'2026-10-28',team:'NE'},S);
-  assert.deepEqual(C.stories(D,s).map(x=>x.id),['maye-nov16','pats-comeback']);
-  assert.equal(C.stories(D,{...s,topic:'injuries'}).length,1);
+  assert.deepEqual(C.stories(D,s).map(x=>x.id),['maye-nov25','thanksgiving-week12-2026','maye-nov16','pats-comeback']);
+  assert.equal(C.stories(D,{...s,topic:'injuries'}).length,2);
   assert.equal(C.stories(D,{...s,since:'2026-02-09',topic:'roster'}).length,1);
   assert.equal(C.stories(D,{...s,query:'no such player'}).length,0);
-  assert.equal(C.stories(D,{...s,since:S.as_of}).length,0);
+  assert.deepEqual(C.stories(D,{...s,since:S.as_of}).map(x=>x.id),['thanksgiving-week12-2026']);
+  assert.equal(C.stories(D,{...s,since:S.as_of,topic:'roster'}).length,0);
   assert.equal(C.games(S,s).length,3);
 });
 test('invalid links and stored preferences normalize safely',()=>{
   const s=C.normalize({depth:'<script>',team:'fake',since:'2026-02-31',topic:'no',week:99,spoilers:'true',query:'x'.repeat(200)},S);
-  assert.equal(s.depth,'basics');assert.equal(s.team,'ALL');assert.equal(s.since,'2026-11-09');assert.equal(s.week,10);assert.equal(s.spoilers,false);assert.equal(s.query.length,80);
+  assert.equal(s.depth,'basics');assert.equal(s.team,'ALL');assert.equal(s.since,'2026-11-19');assert.equal(s.week,12);assert.equal(s.spoilers,false);assert.equal(s.query.length,80);
 });
 test('every editorial story has dated sources and genuinely safe result labels',()=>{
   const ids=new Set();for(const s of D.stories){assert.ok(!ids.has(s.id));ids.add(s.id);assert.ok(s.date<=D.reviewed_at);assert.ok(s.published<=s.reviewed_at);assert.ok(s.reviewed_at<=D.reviewed_at);assert.equal(new URL(s.source).protocol,'https:');assert.ok(s.context&&s.before&&s.after&&s.meaning);if(s.spoiler)assert.ok(!/win|loss|beat|lead|\d[–-]\d/i.test(s.safe_title));}
 });
 test('full regular season has 272 games, 18 weeks and exactly one bye per team',()=>{
   assert.equal(S.games.length,272);assert.equal(S.schedule_weeks,18);
-  assert.equal(S.games.filter(g=>!g.completed).length,123);
+  assert.equal(S.games.filter(g=>!g.completed).length,107);
   for(const t of S.teams){
     const games=S.games.filter(g=>[g.home.team,g.away.team].includes(t.id));
     assert.equal(games.length,17,t.id);assert.equal(new Set(games.map(g=>g.week)).size,17,t.id);
@@ -72,8 +73,8 @@ test('all completed game details agree with scores and team identities',()=>{
 test('game explorer intersects season, team, status, search and close finishes',()=>{
   const all=C.normalize({week:'all'},S);
   assert.equal(C.schedule(S,all).length,272);
-  assert.equal(C.schedule(S,{...all,gameStatus:'final'}).length,149);
-  assert.equal(C.schedule(S,{...all,gameStatus:'scheduled'}).length,123);
+  assert.equal(C.schedule(S,{...all,gameStatus:'final'}).length,165);
+  assert.equal(C.schedule(S,{...all,gameStatus:'scheduled'}).length,107);
   assert.equal(C.schedule(S,{...all,team:'NE'}).length,17);
   assert.equal(C.schedule(S,{...all,gameQuery:'patriots'}).length,17);
   assert.equal(C.schedule(S,{...all,week:18}).length,16);
@@ -97,20 +98,22 @@ test('night mode is the default, user theme persists, and protection disables re
   assert.ok(S.games.filter(g=>g.week===18).every(g=>!g.time_confirmed));
 });
 test('partly completed week counts finals and excludes unplayed games from team narratives',()=>{
-  assert.equal(S.through_week,9);assert.equal(S.latest_week,10);
-  assert.equal(S.games.filter(g=>g.week===10&&g.completed).length,13);
-  assert.equal(S.games.filter(g=>g.week===10&&!g.completed).length,1);
+  assert.equal(S.through_week,11);assert.equal(S.latest_week,12);
+  assert.equal(S.games.filter(g=>g.week===12&&g.completed).length,2);
+  assert.equal(S.games.filter(g=>g.week===12&&!g.completed).length,14);
   for(const t of S.teams){
-    const b=C.teamBrief(S,t.id,'2026-11-10');
+    const b=C.teamBrief(S,t.id,'2026-11-25');
     assert.equal(b.now.gp-b.before.gp,b.window.length);
     assert.equal(b.delta.w+b.delta.l+b.delta.t,b.window.length);
-    assert.ok(b.window.every(g=>g.completed&&g.week===10));
+    assert.ok(b.window.every(g=>g.completed&&g.week===12));
     if(!b.window.length){assert.equal(b.points,null);assert.equal(b.yards,null);}
   }
 });
 test('expanded game evidence is consistent and reporting gaps remain explicit',()=>{
   for(const g of S.games.filter(g=>g.completed)){
-    const last=g.scoring_plays.at(-1);assert.equal(last.home,g.home.score,g.id);assert.equal(last.away,g.away.score,g.id);
+    const last=g.scoring_plays.at(-1);
+    if(g.scoring_status==='available'){assert.equal(last.home,g.home.score,g.id);assert.equal(last.away,g.away.score,g.id);}
+    else {assert.equal(g.scoring_status,'partial',g.id);assert.ok(last.home!==g.home.score||last.away!==g.away.score,g.id);}
     assert.equal(g.player_stats.length,2);
     for(const t of g.player_stats){assert.ok([g.away.team,g.home.team].includes(t.team));for(const c of t.categories)for(const p of c.players)assert.equal(p.stats.length,c.labels.length);}
   }
@@ -119,7 +122,7 @@ test('expanded game evidence is consistent and reporting gaps remain explicit',(
     for(const a of t.news){assert.ok(a.date<=r.as_of);assert.equal(new URL(a.source).protocol,'https:');}
     for(const x of t.transactions)assert.ok(x.date<=r.as_of);
   }
-  assert.equal(r.teams.ATL.transactions_status,'unavailable');assert.equal(r.teams.DAL.transactions_status,'unavailable');
+  assert.equal(r.teams.ATL.transactions_status,'available');assert.equal(r.teams.DAL.transactions_status,'unavailable');
 });
 
 test('Austrian mode starts with the Vikings while explicit team choices remain valid',()=>{
@@ -231,7 +234,7 @@ test('native content packs cover every editorial display field, lesson and stati
   for(const [locale,script] of [['hi-IN',/\p{Script=Devanagari}/u],['gu-IN',/\p{Script=Gujarati}/u]]){
     const content=loadDisplayLocale(locale).content();
     assert.deepEqual(Object.keys(content.stories).sort(),D.stories.map(s=>s.id).sort(),locale+' story IDs');
-    assert.equal(Object.keys(content.stories).length,13);
+    assert.equal(Object.keys(content.stories).length,D.stories.length);
     for(const story of D.stories){
       const translated=content.stories[story.id];
       for(const field of fields){

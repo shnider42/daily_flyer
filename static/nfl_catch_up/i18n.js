@@ -9,6 +9,8 @@
   const originals = new WeakMap();
   const attributes = new WeakMap();
   const copy = {
+    'Available scoring plays': 'Verfügbare Punktgewinne',
+    'The source play log does not yet match the final score. The verified final score is shown above.': 'Die Spielzugliste der Quelle stimmt noch nicht mit dem Endstand überein. Der geprüfte Endstand steht oben.',
     'Language': 'Sprache',
     'Language selection': 'Sprache auswählen',
     'Language updated.': 'Sprache aktualisiert.',

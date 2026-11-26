@@ -3,11 +3,83 @@
 (function (root) {
   'use strict';
   const content = {
-    edition: "Dein Überblick zur 10. Spielwoche",
-    coverage_note: "Alle 272 Spiele und 32 Teams. Datenstand 16. November vor Monday Night Football: 149 abgeschlossene Spiele, alle aus Woche 1–9 sowie 13 aus Woche 10. Chargers gegen Ravens steht noch aus. Ergebnisse, Statistiken, Schlagzeilen und verfügbare offizielle Transaktionslisten wurden aktualisiert. Drei neue Beiträge wurden am 16. November geprüft; zehn historische Beiträge behalten ihren Prüfstand vom 4. November. Das jeweilige Prüfdatum steht beim Beitrag. Fehlende Quellen sind in den Teambereichen gekennzeichnet. Kein Live-Ticker.",
+    edition: "Dein Thanksgiving-Überblick",
+    coverage_note: "Alle 272 Spiele und 32 Teams. Datenstand 26. November nach Bears–Lions: 165 abgeschlossene Spiele, alle aus Woche 1–11 und zwei aus Woche 12. Spätere Thanksgiving-Spiele sind nicht als Endergebnisse enthalten. Sechs neue Beiträge wurden am 26. November geprüft; dreizehn historische Beiträge behalten ihre ursprünglichen Prüfdaten. Der Spielplan enthält die angekündigten Änderungen für Woche 12. Ergebnisse, Berichte und offizielle Transaktionen haben eigene Zeitstempel; Lücken sind in den Teambereichen markiert. Kein Live-Ticker.",
     stories: {
 
-  "maye-nov16": {
+  "bears-thanksgiving-2026": {
+    "title": "Chicago gewinnt den Thanksgiving-Auftakt.",
+    "safe_title": "Chicagos Thanksgiving-Gastspiel in Detroit",
+    "kicker": "Das Rennen in der NFC North",
+    "metric_label": "Chicago gegen Detroit",
+    "summary": "Chicago gewann in Detroit 39–35 und steht bei 9–2. Die Lions stehen bei 8–3.",
+    "before": "Beide Teams gingen mit 8–2 ins Spiel. Detroit führte zur Halbzeit 19–10.",
+    "after": "Chicago erzielte nach der Pause 29 Punkte und gewann mit vier Punkten Vorsprung.",
+    "context": "Ein Divisionsduell betrifft beide Teams im selben Rennen mit vier Mannschaften. Chicago hat jetzt einen Sieg mehr als Detroit.",
+    "detail": "ESPN führt die Partie als beendet. Die Viertelergebnisse: Chicago 0, 10, 14, 15; Detroit 3, 16, 7, 9. Diese Zusammenfassung beruht auf Endstand und Viertelständen, nicht auf einer Auswertung einzelner Spielzüge.",
+    "meaning": "Die Bears liegen im Divisionsrennen vorne. Damit ist der Divisionstitel noch nicht gesichert."
+  },
+  "rams-packers-nov25": {
+    "title": "Die Rams gewinnen am Vorabend von Thanksgiving.",
+    "safe_title": "Green Bays Mittwochsspiel in Los Angeles",
+    "kicker": "Woche 12 beginnt",
+    "metric_label": "Los Angeles gegen Green Bay",
+    "summary": "Los Angeles schlug Green Bay 26–13. Blake Corum erlief 184 Yards und einen Touchdown.",
+    "before": "Zur Halbzeit stand es 13–13.",
+    "after": "Die Rams verbesserten sich auf 7–4; die Packers fielen auf 6–5 zurück.",
+    "context": "Eine Wild Card ist ein Playoff-Platz für ein Team, das seine Division nicht gewinnt. Beide NFC-Teams sind in diesem weiteren Rennen.",
+    "detail": "Green Bay blieb nach der Pause ohne Punkte. Los Angeles erlief 241 Yards und hatte den Ball 40:40 Minuten. Christian Watson schied mit einer Gehirnerschütterung aus; das ist der Spielbericht, keine Einsatzprognose für die nächste Partie.",
+    "meaning": "Endstand und Ballbesitz erklären dieses Ergebnis. Der Sieg sichert noch keinen Playoff-Platz."
+  },
+  "maye-nov25": {
+    "title": "New England bereitet den Angriff auf DeVito vor.",
+    "safe_title": "Das Quarterback-Update der Patriots für Woche 12",
+    "kicker": "Teilnahme am Training",
+    "metric_label": "Trainingsbericht vom 25. November",
+    "summary": "Drake Maye trainierte am 25. November wegen einer Wadenbeinverletzung nicht. New England bereitet Tommy DeVito darauf vor, den Angriff gegen die Chargers zu führen.",
+    "before": "Am 16. November stand nach München eine genauere Diagnose noch aus.",
+    "after": "Der Teambericht vom 25. November nennt Mayes Wadenbeinverletzung und keine Trainingsteilnahme.",
+    "context": "Ein Trainingsbericht zeigt, wer an diesem Tag trainiert hat. Das ist nicht dasselbe wie die endgültige Einstufung für den Spieltag.",
+    "detail": "Auch A.J. Brown fehlte mit einer Oberschenkelverletzung. Los Angeles führte Justin Herbert wegen einer Gehirnerschütterung als nicht am Training beteiligt. Der Patriots-Spielplanbericht beschreibt die Vorbereitung mit DeVito; der Mittwochstand ist keine endgültige Einsatzentscheidung für alle Spieler.",
+    "meaning": "Die neuere Meldung beschreibt den aktuelleren Stand. Aus der Trainingsteilnahme am Mittwoch lässt sich weder ein fixes Rückkehrdatum noch für jeden Spieler eine sichere Sonntagszusage ableiten."
+  },
+  "vikings-homecoming-nov25": {
+    "title": "Minnesota kommt nach einem schwierigen Abend heim.",
+    "safe_title": "Minnesotas Auswärtsreise und Rückkehr",
+    "kicker": "Die Quarterback-Geschichte geht weiter",
+    "metric_label": "Vikings nach Woche 11",
+    "summary": "Die Vikings verloren in Mexiko-Stadt 10–35 gegen San Francisco und stehen bei 7–3. Kirk Cousins bereitet sich auf sein erstes Heimspiel seit seiner Rückkehr vor.",
+    "before": "Cousins gewann seinen ersten Start nach der Rückkehr in Green Bay. Sein zweiter folgte in Mexiko-Stadt.",
+    "after": "Atlanta kommt am 29. November nach Minnesota. Für Cousins steht der erste Heimauftritt seit dem Trade vom 10. November an.",
+    "context": "Auch an einem neutralen Austragungsort gibt es ein festgelegtes Heimteam. In Mexiko-Stadt war das San Francisco.",
+    "detail": "Cousins brachte gegen die 49ers 26 von 38 Pässen für 235 Yards an. Minnesota lag zur Pause 10–28 zurück. Der Klubbericht vom 25. November blickt auf seine Rückkehr an die Vikings-Seitenlinie im U.S. Bank Stadium.",
+    "meaning": "Der Sieg am 15. und die Niederlage am 22. November sind zwei Ergebnisse derselben Rückkehr. Eine ältere Verpflichtungsmeldung erklärt nicht den heutigen Quarterback-Plan."
+  },
+  "thanksgiving-week12-2026": {
+    "title": "Zum Feiertagsprogramm kommen neue Sonntagszeiten.",
+    "safe_title": "Dein Thanksgiving- und Woche-12-Spielplan",
+    "kicker": "Anstoßzeiten",
+    "metric_label": "Drei Donnerstagsspiele, eines am Freitag",
+    "summary": "Zu Thanksgiving spielen Bears–Lions, Eagles–Cowboys und Chiefs–Bills. Broncos–Steelers folgt am Black Friday.",
+    "before": "Frühere Spielpläne sahen Patriots–Chargers für Sunday Night Football vor.",
+    "after": "Patriots–Chargers beginnt am 29. November um 22:05 Uhr Wiener Zeit auf CBS.",
+    "context": "Flex Scheduling kann Anstoßzeit und US-Sender ändern. Prüfe deshalb die neue Zeit, bevor du deinen Football-Abend planst.",
+    "detail": "Wiener Zeit: Chicago in Detroit am 26. November um 19:00 (CBS), Philadelphia in Dallas um 22:30 (FOX), Kansas City in Buffalo am 27. November um 02:20 (NBC). Denver in Pittsburgh folgt am 27. November um 21:00 (Prime Video). Titans–Jaguars beginnt am Sonntag um 19:00 (FOX); Raiders–Browns am Montag um 02:20 (NBC). Senderangaben gelten für die USA.",
+    "meaning": "Das sind geplante Anstoßzeiten. Diese Karte liefert keine Live-Ergebnisse und sagt nicht, dass alle genannten Spiele noch bevorstehen."
+  },
+  "commanders-bengals-nov23": {
+    "title": "Washington gewinnt mit dem letzten Kick.",
+    "safe_title": "Washingtons Montagsspiel gegen Cincinnati",
+    "kicker": "Woche 11 endet",
+    "metric_label": "Washington gegen Cincinnati",
+    "summary": "Drew Stevens traf mit Ablauf der Zeit ein Field Goal aus 26 Yards. Washington gewann 22–20 gegen Cincinnati.",
+    "before": "Washington lag 0–10 zurück und zur Halbzeit noch 7–10.",
+    "after": "Die Commanders verbesserten sich auf 4–5–1; die Bengals fielen auf 7–3 zurück.",
+    "context": "Die dritte Zahl in 4–5–1 steht für ein Unentschieden. Bei der Siegquote zählt es als halber Sieg und halbe Niederlage.",
+    "detail": "Jayden Daniels fand Antonio Williams im letzten Angriff für 22 und 42 Yards. Washington stoppte die Uhr mit einem Spike und bereitete Stevens’ fünftes Field Goal vor.",
+    "meaning": "Der späte Sieg hält Washington im Rennen, sichert aber keinen Playoff-Platz. Vergiss beim Vergleich der Bilanzen das Unentschieden nicht."
+  },
+"maye-nov16": {
     "title": "Mayes Status nach München ist noch offen.",
     "safe_title": "Das Verletzungsupdate der Patriots aus München",
     "kicker": "Verfügbarkeit des Quarterbacks",

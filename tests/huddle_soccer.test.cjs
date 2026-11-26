@@ -16,7 +16,7 @@ test('soccer opens in Brazilian Portuguese with Manchester City and independent 
 
 test('malformed links and preferences cannot introduce invalid states', () => {
   const state = C.normalize({since: '2026-02-31', spoilers: 'true', tab: 'invalid', game: 'missing', query: 'x'.repeat(1000)}, D);
-  assert.equal(state.since, '2026-10-17'); assert.equal(state.spoilers, false);
+  assert.equal(state.since, '2026-10-27'); assert.equal(state.spoilers, false);
   assert.equal(state.tab, 'brief'); assert.equal(state.game, null); assert.equal(state.query.length, 100);
   assert.equal(C.normalize(null, D).team, 'MCI');
   assert.equal(C.normalize([], D).team, 'MCI');
@@ -47,19 +47,20 @@ test('dated snapshot has consistent team identities, goal totals and league poin
 
 test('complete City league results agree with the official table and exclude cup games', () => {
   const brief = C.teamBrief(D, 'MCI', D.season_start);
-  assert.equal(brief.complete, true); assert.equal(brief.covered.played, 10);
+  assert.equal(brief.complete, true); assert.equal(brief.covered.played, 11);
   for (const key of ['played', 'w', 'd', 'l', 'gf', 'ga', 'gd', 'points']) assert.equal(brief.covered[key], brief.table[key], key);
   const window = C.teamBrief(D, 'MCI', '2026-10-24');
-  assert.deepEqual([window.delta.w, window.delta.d, window.delta.l, window.delta.points], [0, 0, 3, 0]);
+  assert.deepEqual([window.delta.w, window.delta.d, window.delta.l, window.delta.points], [0, 1, 3, 1]);
   assert.equal(window.before.points, 21);
   assert.equal(C.teamBrief(D, 'ARS', D.season_start).complete, false);
-  assert.equal(brief.next.away.team, 'FUL');
+  assert.equal(brief.next.home.team, 'ARS');
+  assert.equal(brief.next.away.team, 'MCI');
 });
 
 test('date and team filters never claim a missing match was not played', () => {
   const state = C.normalize({team: 'MCI', since: D.season_start}, D);
-  assert.equal(C.filterGames(D, state).length, 17);
-  assert.equal(C.filterGames(D, {...state, gameStatus: 'scheduled'}).length, 3);
+  assert.equal(C.filterGames(D, state).length, 20);
+  assert.equal(C.filterGames(D, {...state, gameStatus: 'scheduled'}).length, 4);
   assert.equal(C.filterGames(D, {...state, team: 'CHE'}).length, 0);
   assert.equal(C.filterGames(D, {...state, query: 'Napoli'}).length, 1);
   const ids = C.filterStories(D, state).map(story => story.id);
