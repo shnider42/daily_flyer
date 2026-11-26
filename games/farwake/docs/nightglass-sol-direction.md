@@ -12,10 +12,13 @@ Sources checked: Farwake `feat/farwake-galaxy` at `f057e535a3ff548f112f4d0b0bb3c
 | Accepted | Each chapter is a puzzle about an immediate situation. Completing the anthology need not explain the origin or full history of the disaster. |
 | Accepted | Farwake's entire Sol system is under a cordon because a real infestation has affected part of the galaxy. The hazard is not merely a bureaucratic invention. |
 | Accepted from the preceding discussion | Farwake can eventually discover the historical truth, but Earth cannot be restored as the home people hoped to recover. Local rescues and other consequential work remain meaningful. |
-| Accepted in the latest clarification | The Earth investigation is the long main campaign among other substantial campaigns. Its final loss is followed immediately by recognition of the lives and communities already built across the galaxy. Earth is lost; humanity and life are not. The metaphor concerns grief, changing identity, and accepting that a worthwhile future does not require restoring one's place of origin. |
+| Accepted | The Earth investigation is the long main campaign among other substantial campaigns. Its final loss is immediately placed alongside the lives and communities already built across the galaxy. Earth is lost; humanity and life are not. The metaphor concerns grief, changing identity, and the possibility of accepting that a worthwhile future does not require restoring one's place of origin. The captain can reject that lesson. |
+| Accepted in the latest clarification | The game continues after every Earth-campaign outcome. The captain learns what happened and makes substantive choices about disclosure, action and allegiance. Supported directions include truth, a cover story, a knowingly dangerous invitation to return, joining what occupies Earth, and an independent course. Faction relationships influence these choices without removing the possibility of going rogue. |
 | Accepted | The playable chart remains 26 systems, with 30 as the ceiling. Hearth, Sol and Crosswind remain. Ordinary instructions and conversations use clear language. |
 | Requested exploration | Large ring habitats can exist in existing systems as a visual and playable homage. Their number, locations, construction history and function are not settled canon. |
-| Open | The infestation's origin, exact transmission rules, intelligence, responsibility, age, and relationship to the earlier Collective records. Opening a radio channel is not established as a means of infection. |
+| Requested exploration | Earth likely has a powerful coordinating intelligence of its own, with a Gravemind-like presence as a creative reference. Its identity, physical form, voice and exact powers must be original to Farwake and are not yet settled. |
+| Open | The infestation's origin, exact transmission rules, organization, responsibility, age, and relationship to the earlier Collective records. Opening a radio channel is not established as a means of infection. |
+| Accepted | Profanity is allowed in dialogue and other appropriate in-world writing. Use it according to character and situation, while keeping instructions and meaning clear. |
 | Open | Whether a particular Nightglass protagonist is the last person at a facility, on an expedition, or literally on an entire moon or planet. Do not turn a limited viewpoint into a census of a whole world. |
 | Proposal | Two substantial ring environments, using Meridian's existing Ledger Ring and a damaged habitat in Cairnsea, give the homage room to matter without expanding the system list. |
 
@@ -71,7 +74,7 @@ Keep the existing illustrated scene-by-scene format, compact in-scene navigation
 
 ## Farwake's main campaign: loss and recognition
 
-The latest clarification makes the emotional endpoint more specific than a tragic revelation. The player has spent a long campaign pursuing a reasonable hope of returning to Earth and making it a home again. The final evidence establishes that this cannot happen. Despair is followed immediately by a retrospective recognition: while pursuing the old home, people have built meaningful lives, relationships and communities throughout the galaxy. Those accomplishments already exist. Humanity and life retain a future.
+The emotional endpoint is more specific than a tragic revelation. The player has spent a long campaign pursuing a reasonable hope of returning to Earth and making it a home again. The final evidence establishes that this cannot happen. Immediately alongside the loss, the campaign brings the existing lives, relationships and communities throughout the galaxy into view. Those accomplishments already exist. Humanity and life retain a future. The player can recognize their value without being forced to accept a particular lesson or choose to protect them.
 
 The metaphor is about changing identity and accepting change. Recovering a place cannot restore the person or society one used to be. Earth still mattered, and its loss deserves grief. The story should not ridicule attachment to an earlier home, portray the past as worthless, or suggest that every loss is a necessary improvement. The recognition is that a future does not require repairing the origin first.
 
@@ -103,9 +106,9 @@ The currently released conclusions about reopening Earth's sky and completing th
 
 1. **Establish the loss.** The player earns clear evidence that Earth cannot become the recovered home they hoped for. Let the realization stand without immediately explaining its moral.
 2. **Bring the existing galaxy back into the scene.** Within the same ending sequence, a practical response comes from a familiar place or person: a berth is available, a clinic can take the people being brought out, a community is waiting for the captain, or ongoing work needs a decision. Choose the callback from what actually happened in that voyage.
-3. **Let the player recognize the accumulated life.** The significance comes from earlier experience. These are people with their own lives, not strangers introduced to supply a comforting speech. Grief and recognition can coexist; the first does not need to vanish for the second to arrive.
-4. **Give the player a next action.** Decide whom to help, what evidence or memory to carry, who should hear the truth, or where to return. The action belongs to the future already present in the world.
-5. **Continue play.** Finish the Earth campaign while other campaigns, communities and relationships remain. Do not end the whole galaxy or turn the rest of the game into a reward lobby after the supposed only meaningful story.
+3. **Make the accumulated life present.** The significance comes from earlier experience. These are people with their own lives, not strangers introduced to supply a comforting speech. Grief and recognition can coexist; the game does not dictate the captain's emotional acceptance.
+4. **Make consequential decisions.** Decide what account to give, who receives the evidence, and whom to serve or oppose. The player may protect, exploit, betray or turn away from the lives now in view. Disclosure and allegiance need not be the same decision.
+5. **Continue play after every outcome.** Finish this campaign while other campaigns, communities and relationships remain. Even joining the infestation or deliberately harming others must lead to a playable continuing role. Do not end the whole galaxy or turn the rest of the game into a reward lobby after the supposed only meaningful story.
 
 “Immediately” concerns the emotional relationship inside the finale; do not delay the recognition behind several hours of epilogue errands. Equally, avoid a triumphant musical switch or a character delivering the thesis a moment after the loss. A brief, concrete human response can make the larger recognition available without replacing the grief.
 
@@ -116,6 +119,78 @@ The player should understand the literal objective of every scene. Routine NPC s
 Earth need not cease to matter for people to move on. Memory, cultural continuity, mourning and historical truth remain worthwhile. A ring habitat or a new settlement can provide a future home without being presented as an interchangeable replacement for Earth.
 
 The intended ending is neither human extinction nor a secret failure state. Earth's loss is the campaign's settled endpoint. The player's agency concerns the real people, truths and possibilities that remain.
+
+## Decisions at the campaign's conclusion
+
+### Establish the facts before choosing the account
+
+The captain must learn a coherent, evidence-supported account of what happened and why the hoped-for recovery is impossible. The final truth remains to be authored and is not revealed in this design document. Different affiliations must not silently change historical facts. An opposing faction can interpret or misrepresent the same evidence, but the game needs a consistent underlying answer.
+
+Separate three things in the narrative and persistence model:
+
+| Layer | Meaning |
+| --- | --- |
+| Discovered truth | What this captain has actually learned and verified. It remains known when the captain subsequently lies. |
+| Public account | What the captain communicates, to whom, what evidence accompanies it and what is withheld. Different audiences can receive different accounts. |
+| Allegiance and conduct | Whom the captain supports, what commitments they make, and what they do after the discovery. This can diverge from both their faction's wishes and their public claims. |
+
+Use two or more connected decisions in the final sequence rather than a single menu equating truth, faction, morality and identity. Prepare the available arguments and relationships throughout the long campaign. Not every theoretical combination needs a separate campaign; incompatible promises should conflict for understandable reasons.
+
+### Proposed courses and their continuing consequences
+
+These are outcome families to develop, not implemented branches or a promise that all details below are final.
+
+| Course | What the captain knowingly does | What continues afterward |
+| --- | --- | --- |
+| Publish the findings | Releases a verifiable account of Earth's condition and the established history. The publication can protect sensitive routes or personal details without falsifying the central finding. | People grieve, dispute responsibility, investigate institutions, seek testimony, or organize relief. Former allies may object to being named. The captain has continuing relationships with those affected. |
+| Give a sanitized explanation | Keeps people out of Sol while substituting an apparently less alarming reason or withholding the actual cause. A specific cover story must fit the evidence people can independently check. | A sponsor may offer protection; some people feel reassured. Others are denied information needed for decisions. Maintaining, correcting or exposing the account produces further consequences. The game does not certify that paternalism was necessary. |
+| Falsely announce a safe return | Encourages an expedition or migration while knowing that the claim of safety is false. Motives can include profit, restoration ideology, collaboration or cruelty. | A particular convoy, set of passengers or settlement acts on the lie. Named people are endangered, other crews may intervene, and consequences can include exposure, reprisals, survivor testimony or deeper complicity. A reputation penalty alone is insufficient. |
+| Cooperate with or join the intelligence | Makes an agreement with what occupies Earth, potentially including biological change. The captain understands the immediate terms and remains a playable agent. | New contacts, capabilities, obligations and operations become available. Some existing relationships change or end; others become conflicted. The route supports ongoing choices, including compliance, refusal, negotiation and possible defection. |
+| Pursue an independent response | Rejects a sponsor's control and carries out a specific commitment, such as preserving independently verifiable evidence, running a limited rescue effort or maintaining a local containment route. | Loss of institutional support creates practical costs and new contacts. Independence is an active way of living with the discovery, not an option that erases all consequences. |
+
+The sanitized account and the false homecoming are materially different. One may aim to prevent entry while hiding the reason; the other deliberately induces entry into a known danger. Do not merge them under an ambiguous “give people hope” label.
+
+Make the action labels explicit. A deliberate false return should say that the captain is announcing safety despite the evidence. The player can still be uncertain about exactly who will act on the lie or how events will unfold, but must understand the basic action chosen. Dark choices can be selfish or cruel; every route does not need to be equally defensible.
+
+Truth and allegiance are independent where the fiction permits it. A captain can disclose the findings and then openly join the new Earth intelligence, or conceal the cause while opposing it. Joining does not automatically grant that intelligence ownership of every decision, and telling the truth does not automatically mean the captain has accepted the loss emotionally.
+
+### Factions shape methods, resources and pressure
+
+Faction affiliation affects who will publish the findings, what protection or funding is offered, which people trust the captain, and what obligations the captain is breaking. It should not supply five mutually exclusive versions of reality or eliminate the possibility of defiance.
+
+Use named advocates, dissenters and splinter groups. Possible tensions include a Continuity containment officer versus a restoration zealot; a Meridian organizer providing viable passage versus a broker selling a false homecoming; a Lantern witness demanding public evidence versus a researcher rationalizing dangerous contact. These are proposed individuals or tendencies, not new official platforms for an entire faction.
+
+A faction that favors an abusive course should have concrete incentives and opposition. Do not make one existing faction the mandatory home of every malicious choice. The player can also initiate wrongdoing independently.
+
+### An intelligence with an ongoing relationship
+
+A proposed distinction from the reference is that Earth has become an inhabited biological system whose coordinating intelligence is physically rooted there. It has places it can sense, resources it needs, and areas outside its reach. Its existence does not by itself prove that it created the original disaster. Its claims about history need corroboration.
+
+It can bargain because an autonomous captain can do things it cannot: travel through ordinary routes, speak to people who know them, negotiate, and carry material or information. This supplies a reason for it to preserve an affiliate's initiative. The exact form of affiliation can begin with cooperation; biological integration should be a distinct, understandable commitment if included.
+
+Possible benefits include surviving a specific infected environment, recognizing connected growth, or access to unusual treatment and supplies. Each benefit needs limits or costs. Possible continuing work includes retrieving isolated remnants, securing passage for willing converts, establishing a contained foothold, influencing an institution, sabotaging a particular operation, or facilitating an unsafe release. Requests can differ in severity; the player can decide how far to comply.
+
+If it retains fragments of human memories or imitates familiar people, those observations must not automatically establish that the original people survive intact or can be resurrected. That ability is a proposal, not established canon. Its offer can tempt a captain who cannot relinquish Earth without secretly making the original home recoverable.
+
+Joining must not end in credits, permanent loss of control, or an immediate forced identity replacement. A transformed captain may be able to live on the altered planet, but that does not restore it as a human home or undo its victims' deaths. A biological cost or broken relationship can persist even if allegiance changes later.
+
+The intelligence should speak clearly about concrete wants. Constant riddles are not required to make it alien or frightening. Killing a local node or breaking an agreement must not automatically regenerate Earth; the evidence for irreversible planetary loss remains valid.
+
+### Continuing play is required for every route
+
+Before writing each branch's final speech, define its next playable activity, available travel, access to ship maintenance or an equivalent service, continuing contacts, and durable consequences. An outlaw or affiliate needs a workable life in the setting even when some ordinary ports refuse them. Do not turn the malicious routes into compulsory redemption sequences designed to force the preferred moral outcome.
+
+Consequences can be severe and lasting: a convoy can be lost, a local outbreak can occur, a settlement can turn against the captain, a source can expose a lie, or a former ally can organize resistance. Every branch must leave an ongoing galaxy and meaningful agency. No campaign choice automatically triggers an unstoppable process that consumes the entire remaining map or ends everybody's game.
+
+Profanity is permitted. Use it where anger, fear, exhaustion, intimacy or a particular character makes it appropriate. Plain language remains the standard. A frightened person swearing can carry more weight than making every speaker sound the same.
+
+### Shared-world boundaries
+
+One historical reality supports captains who know different amounts and choose different allegiances. Personal evidence, commitments and reputation remain personal. Shared consequences should be concrete and attributable: a named publication, convoy, confrontation or local response.
+
+If one captain publishes evidence, another cannot make the entire galaxy forget it by selecting a later coverup. They can dispute it, suppress a particular outlet, issue a rival account or persuade a particular audience. Public knowledge needs provenance and reach rather than a single universal truth/lie switch.
+
+No captain's ending silently completes another captain's campaign, transforms another player, erases their ownership or removes their ability to continue playing. Joining the infestation does not grant unrestricted authority over a friend's crew or settlement. A dangerous convoy can give other players a real intervention opportunity without assigning their characters a forced fate. Shared consequence is not ownership of everyone else's story.
 
 ## What the infestation establishes in Farwake
 
@@ -181,6 +256,7 @@ Production should represent the full structure clearly in the system view, then 
 | Nightglass incident and completion | `games/farwake-lost-expeditions/dist/content.mjs`, `state.mjs`, `mission.mjs`, `investigation.mjs`, `app.mjs`, `index.html`, `audio.mjs` | The current briefing is a later recovery assignment, completion requires recorder recovery, beacon transmission and safe return, and both endings confirm a successful return. A new date alone does not change those rules. Keep the contributed menu recording and credit; adapt completion presentation to the new ending. |
 | Sol approach and origins | `games/farwake/dist/engine.mjs`, `start-options.mjs`, `livelihoods.mjs`, `server/realm.mjs`, `app.mjs` | Ordinary travel, shared travel, passenger movement and origin selection need one consistent access policy. Explain restrictions before charging fuel and preserve a safe departure path. |
 | Earth campaign conclusions | `games/farwake/dist/content.mjs`, `earth-campaign-content.mjs` | Current narrator-level recovery claims overstate what local improvements establish. The bureaucratic wrongdoing remains evidence about those orders, not a complete explanation for the infestation. |
+| Consequential campaign choices | `games/farwake/dist/earth-campaign-rules.mjs`, `earth-campaign-content.mjs`, `engine.mjs`, `voyage-memory.mjs`, `voyage-reactions.mjs`, `server/realm.mjs` | Existing choice flags, history-custody options and personal receipts offer a base. Separate discovered facts, public claims and allegiance; extend actual aftermath play rather than only changing reputation values or the ending text. |
 | Farwake's Nightglass source case | `games/farwake/dist/expedition-stories.mjs` | The present case gives an animal-and-instrument explanation. Deliberately decide how a later investigation relates to the historical incident rather than letting the two games contradict each other. |
 | Landscape rings | `games/farwake/dist/world-types.mjs`, `world-identity.mjs`, `space-art.mjs`, `surface.mjs` | Existing station wheels and corridors do not provide the requested landscape-scale interior. Add exterior scale and a few useful playable districts together. |
 
@@ -189,7 +265,7 @@ Production should represent the full structure clearly in the system view, then 
 1. Reauthor the existing Luna case as the first-person incident 93 years earlier. Change the briefing, observations, records, objective flow, endings, notebook/report voice and completion music together. Preserve the useful circuit puzzle and accessible scene navigation.
 2. Reconcile the Farwake source case that Nightglass adapts, so it does not contradict the new historical viewpoint or reveal facts the witness could not establish.
 3. Implement the Sol access rules in travel and shared authority, then reconcile origins, map messages, Threshold staging and Earth permissions. A multiplayer client must not grant itself access.
-4. Rework the main Earth campaign and The Long Silence as a long investigation interwoven with independent lives and campaigns. Their current claims of lasting planetary recovery conflict with the intended ending. Seed and remember the relationships that make despair followed by recognition possible; preserve concrete rescues while rewriting conclusions that no longer fit.
+4. Rework the main Earth campaign and The Long Silence as a long investigation interwoven with independent lives and campaigns. Their current claims of lasting planetary recovery conflict with the intended ending. Seed and remember the relationships that make despair followed by recognition possible; preserve concrete rescues while rewriting conclusions that no longer fit. Develop disclosure, allegiance and their ongoing consequences together, and prove that every outcome remains playable.
 5. Add the Mars chapter with its own investigation and ending. Use it to prove the anthology can vary its structure before making many additional chapters.
 6. Develop one inhabited ring district and its system-view presentation before committing to a second large environment.
 
