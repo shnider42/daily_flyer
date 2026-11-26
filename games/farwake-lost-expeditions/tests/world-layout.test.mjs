@@ -4,7 +4,9 @@ import { ROOMS, PORTALS, OBSTACLES, sceneAt, canTraverse, pointWalkable, movePla
 import { initialState, perform, availableActions } from '../dist/state.mjs';
 
 function apply(s,action){const a=availableActions(s).find(a=>a.id===action);assert(a&&!a.disabled,`Action available: ${action}`);return perform(s,action).state;}
-function readyState(){let s=initialState();for(const action of ['go:airlock','go:junction','go:survey','take-photo','read-survey-log','go:junction','go:service','read-maintenance','open-panel','power-inspection','go:junction','go:shaft','listen-receiver','inspect-cable','compare-signal','mute-receiver'])s=apply(s,action);return s;}
+// The unreleased 3D experiment keeps its own old geometry gate fixture.
+// Its physics regression does not replay the retired recovery campaign.
+function readyState(){return {...initialState(),flags:{inspectionPowered:true},receiverMode:'mute'};}
 function follow(start,scene,path,state){let position={...start},current=scene;for(const point of path){const result=movePlayer(position,{x:point.x-position.x,z:point.z-position.z},current,state);assert(Math.hypot(result.x-point.x,result.z-point.z)<.03,`Path segment reaches ${point.x}, ${point.z} from ${scene}`);position={x:result.x,z:result.z};current=result.scene;}return {...position,scene:current};}
 
 test('closed gates block both tapping and a long movement step; return remains available',()=>{

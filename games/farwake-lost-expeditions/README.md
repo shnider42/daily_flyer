@@ -1,49 +1,55 @@
 # Farwake: Lost Expeditions
 
-## Nightglass · 0.3.3
+## 0.4.0 · Three final viewpoints
 
-A standalone, scene-by-scene first-person mystery for DailyFlyer, set in the existing Farwake universe. The first case adapts the Nightglass listening-shaft incident on Luna. Future anthology destinations remain unimplemented.
+A standalone illustrated puzzle anthology for DailyFlyer, set **93 years before Farwake**. You inhabit the person still at each site as ordinary work becomes an emergency. The characters can establish what their instruments and senses show. They do not explain the disaster's origin or diagnose Earth's permanent condition.
 
-You are a recovery operator investigating an earlier expedition. Retrieve its field recorder, upload the evidence and a warning at the surface beacon, then return to the airlock to finish. The earlier crew’s departure was never logged; the station is still repeating a call.
+All three chapters are playable and selectable from the opening menu:
 
-### Explore and investigate
+| Chapter | Witness and location | Actual puzzle | Ending scope |
+| --- | --- | --- | --- |
+| **Nightglass** | Mara Venn, communications operator on Luna | Diagnose a failed antenna feed, identify independent supplies, isolate the radio, replace a damaged coupler, restore power, and verify the local radio and dish. | A working channel, an overdue relief shift, and no identifiable reply from Earth. |
+| **The Empty Track** | Ivo Hale, maintenance technician at Aster Station on Mars | Use a limited backup supply for the lens heater, complete de-icing, transfer power to the camera, and verify a live picture. | Movement outside and a scream. The witness does not identify what moved. |
+| **No Arrival Logged** | Sera Vale, caretaker at Latchkey Outpost on Callisto | Check arrival and pressure records, close an equalizer, seat a latch, prove the seal, and inspect the live camera and intercom without opening either door. | A secured access, an empty compartment, and knocking at a nearer door. |
 
-`index.html` is the player entry point. Eight distinct illustrated views cover the approach, airlock, junction, survey room, service bay, listening shaft, lower landing, and surface beacon. The lower landing and beacon now have their own artwork.
+The anthology contains 13 navigable viewpoints, 18 readable records, optional personal observations, and three different final scenes. The eight original Luna illustrations are retained; two new illustrations establish Mars and the outpost. Windowless maintenance views are reused where their physical contents fit.
 
-Tap direction arrows in the illustration to move between scenes. Left, right, forward, down, and return arrows follow each view’s geography. Phone controls use small visible arrows and dots with generous touch targets. A compact **Task** strip shows the next lead; expand it for the assignment, object actions, help, and **List of exits** text alternative. It closes when moving to another scene. Phones use a full-viewport scene viewer with a slim header and docked Task strip. The complete illustration stays visible in both orientations; portrait adds a subdued decorative backdrop derived from the same image. Navigation stays visible when object markers are off, and a blocked direction explains what is needed. A short movement guard prevents a repeated tap from skipping through the next scene. Tap a scene marker or its text action to inspect something. The magnifier (**Look closer**) opens the scene’s objects and optional details in the same reader used for records. All required actions remain available as text controls when scene markers are off or outside the visible image. Desktop keeps its labelled controls and expanded assignment.
+### What changed from 0.3.3
 
-The investigation includes:
+The later recovery operator, recorder retrieval, animal diagnosis, warning upload and successful return endings have been replaced by the first-person crisis chapters. This is a new story and progression model, not a date changed on the old recovery mission. Correct local repairs demonstrably work even when they cannot make someone answer.
 
-- Six recoverable records and fourteen optional observations of the abandoned workplace. Optional details never gate the recovery or grant required clues.
-- A service-circuit inspection showing the receiver, inspection lights, and independent return supply.
-- An evidence comparison with two conclusions to choose. All four original clues are still required; an incorrect conclusion gives feedback without a penalty or state change.
-- Both receiver resolutions: mute the call or redirect it into the side shaft. Either preserves the green return lights.
-- A readable warning draft before transmission, followed by the final airlock check-in and downloadable field report.
-- A notebook with recovered records, known connections, and the route back. Short scene observations and useful guidance update as the investigation changes.
+The current scenes remain stable. Every required operation and exit is available through the action controls, including when image hotspots are cropped or disabled. The Task panel gives the current physical objective; more specific help is optional. Notes record the current witness's observations. There are no timed reading challenges or required unsafe-door choices.
 
-All sound clues have written equivalents. Desktop supports keyboard focus and activation, J for the notebook, H for help, M for sound, and Escape to close a panel. Wide views can be dragged sideways when cropped. Reduced-motion support remains available.
+### Saves and settings
 
-### Music and silence
+Each chapter keeps independent local progress, notes and completion. You can switch chapters, reload, finish another chapter, or restart just one without erasing the others.
 
-The title uses the exact **Farwake menu theme** recording from the live main game. **Listen to theme** starts the complete recording and loops it on the title screen; **Stop theme** stays stopped until music is enabled again. Beginning an expedition fades the theme out. Returning to the title can resume music if the saved sound and music settings permit it. Nothing plays or downloads on the initial menu before an audio gesture.
+Version 0.4 uses save version 2 at `farwake.lost-expeditions.chapters.v2`. The old `farwake.lost-expeditions.nightglass.v1` recovery record is left unused. If that old record is detected, the menu explains why these chapters start fresh. Sound and display preferences retain their existing key and values. Existing WIP save compatibility was explicitly waived for the revised story.
 
-The recording retains its existing credit: **Original music contributed by a friend of Farwake.** The contributor's preferred artist name has not been provided, so the filename is not used as an artist credit. See `dist/music/README.md` for source commit and asset provenance.
+Saves and preferences remain browser-local. There are no accounts, analytics, external fonts, or online save sync. Clearing the site's browser data removes the progress.
 
-Nightglass's investigation stays unscored. The receiver packet, machinery, independent return lights, and the audible change after mute or redirect carry the atmosphere. No location, dark passage, or deduction triggers battle music. A newly completed airlock check-in earns a quieter, once-only playback of the full theme after the recovery cue. Reopening a report or loading an already completed save does not retrigger it.
+### Music and sound
 
-**Settings → All sound / Master volume** control the complete mix. **Music / Music level** can reduce or silence the theme without removing station effects. Existing muted settings remain muted. Hidden pages pause the media and audio context; an already unlocked session can resume on return. The recording is a bundled same-origin asset, with no streaming service, analytics, or microphone permission.
+The complete, unmodified **Farwake menu theme** recording remains bundled. Its credit is **Original music contributed by a friend of Farwake.** See [`dist/music/README.md`](dist/music/README.md) for provenance and the preserved Git blob hash.
 
-For later expeditions, audition complete environmental compositions from Farwake after a first meaningful scenic arrival, with long quiet intervals and no restart on backtracking. Candidates include *Small Sky on a Moon*, *The Tide Keeps Time*, *Roads of Violet Dust*, and *The White Distance*. *Carry the Light* is a candidate for a shorter closing composition. These are future listening candidates, not additional imported tracks. Evidence playback should take priority. Morrow Flightline and V33B remain outside this case; Nightglass has no authored combat or boss encounter.
+The title theme starts after an explicit audio gesture and fades when entering a chapter. The final viewpoints use restrained station sound and silence; the old successful-recovery reprise does not play over them. Returning to the chapter menu restores the theme. Music and effects retain independent controls, master volume, visibility suspension and saved preferences.
 
-### Saves and scope
+All sound information is also written. The Mars scream is presented in text, without a synthesized imitation of a human voice. There is no recurring survey-call imitation in these chapters. The music transport still retains its legacy report mode for the parked code, but the released app never selects it.
 
-The deterministic state, existing v1 save format, and both endings are preserved. Existing progress from the earlier scene or 3D version continues in the illustrated game in the same browser. Saves and preferences remain local; clearing site data removes them. There are no accounts, analytics, external fonts, or online save sync.
+### Controls and accessibility
 
-The old `explore.html` URL redirects to `index.html`. The 3D source and its regression tests remain parked in the repository; the player menu no longer offers a 3D mode. This release adds no further 3D development.
+- Tap a scene direction to move, or use the list of exits in Task.
+- Dots mark equipment and records; Task retains every action when dots are hidden.
+- Look closer provides optional personal and physical details.
+- Tab, Enter and Space operate controls. J opens the notebook, H opens help, M toggles sound, and Escape closes a panel.
+- The illustrated desktop view can pan where the image is cropped. Phone views retain the complete scene image and a collapsible Task area.
+- Reduced motion, readable transcripts, optional hints and sound-off play remain supported.
+
+The old `explore.html` URL still redirects to `index.html`. The unreleased 3D experiment remains parked. Its geometry and clipping regression tests are retained independently of the retired recovery progression; this release adds no 3D mode.
 
 ### Run and validate
 
-Serve `dist/` with a static HTTP server. Native ES modules require HTTP rather than opening files directly from disk. There is no bundling or dependency installation step.
+Serve `dist/` over HTTP. There is no bundling or dependency installation step.
 
 ```sh
 cd games/farwake-lost-expeditions
@@ -51,50 +57,41 @@ npm run check
 npm test
 ```
 
-The release gate includes the 39 existing state, save, ending, guidance, mobile-action, investigation, and parked 3D tests, plus focused audio transport checks. Investigation coverage checks earned clue visibility, missing prerequisites, incorrect conclusions, both receiver resolutions, immutable optional observations, and accurate text on revisits. Audio coverage checks one media player, interrupted starts, mute and volume, mode transitions, failed playback, and earned report playback.
+The tests run every chapter to completion with save/load between each action, reject premature or cross-chapter progress, verify the distinct repair prerequisites, preserve a return route through each reachable pre-ending location, and retain every required mobile action. A minimal DOM fixture executes the real app module to check chapter selection, actions, endings, independent restart and legacy-save notices. It does not render browser layout or certify device audio.
 
-Browser QA must also check the opening, narrow portrait and landscape layouts, readable panels, action and exit reachability, and a complete recovery. Phone-sized browser checks do not establish physical iPhone/Safari behavior or performance; device testing remains a separate check.
+The sound tests cover gesture activation, mute and volume, one reusable recording, interrupted playback, visibility, and absence of the old repeating survey call. Parked geometry and near-plane clipping tests remain in the full gate.
 
-For audio changes, verify Listen/Stop, leaving and returning to the menu, hidden-page suspension, saved mute and volume, and a new completion. A verified media transport and matching asset bytes do not establish physical iPhone speaker, Bluetooth, or interruption behavior.
+Browser QA should cover desktop and phone layouts, scrolling, readable panels, action reachability, chapter switching, a complete chapter, sound controls and reload. Real phone/Safari speaker, Bluetooth and interruption behavior require physical-device listening. Local browser access was unavailable in the authoring environment; rendered browser QA belongs to the deployment check.
 
-### Render deployment
+### Deployment
 
 - Repository: `shnider42/daily_flyer`
 - Branch: `feat/farwake-lost-expeditions`
+- Implementation base: `30d0d388bf1c6d4b69cc9055d3890d1dc53eafe1` (0.3.3)
 - Service type: Static Site
 - Build command: `cd games/farwake-lost-expeditions && npm run check && npm test`
 - Publish directory: `games/farwake-lost-expeditions/dist`
 - Environment: `SKIP_INSTALL_DEPS=true`
 
-Keep this deployment separate from the existing Farwake game and universe services. This directory does not modify their code or saves. Do not publish preview helpers or `.openai/` metadata.
+Keep deployment separate from the Farwake game and universe services. This directory does not change their runtime or saves. Do not publish local preview helpers, source-comparison manifests or `.openai/` metadata.
 
 ### Source map
 
 | File | Purpose |
 | --- | --- |
-| `dist/content.mjs` | Scene, record, and ending text |
-| `dist/state.mjs` | Pure transitions, gates, objectives, and save normalization |
-| `dist/mission.mjs` | Briefing and contextual next-step guidance |
-| `dist/investigation.mjs` | Optional observations, arrival prose, earned evidence, and conclusion assessment |
-| `dist/app.mjs`, `dist/index.html` | Scene interaction, equipment and evidence panels, notebook, and local save |
-| `dist/mobile-actions.mjs` | Action presentation filters and short marker labels |
-| `dist/audio.mjs` | Web Audio atmosphere, interaction cues, and menu/report music modes |
-| `dist/menu-theme.mjs`, `dist/music/` | Imported Farwake recording, contributor credit, and one reusable media transport |
-| `dist/style.css`, `dist/scene.css`, `dist/mobile.css` | Shared, scene, and phone presentation |
-| `dist/assets/` | Eight fictional WebP scene illustrations |
-| `dist/explore.html` | Compatibility redirect to the illustrated game |
-| `dist/explore.mjs`, `dist/explore.css`, `dist/world3d.mjs`, `dist/world-layout.mjs`, `dist/software3d.mjs` | Parked 3D prototype source |
-| `dist/vendor/` | Parked Three.js r170 module and its MIT license |
-| `tests/` | Release regression coverage |
+| `dist/content.mjs` | Chapter catalog, scenes, records, physical actions and prerequisites, tasks and endings |
+| `dist/state.mjs` | Deterministic transitions, chapter save normalization and collection persistence |
+| `dist/mission.mjs` | Current task, optional specific hint and reachable route guidance |
+| `dist/investigation.mjs` | Optional observations and earned notebook entries |
+| `dist/app.mjs`, `dist/index.html` | Chapter selection, scene interaction, notebook, endings and browser storage |
+| `dist/mobile-actions.mjs` | Action presentation without progression changes |
+| `dist/audio.mjs` | Local station atmosphere and restrained interaction cues |
+| `dist/menu-theme.mjs`, `dist/music/` | Preserved contributed recording and media transport |
+| `dist/style.css`, `dist/scene.css`, `dist/mobile.css`, `dist/anthology.css` | Existing responsive scene interface plus chapter menu and ending presentation |
+| `docs/anthology-v040.md` | Authoring boundaries and new illustration provenance |
 
-### Narrative boundaries
+### Narrative boundary
 
-Nightglass adapts the existing `nightglass-listening` case in `games/farwake/dist/expedition-stories.mjs`. Consult `games/farwake/AGENTS.md` and `games/farwake/docs/quiet-earth-canon.md` before extending its connection to the wider story.
+These are the final viewpoints at the playable sites, not an omniscient census of Luna, Mars or Callisto. The chronology between individual chapters is not established beyond the shared crisis period 93 years before Farwake. A channel opening does not establish transmission of an organism. A local repair or live picture does not establish an incoming person's identity. The anthology supplies neither a final origin explanation nor Earth's later prognosis.
 
-The local case concerns an animal imitating a damaged survey call and a faulty receiver. The return lamps have an independent supply. Muting or redirecting the receiver preserves that route. The case does not determine the animal’s origin or the earlier crew’s later movements, and adds no definitive explanation for Earth’s wider history. Optional observations and early evidence questions must not disclose discoveries the player has yet to earn.
-
-The scene art is generated fictional artwork, not authentic lunar photography. Station effects are synthesized locally; the contributed Farwake menu recording is packaged with its existing credit. Future cases may use properly attributed real mission imagery as references, with archival material clearly distinguished from fiction. The parked renderer retains the official Three.js r170 module and its license at `dist/vendor/THREE-LICENSE.txt`.
-
-### Accepted direction · 2026-11-25
-
-The user chose to focus on the older Myst-style, scene-by-scene experience, clarifying that the 3D version needs more time than they have available. Develop the illustrated expedition’s scenes, physical clues, atmosphere, navigation, and mobile usability. Keep the 3D experiment parked unless the user explicitly reopens that direction.
+The later Farwake Nightglass encounter is a separate incident and must be reconciled deliberately in its own source. Consult the parent Farwake `AGENTS.md`, `docs/quiet-earth-canon.md`, and `docs/nightglass-sol-direction.md` before extending the connection.

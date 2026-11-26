@@ -22,6 +22,7 @@ The contributor's preferred artist name has not been supplied. Do not infer an
 artist from the upload filename. When the exact credit is provided, update the
 `MENU_THEME` metadata in `../menu-theme.mjs` and this provenance note together.
 
-Playback placement: title loop after an explicit audio gesture; fade on entry
-to the expedition; quieter full playback after a newly completed recovery.
-There is no music loop during the receiver investigation.
+Playback placement in 0.4.0: chapter-menu loop after an explicit audio gesture;
+fade on entry to a chapter. The final viewpoints stay with station sounds and
+silence. Returning to the chapter menu restores its theme. The recording and
+credit are unchanged; no victory reprise plays over a witness ending.

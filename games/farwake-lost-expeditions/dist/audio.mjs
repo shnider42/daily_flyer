@@ -11,11 +11,16 @@ const INTERIOR = {
   service: { hum: 0.095, air: 0.017, cutoff: 640, pitch: 59 },
   shaft: { hum: 0.045, air: 0.016, cutoff: 420, pitch: 56.8 },
   lower: { hum: 0.035, air: 0.014, cutoff: 330, pitch: 56.4 },
+  'mars-control': { hum: 0.06, air: 0.025, cutoff: 800, pitch: 57 },
+  'mars-workshop': { hum: 0.085, air: 0.018, cutoff: 640, pitch: 59 },
+  'outpost-cabin': { hum: 0.04, air: 0.016, cutoff: 620, pitch: 55 },
+  'outpost-door': { hum: 0.035, air: 0.012, cutoff: 420, pitch: 55 },
+  'outpost-utility': { hum: 0.065, air: 0.018, cutoff: 560, pitch: 58 },
 };
 
 /**
  * The original Farwake recording is served from this game's own assets.
- * Environmental sounds and the repeating receiver packet remain synthetic;
+ * Environmental sounds remain synthetic;
  * captions carry the recorded words. Exploration has no musical score.
  */
 export class NightglassAudio {
@@ -218,7 +223,7 @@ export class NightglassAudio {
     this._notifyMusic();
   }
 
-  /** Matches the state module's receiverMode and flags.inspectionPowered. */
+  /** Scene sound follows the currently selected witness and local equipment. */
   setScene(sceneId, state = {}) {
     this.scene = typeof sceneId === 'string' ? sceneId : 'approach';
     this.state = state && typeof state === 'object' ? state : {};
@@ -385,14 +390,7 @@ export class NightglassAudio {
     if (this.mode !== 'expedition') return;
     const now = this.context.currentTime;
     this._tickCount++;
-    const nearReceiver = ['junction', 'survey', 'service', 'shaft', 'lower'].includes(this.scene);
-    if (now >= this._nextPacket) {
-      this._nextPacket = now + 9.6;
-      if (nearReceiver && !this.state.receiverMode && !this.state.flags?.warningPublished) {
-        const near = this.scene === 'service' || this.scene === 'shaft';
-        this._packet(now + 0.04, near ? 0.075 : 0.033, -0.25);
-      }
-    }
+    // No repeating survey imitation: these witnesses are doing their own work.
     if (now >= this._nextMechanical) {
       this._nextMechanical = now + 13.5 + (this._tickCount % 3) * 1.1;
       if (INTERIOR[this.scene]) this._click(now, 0.022, 310 + (this._tickCount % 4) * 70);
@@ -407,6 +405,12 @@ export class NightglassAudio {
     this._lastCue.set(name, now);
     const t = now + 0.015;
     switch (name) {
+      case 'static':
+        for(let i=0;i<12;i++)this._click(t+i*0.12,0.032,4200+(i%3)*600);
+        break;
+      case 'knock':
+        for(let i=0;i<3;i++){this._click(t+i*0.55,0.075,260,0.3);this._tone(92,t+i*0.55,0.12,0.035,0.3);}
+        break;
       case 'step': case 'move': case 'door':
         this._click(t, 0.055, 220);
         this._click(t + 0.24, 0.032, 185);

@@ -121,7 +121,7 @@ test('master-off, master-zero, music-off and music-zero never create or prime me
   }
 });
 
-test('expedition primes silently; earned report waits, plays once, and never restarts from scene updates', async t => {
+test('retained report transport primes silently, waits, plays once, and does not restart from scene updates', async t => {
   const env = environment(t), audio = env.create();
   audio.setMode('expedition');
   await audio.start(); await settle();
@@ -230,4 +230,14 @@ test('rejected and failed media have explicit status and retry only after a gest
   assert.equal(media.playCalls, failedCalls);
   await audio.start(); await settle();
   assert.equal(audio.musicStatus().status, 'playing');
+});
+
+
+test('witness chapters do not emit the retired repeating survey call', async t => {
+  const env=environment(t),audio=env.create();audio.setMode('expedition');await audio.start();await settle();
+  let packets=0;audio._packet=()=>packets++;
+  for(const scene of ['survey','shaft','mars-control','outpost-door']){audio.setScene(scene,{flags:{}});audio.context.currentTime+=15;audio._tick();}
+  assert.equal(packets,0);assert.equal(audio.musicStatus().status,'quiet');
+  audio.cue('static');audio.context.currentTime+=2;audio.cue('knock');
+  assert(audio._transient.size<=72,'final cues stay within the existing effect budget');
 });
