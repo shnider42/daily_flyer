@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-10-26",
+  "reviewed_at": "2026-11-26",
   "coverage_from": "2018-11-11",
-  "coverage_through": "2026-09-20",
-  "coverage_note": "A reviewed selection of milestones, not every match or roster move. The latest included development is September 20, 2026. No automatic news updates yet.",
+  "coverage_through": "2026-11-26",
+  "coverage_note": "21 selected milestones: historical RLCS context, all four November Club Kick-Off qualifier finals, and the London schedule checked November 26, 2026. Not a complete match or roster archive; no automatic news refresh.",
   "sources": [
     {
       "id": "cloud9-2018",
@@ -151,8 +151,88 @@
       "title": "RLCS Returns to London for the Club Championship",
       "url": "https://www.rocketleague.com/news/rlcs-returns-to-london-this-december-for-the-club-championship-with-dollar25m-up-for-grabs",
       "published_at": "2026-09-20",
-      "checked_at": "2026-10-26",
+      "checked_at": "2026-11-26",
       "kind": "Competition announcement",
+      "spoiler": false
+    },
+    {
+      "id": "club-open-mena-2027",
+      "publisher": "BLAST",
+      "title": "Club Kick-Off Open MENA 2027 results",
+      "url": "https://blast.tv/rl/tournaments/rlcs-club-kick-off-open-mena-2027",
+      "published_at": null,
+      "checked_at": "2026-11-26",
+      "kind": "Tournament record",
+      "spoiler": true
+    },
+    {
+      "id": "club-open-na-2027",
+      "publisher": "BLAST",
+      "title": "Club Kick-Off Open NA 2027 results",
+      "url": "https://blast.tv/rl/tournaments/rlcs-club-kick-off-open-na-2027",
+      "published_at": null,
+      "checked_at": "2026-11-26",
+      "kind": "Tournament record",
+      "spoiler": true
+    },
+    {
+      "id": "club-open-sam-2027",
+      "publisher": "BLAST",
+      "title": "Club Kick-Off Open SAM 2027 results",
+      "url": "https://blast.tv/rl/tournaments/rlcs-club-kick-off-open-sam-2027",
+      "published_at": null,
+      "checked_at": "2026-11-26",
+      "kind": "Tournament record",
+      "spoiler": true
+    },
+    {
+      "id": "club-open-sam-final-2027",
+      "publisher": "BLAST",
+      "title": "Club Kick-Off Open SAM grand final record",
+      "url": "https://blast.tv/rl/tournaments/rlcs-club-kick-off-open-sam-2027/series/ecd4889d/pcs-treuneutral",
+      "published_at": null,
+      "checked_at": "2026-11-26",
+      "kind": "Tournament record",
+      "spoiler": true
+    },
+    {
+      "id": "club-open-eu-2027",
+      "publisher": "BLAST",
+      "title": "Club Kick-Off Open EU 2027 results",
+      "url": "https://blast.tv/rl/tournaments/rlcs-club-kick-off-open-eu-2027",
+      "published_at": null,
+      "checked_at": "2026-11-26",
+      "kind": "Tournament record",
+      "spoiler": true
+    },
+    {
+      "id": "club-field-2027",
+      "publisher": "Rocket League",
+      "title": "Club Championship invited and qualified clubs",
+      "url": "https://www.rocketleague.com/competitive/competitive/rlcs-club-championship",
+      "published_at": null,
+      "checked_at": "2026-11-26",
+      "kind": "Current competition reference",
+      "spoiler": true
+    },
+    {
+      "id": "club-london-2027",
+      "publisher": "BLAST",
+      "title": "London Club Kick-Off 2027 event and qualification stakes",
+      "url": "https://blast.tv/rl/tournaments/rlcs-club-championship-kick-off-2027",
+      "published_at": null,
+      "checked_at": "2026-11-26",
+      "kind": "Upcoming event record",
+      "spoiler": true
+    },
+    {
+      "id": "current-schedule",
+      "publisher": "Rocket League",
+      "title": "Official Rocket League competitive schedule",
+      "url": "https://www.rocketleague.com/competitive/schedule",
+      "published_at": null,
+      "checked_at": "2026-11-26",
+      "kind": "Current schedule reference",
       "spoiler": false
     }
   ],
@@ -192,6 +272,18 @@
     {
       "label": "World Championship · 2026",
       "date": "2026-09-20"
+    },
+    {
+      "label": "Club Open MENA · Nov 2026",
+      "date": "2026-11-14"
+    },
+    {
+      "label": "Club Opens NA & SAM · Nov 2026",
+      "date": "2026-11-15"
+    },
+    {
+      "label": "Club Open EU · Nov 2026",
+      "date": "2026-11-22"
     }
   ],
   "glossary": [
@@ -262,7 +354,7 @@
       "source_ids": [
         "cloud9-2018"
       ],
-      "priority": 9,
+      "priority": 14,
       "spoiler": true,
       "safe_title": "Season 6: the Las Vegas chapter",
       "safe_summary": "The 2018 World Championship has a result and a roster snapshot to revisit. Reveal this story when you're ready.",
@@ -309,7 +401,7 @@
       "source_ids": [
         "nrg-2019"
       ],
-      "priority": 10,
+      "priority": 15,
       "spoiler": true,
       "safe_title": "Season 8: the Madrid chapter",
       "safe_summary": "Catch up on the 2019 season finale and the players behind it. The outcome stays hidden until you reveal it.",
@@ -353,7 +445,7 @@
       "source_ids": [
         "rlcs-x"
       ],
-      "priority": 1,
+      "priority": 2,
       "spoiler": false,
       "safe_title": "The league becomes an open circuit",
       "safe_summary": "RLCS X replaced league play and twice-yearly seasons with an open tournament circuit built around a longer season.",
@@ -391,7 +483,7 @@
       "source_ids": [
         "expansion"
       ],
-      "priority": 2,
+      "priority": 8,
       "spoiler": false,
       "safe_title": "A wider world enters the picture",
       "safe_summary": "The 2021–22 announcement added MENA and Asia-Pacific competition, plus a Worlds Wildcard route for Sub-Saharan Africa.",
@@ -434,7 +526,7 @@
       "source_ids": [
         "worlds-2022"
       ],
-      "priority": 11,
+      "priority": 16,
       "spoiler": true,
       "safe_title": "Worlds 2022: the Fort Worth chapter",
       "safe_summary": "The expanded season reaches its World Championship. Reveal the final result and its place in the timeline.",
@@ -481,7 +573,7 @@
       "source_ids": [
         "vitality-2023"
       ],
-      "priority": 8,
+      "priority": 13,
       "spoiler": true,
       "safe_title": "Worlds 2023: the Düsseldorf chapter",
       "safe_summary": "A World Championship story connects a familiar organization to a different generation of players.",
@@ -527,7 +619,7 @@
         "format-2024",
         "expansion"
       ],
-      "priority": 6,
+      "priority": 11,
       "spoiler": false,
       "safe_title": "The season moves to two Majors",
       "safe_summary": "The 2024 season announcement set out two international Majors followed by the World Championship.",
@@ -567,7 +659,7 @@
         "worlds-2024",
         "worlds-2022"
       ],
-      "priority": 12,
+      "priority": 17,
       "spoiler": true,
       "safe_title": "Worlds 2024: another Fort Worth chapter",
       "safe_summary": "The 2024 finale adds another chapter to the championship timeline. Reveal it without opening the entire results archive.",
@@ -603,7 +695,7 @@
       "source_ids": [
         "format-2025"
       ],
-      "priority": 4,
+      "priority": 9,
       "spoiler": false,
       "safe_title": "1v1 gets its own RLCS title path",
       "safe_summary": "The 2025 announcement introduced RLCS 1v1 competition alongside the existing 3v3 circuit.",
@@ -639,7 +731,7 @@
         "format-2025",
         "format-2024"
       ],
-      "priority": 13,
+      "priority": 18,
       "spoiler": false,
       "safe_title": "A last-chance route to Worlds",
       "safe_summary": "The 2025 format added four Last Chance Qualifier places to the 16 points-based Worlds invitations.",
@@ -687,7 +779,7 @@
         "nrg-2025",
         "nrg-2019"
       ],
-      "priority": 7,
+      "priority": 12,
       "spoiler": true,
       "safe_title": "Worlds 2025: the Lyon chapter",
       "safe_summary": "The 2025 final connects a familiar team name with a different roster. The result and comparison are hidden together.",
@@ -733,7 +825,7 @@
         "format-2026",
         "format-2025"
       ],
-      "priority": 5,
+      "priority": 10,
       "spoiler": false,
       "safe_title": "2v2 joins the RLCS program",
       "safe_summary": "The 2026 roadmap introduced 2v2 competition alongside 3v3 and the returning 1v1 competition.",
@@ -774,7 +866,7 @@
       "source_ids": [
         "boston-2026"
       ],
-      "priority": 14,
+      "priority": 19,
       "spoiler": true,
       "safe_title": "Boston Major 2026",
       "safe_summary": "Catch up on the first Major of the 2026 season. The finalists and score stay hidden here.",
@@ -814,7 +906,7 @@
       "source_ids": [
         "paris-2026"
       ],
-      "priority": 15,
+      "priority": 20,
       "spoiler": true,
       "safe_title": "Paris Major 2026",
       "safe_summary": "The second Major of 2026 took place at Paris La Défense Arena. Reveal its final when you're ready.",
@@ -854,9 +946,9 @@
       "source_ids": [
         "worlds-2026"
       ],
-      "priority": 16,
+      "priority": 21,
       "spoiler": true,
-      "safe_title": "Worlds 2026: the latest included final",
+      "safe_title": "Worlds 2026: the 3v3 championship final",
       "safe_summary": "The 2026 3v3 World Championship concluded in Fort Worth. Reveal the result separately from the format announcements.",
       "title": "Team Falcons wins Worlds 2026",
       "summary": "Team Falcons defeats Spacestation Gaming 4–0 in the World Championship final.",
@@ -900,12 +992,210 @@
       "after": "The announcement describes 20 invited clubs plus four qualifiers, followed by league play and a 16-team Club Finale.",
       "context": "Treat this as its own competition when reading the calendar, rather than another Major.",
       "meaning": "Knowing which competition an event belongs to is the first step to understanding its stakes.",
-      "detail": "The September announcement schedules the kickoff for December 9–13, 2026. Invitations, later qualifier details and subsequent announcements are outside this first edition.",
+      "detail": "The September announcement scheduled the kickoff for December 9–13, 2026. This historical announcement stays separate from the November qualifier results and schedule check elsewhere in this edition.",
       "visual": {
         "kind": "change",
         "left": "London kickoff",
         "right": "League → Club Finale",
         "caption": "Announced pathway · 2026–27"
+      }
+    },
+    {
+      "id": "club-open-mena-final",
+      "date": "2026-11-14",
+      "date_kind": "Final played",
+      "era": "2026",
+      "category": "results",
+      "topics": [
+        "results"
+      ],
+      "regions": [
+        "MENA"
+      ],
+      "people": [],
+      "teams": [
+        "NOT",
+        "5Head"
+      ],
+      "source_ids": [
+        "club-open-mena-2027",
+        "club-field-2027"
+      ],
+      "priority": 7,
+      "spoiler": true,
+      "safe_title": "Middle East & North Africa: the November Club qualifier final",
+      "safe_summary": "The Middle East & North Africa Open decided one place at the London Club Kick-Off. Reveal the final when you are ready.",
+      "title": "NOT earns the MENA place in London",
+      "summary": "NOT defeated 5Head 4–2 in the Club Kick-Off Open final.",
+      "before": "One London qualification place was available through the Middle East & North Africa Open.",
+      "after": "NOT won that place and joined the December Club Kick-Off field.",
+      "context": "An Open is the qualification route for teams outside the direct invitations. This result is from the online qualifier, not the London LAN.",
+      "meaning": "The Club Championship field is now taking shape through played matches as well as invitations.",
+      "detail": "BLAST records the final on November 14. The official competition page separately lists NOT among the four qualified clubs.",
+      "visual": {
+        "kind": "score",
+        "left": "NOT",
+        "right": "5Head",
+        "score": "4–2",
+        "caption": "MENA Club Kick-Off Open · grand final"
+      }
+    },
+    {
+      "id": "club-open-na-final",
+      "date": "2026-11-15",
+      "date_kind": "Final played",
+      "era": "2026",
+      "category": "results",
+      "topics": [
+        "results"
+      ],
+      "regions": [
+        "NA"
+      ],
+      "people": [],
+      "teams": [
+        "M80",
+        "lsf"
+      ],
+      "source_ids": [
+        "club-open-na-2027",
+        "club-field-2027"
+      ],
+      "priority": 5,
+      "spoiler": true,
+      "safe_title": "North America: the November Club qualifier final",
+      "safe_summary": "The North America Open decided one place at the London Club Kick-Off. Reveal the final when you are ready.",
+      "title": "M80 earns the NA place in London",
+      "summary": "M80 defeated lsf 4–0 in the Club Kick-Off Open final.",
+      "before": "One London qualification place was available through the North America Open.",
+      "after": "M80 won that place and joined the December Club Kick-Off field.",
+      "context": "An Open is the qualification route for teams outside the direct invitations. This result is from the online qualifier, not the London LAN.",
+      "meaning": "The Club Championship field is now taking shape through played matches as well as invitations.",
+      "detail": "BLAST records the final on November 15. The official competition page separately lists M80 among the four qualified clubs.",
+      "visual": {
+        "kind": "score",
+        "left": "M80",
+        "right": "lsf",
+        "score": "4–0",
+        "caption": "NA Club Kick-Off Open · grand final"
+      }
+    },
+    {
+      "id": "club-open-sam-final",
+      "date": "2026-11-15",
+      "date_kind": "Final played",
+      "era": "2026",
+      "category": "results",
+      "topics": [
+        "results"
+      ],
+      "regions": [
+        "SAM"
+      ],
+      "people": [],
+      "teams": [
+        "PCS Stride",
+        "True Neutral"
+      ],
+      "source_ids": [
+        "club-open-sam-2027",
+        "club-field-2027",
+        "club-open-sam-final-2027"
+      ],
+      "priority": 6,
+      "spoiler": true,
+      "safe_title": "South America: the November Club qualifier final",
+      "safe_summary": "The South America Open decided one place at the London Club Kick-Off. Reveal the final when you are ready.",
+      "title": "PCS Stride earns the SAM place in London",
+      "summary": "PCS Stride defeated True Neutral 4–3 in the Club Kick-Off Open final.",
+      "before": "One London qualification place was available through the South America Open.",
+      "after": "PCS Stride won that place and joined the December Club Kick-Off field.",
+      "context": "An Open is the qualification route for teams outside the direct invitations. This result is from the online qualifier, not the London LAN.",
+      "meaning": "The Club Championship field is now taking shape through played matches as well as invitations.",
+      "detail": "The final is listed under November 15, with its match record giving 23:00 UTC. The event header spans November 13–16; this story uses the dated final, not the broad event boundary.",
+      "visual": {
+        "kind": "score",
+        "left": "PCS Stride",
+        "right": "True Neutral",
+        "score": "4–3",
+        "caption": "SAM Club Kick-Off Open · grand final"
+      }
+    },
+    {
+      "id": "club-open-eu-final",
+      "date": "2026-11-22",
+      "date_kind": "Final played",
+      "era": "2026",
+      "category": "results",
+      "topics": [
+        "results"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "people": [],
+      "teams": [
+        "Geekay Esports",
+        "BIG"
+      ],
+      "source_ids": [
+        "club-open-eu-2027",
+        "club-field-2027"
+      ],
+      "priority": 4,
+      "spoiler": true,
+      "safe_title": "Europe: the November Club qualifier final",
+      "safe_summary": "The Europe Open decided one place at the London Club Kick-Off. Reveal the final when you are ready.",
+      "title": "Geekay Esports earns the EU place in London",
+      "summary": "Geekay Esports defeated BIG 4–0 in the Club Kick-Off Open final.",
+      "before": "One London qualification place was available through the Europe Open.",
+      "after": "Geekay Esports won that place and joined the December Club Kick-Off field.",
+      "context": "An Open is the qualification route for teams outside the direct invitations. This result is from the online qualifier, not the London LAN.",
+      "meaning": "The Club Championship field is now taking shape through played matches as well as invitations.",
+      "detail": "BLAST records the final on November 22. The official competition page separately lists Geekay Esports among the four qualified clubs.",
+      "visual": {
+        "kind": "score",
+        "left": "Geekay Esports",
+        "right": "BIG",
+        "score": "4–0",
+        "caption": "EU Club Kick-Off Open · grand final"
+      }
+    },
+    {
+      "id": "club-london-check",
+      "date": "2026-11-26",
+      "date_kind": "Schedule checked",
+      "era": "2026",
+      "category": "format",
+      "topics": [
+        "format"
+      ],
+      "regions": [
+        "global"
+      ],
+      "people": [],
+      "teams": [],
+      "source_ids": [
+        "current-schedule",
+        "club-london-2027",
+        "club-2026"
+      ],
+      "priority": 1,
+      "spoiler": false,
+      "safe_title": "Next up: London, December 9–13",
+      "safe_summary": "The Club Kick-Off is still upcoming in this November 26 edition. Twenty-four teams are scheduled for Copper Box Arena.",
+      "title": "Next up: London, December 9–13",
+      "summary": "The Club Kick-Off is still upcoming in this November 26 edition. Twenty-four teams are scheduled for Copper Box Arena.",
+      "before": "The September announcement introduced a new Club Championship alongside the familiar Major circuit.",
+      "after": "The current schedule lists the London Kick-Off for December 9–13, 2026, with a $300,000 event prize pool.",
+      "context": "The event is labeled 2027 in the competition listings but takes place in December 2026. The $2.5 million figure is the total for the wider Club Championship, not just this LAN.",
+      "meaning": "The winner earns an extra Club Finale place for its region, so this opening event has stakes beyond its own title.",
+      "detail": "The public audience dates are December 11–13. The date on this story is our schedule check, not a new announcement or an event result. Later stages and roster changes need their own verification.",
+      "visual": {
+        "kind": "change",
+        "left": "London · Dec 9–13",
+        "right": "Regional league → Finale",
+        "caption": "Upcoming at the November 26 review · dates may change"
       }
     }
   ]

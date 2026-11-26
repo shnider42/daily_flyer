@@ -2,7 +2,7 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {validDay, relativeDay, normalize, selectStories, safeURL} = require('../static/rlcs_catch_up/app.js');
 const data = require('../daily_flyer_v2/data/rlcs_catch_up.json');
-const choose = raw => selectStories(data.stories, normalize(raw, '2026-10-26')).map(s => s.id);
+const choose = raw => selectStories(data.stories, normalize(raw, data.reviewed_at)).map(s => s.id);
 
 test('custom date includes that day; watched-event checkpoint starts afterward', () => {
   assert(choose({since: '2025-09-14', mode: 'custom'}).includes('nrg-2025'));
@@ -20,8 +20,9 @@ test('depth changes explanations without changing eligible stories', () => {
 
 test('sorting, recent gaps, and era intersections are real filters', () => {
   assert.equal(choose({order: 'oldest'})[0], 'cloud9-worlds');
-  assert.equal(choose({order: 'newest'})[0], 'club-championship');
-  assert.deepEqual(choose({since: '2026-10-01'}), []);
+  assert.equal(choose({order: 'newest'})[0], 'club-london-check');
+  assert.equal(choose({since: '2026-10-01'}).length, 5);
+  assert.deepEqual(choose({since: data.coverage_through, mode: 'event', exclusive: true}), []);
   assert.deepEqual(choose({since: '2025-01-01', era: '2018–2019'}), []);
 });
 
@@ -46,4 +47,17 @@ test('source URLs accept only the reviewed HTTPS publishers', () => {
   assert.equal(safeURL('https://user:pass@blast.tv/'), '');
   assert.equal(safeURL('http://blast.tv/'), '');
   for (const source of data.sources) assert.equal(safeURL(source.url), source.url);
+});
+
+test('November qualifiers respect regional filters and the event checkpoint', () => {
+  assert.deepEqual(choose({since: '2026-11-01', region: 'EU', topic: 'results'}), ['club-open-eu-final']);
+  assert.deepEqual(choose({since: '2026-11-15', mode: 'event', exclusive: true, topic: 'results'}), ['club-open-eu-final']);
+  assert(choose({since: '2026-11-15', mode: 'custom', topic: 'results'}).includes('club-open-sam-final'));
+  for (const story of data.stories.filter(s => s.id.startsWith('club-open-'))) {
+    assert.equal(story.spoiler, true);
+    for (const team of story.teams) {
+      assert(!story.safe_title.includes(team));
+      assert(!story.safe_summary.includes(team));
+    }
+  }
 });

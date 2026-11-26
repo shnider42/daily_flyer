@@ -2,8 +2,8 @@
 
 An independent DFE product modeled on Infierno Liberado's dynamic Catch Up:
 choose where you left off, then adjust depth without changing the period.
-The first edition contains 16 reviewed milestones spanning November 2018 to
-September 20, 2026. It is a curated starting point, not a complete event archive
+The November 26, 2026 edition contains 21 selected stories spanning November 2018
+to November 26, 2026. It is a curated starting point, not a complete event archive
 or an automatically refreshed news feed.
 
 ## Run and publish
@@ -66,3 +66,26 @@ readable. Recent periods outside coverage explicitly show the coverage gap.
 Missing regional tournaments, most transfers, intermediate majors and 1v1/2v2
 results need future backfilling. A collector, scheduled review queue and review
 dashboard are future work; no live ingestion is connected in this release.
+
+## November 26 update
+
+Added the four Club Kick-Off Open finals: MENA on November 14, North America
+and South America on November 15, and Europe on November 22. BLAST tournament
+records establish the scores, while Rocket League's current Club Championship
+page corroborates the four qualified clubs. Result titles, scores and qualifying
+team identities stay behind the existing spoiler gates. Regional filters and
+new watched-event checkpoints include these stories.
+
+A separate November 26 schedule check puts the London Club Kick-Off first in
+the essentials view. It is still upcoming: December 9–13, 2026, despite the 2027
+competition label. The $300,000 Kick-Off prize pool is distinguished from the
+$2.5 million wider Club Championship pool. The event winner earns an additional
+Club Finale place for its region. No London result or current roster is inferred.
+
+South America's tournament header spans November 13–16, while its final is
+listed under November 15 and the match record gives 23:00 UTC that day. Its
+story uses the final's date and discloses the source discrepancy.
+
+New source checks and the rechecked September Club announcement are dated
+November 26. Other historical sources retain October 26. Coverage remains a
+selection, not a full match, transfer or 1v1/2v2 archive.
