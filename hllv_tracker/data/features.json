@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-11-18",
+  "reviewed_at": "2026-11-26",
   "coverage_from": "2026-10-01",
-  "coverage_note": "Selected released functionality and future plans reviewed through November 18. Patch 1.7 remains the latest verified release. November 12 moved Update 2.0 to early December and Update 3.0 to early 2027; November 13 previews Khe Sanh and confirms future PS5 QSSR. Exact release days remain unannounced. Roadmap content and developer statements do not change live baselines or establish independent gameplay verification.",
+  "coverage_note": "Selected released functionality and future plans reviewed November 26. Hotfix 1.7.1, released November 19, is the latest verified release; it includes base PS5 QSSR and scoped fixes. Its Xbox Series S regression remains open with a fix only in testing. Update 2.0 targets early December and 3.0 early 2027; Khe Sanh, ANZAC and other roadmap content remain planned. No independent gameplay verification.",
   "sources": [
     {
       "id": "khe_sanh_preview_20261113",
@@ -172,6 +172,19 @@
       "content_sha256": "15b2da22c6d9e7eed823ce0764640a7797e63f8ad90c5f05816e24c8c3fcf83a",
       "reviewed_at": "2026-11-10",
       "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement. Re-read November 10; publisher text is unchanged and no later release is established."
+    },
+    {
+      "id": "hotfix171",
+      "announcement_id": "1849827110428418",
+      "title": "Hotfix 1.7.1 | Changelog | Live Now",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-7-1",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849827110428418",
+      "published_at": "2026-11-19T13:58:08Z",
+      "content_sha256": "365d239d0a36e6d4ce7a8d687c4f9f10d573cdb735203b228afb3c87aafb96a8",
+      "reviewed_at": "2026-11-26",
+      "review_scope": "Full official release, released functionality and scoped fixes; Xbox Series S known regression and unshipped targets kept separate. No independent gameplay testing."
     }
   ],
   "features": [
@@ -421,15 +434,16 @@
       "kind": "functionality_change",
       "current": {
         "availability": "live",
-        "summary": "Fuller servers are prioritised; filters persist between sessions and Favourites target the correct server.",
+        "summary": "Fuller servers are prioritised, filters persist and Favourites target the correct server. Official Server numbers are temporarily reduced for Community Server visibility; the 200-result EOS search limit remains.",
         "source_ids": [
-          "patch16"
+          "patch16",
+          "hotfix171"
         ]
       },
       "status": "released",
-      "change": "The developer confirms the browser changes are live.",
-      "target": "Released in Patch 1.6",
-      "latest_source_id": "cf8",
+      "change": "The temporary server-allocation change is released. The broader EOS-search workaround remains planned for 2.0.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
       "history": [
         {
           "source_id": "patch16",
@@ -440,6 +454,11 @@
           "source_id": "cf8",
           "status": "released",
           "summary": "Developer follow-up confirms the released behavior."
+        },
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "The temporary server-allocation change is released. The broader EOS-search workaround remains planned for 2.0."
         }
       ],
       "related_issue_ids": [
@@ -451,6 +470,25 @@
         "server browser",
         "persistent filters",
         "fuller servers"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-26",
+          "reason": "Hotfix 1.7.1 reviewed against the existing feature scope.",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Fuller servers are prioritised; filters persist between sessions and Favourites target the correct server.",
+              "source_ids": [
+                "patch16"
+              ]
+            },
+            "change": "The developer confirms the browser changes are live.",
+            "status": "released",
+            "target": "Released in Patch 1.6",
+            "latest_source_id": "cf8"
+          }
+        }
       ]
     },
     {
@@ -1297,20 +1335,26 @@
       "kind": "functionality_change",
       "current": {
         "availability": "live",
-        "summary": "Units use NATO phonetic names, including Alfa, Bravo and Charlie.",
+        "summary": "Units use NATO phonetic names, including Alfa, Bravo and Charlie. Hotfix 1.7.1 corrects a missing-name string after rejoining the same server.",
         "source_ids": [
-          "patch17"
+          "patch17",
+          "hotfix171"
         ]
       },
       "status": "released",
-      "change": "Updates Unit naming; this does not add Clan Tags or rank emblems.",
-      "target": "Released in Patch 1.7",
-      "latest_source_id": "patch17",
+      "change": "Corrects a Unit-name display failure after a join, leave and rejoin sequence; the naming scheme is unchanged.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
       "history": [
         {
           "source_id": "patch17",
           "status": "released",
           "summary": "Updates Unit naming; this does not add Clan Tags or rank emblems."
+        },
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "Corrects a Unit-name display failure after a join, leave and rejoin sequence; the naming scheme is unchanged."
         }
       ],
       "related_issue_ids": [],
@@ -1318,6 +1362,25 @@
       "monitor_terms": [
         "phonetic",
         "unit names"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-26",
+          "reason": "Hotfix 1.7.1 reviewed against the existing feature scope.",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Units use NATO phonetic names, including Alfa, Bravo and Charlie.",
+              "source_ids": [
+                "patch17"
+              ]
+            },
+            "change": "Updates Unit naming; this does not add Clan Tags or rank emblems.",
+            "status": "released",
+            "target": "Released in Patch 1.7",
+            "latest_source_id": "patch17"
+          }
+        }
       ]
     },
     {
@@ -1406,14 +1469,16 @@
       "category": "Graphics",
       "kind": "new_option",
       "current": {
-        "availability": "not_confirmed_live",
-        "summary": "Not released in the reviewed announcement.",
-        "source_ids": []
+        "availability": "live",
+        "summary": "QSSR is enabled by default on base PS5. No setting change is required; PS5 Pro retains its separate PSSR support.",
+        "source_ids": [
+          "hotfix171"
+        ]
       },
-      "status": "in_development",
-      "change": "Expression’s game director confirms PS5 QSSR integration through an upcoming HLLV update. The developer statement names no release day or version; the feature is not confirmed live.",
-      "target": "Upcoming HLLV update · date and version unannounced",
-      "latest_source_id": "sony_qssr_20261113",
+      "status": "released",
+      "change": "The previously announced base-PS5 QSSR integration is now released and enabled by default.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
       "history": [
         {
           "source_id": "patch17",
@@ -1434,6 +1499,11 @@
           "source_id": "sony_qssr_20261113",
           "status": "in_development",
           "summary": "Expression’s game director confirms PS5 QSSR integration through an upcoming HLLV update. The developer statement names no release day or version; the feature is not confirmed live."
+        },
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "The previously announced base-PS5 QSSR integration is now released and enabled by default."
         }
       ],
       "related_issue_ids": [
@@ -1487,6 +1557,21 @@
             "status": "planned",
             "target": "Upcoming integration · no confirmed release date",
             "latest_source_id": "release_dates_20261112"
+          }
+        },
+        {
+          "date": "2026-11-26",
+          "reason": "Hotfix 1.7.1 reviewed against the existing feature scope.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Not released in the reviewed announcement.",
+              "source_ids": []
+            },
+            "change": "Expression’s game director confirms PS5 QSSR integration through an upcoming HLLV update. The developer statement names no release day or version; the feature is not confirmed live.",
+            "status": "in_development",
+            "target": "Upcoming HLLV update · date and version unannounced",
+            "latest_source_id": "sony_qssr_20261113"
           }
         }
       ]
@@ -1892,9 +1977,9 @@
         "source_ids": []
       },
       "status": "testing",
-      "change": "D-pad marker selection and overlap-placement work retain their earlier 2.0 testing scope. The release window is now early December; this schedule change does not confirm final validation.",
-      "target": "Update 2.0 · early December 2026 target · final testing pending",
-      "latest_source_id": "release_dates_20261112",
+      "change": "Hotfix 1.7.1 releases fixes for the existing Marker List and overlap placement (HLLV-F057). It does not establish delivery of the broader D-pad-only controller-map redesign intended to preserve movement-stick input.",
+      "target": "Broader controller-map redesign · 2.0 early December target · release unconfirmed",
+      "latest_source_id": "hotfix171",
       "history": [
         {
           "source_id": "cf9",
@@ -1905,6 +1990,11 @@
           "source_id": "release_dates_20261112",
           "status": "testing",
           "summary": "D-pad marker selection and overlap-placement work retain their earlier 2.0 testing scope. The release window is now early December; this schedule change does not confirm final validation."
+        },
+        {
+          "source_id": "hotfix171",
+          "status": "testing",
+          "summary": "Hotfix 1.7.1 releases fixes for the existing Marker List and overlap placement (HLLV-F057). It does not establish delivery of the broader D-pad-only controller-map redesign intended to preserve movement-stick input."
         }
       ],
       "related_issue_ids": [
@@ -1931,6 +2021,21 @@
             "status": "testing",
             "target": "Update 2.0 · subject to final testing",
             "latest_source_id": "cf9"
+          }
+        },
+        {
+          "date": "2026-11-26",
+          "reason": "Hotfix 1.7.1 reviewed against the existing feature scope.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The announced controller-map changes are not confirmed live.",
+              "source_ids": []
+            },
+            "change": "D-pad marker selection and overlap-placement work retain their earlier 2.0 testing scope. The release window is now early December; this schedule change does not confirm final validation.",
+            "status": "testing",
+            "target": "Update 2.0 · early December 2026 target · final testing pending",
+            "latest_source_id": "release_dates_20261112"
           }
         }
       ]
@@ -2528,6 +2633,175 @@
         "monsoon",
         "elephant grass",
         "dynamic weather"
+      ]
+    },
+    {
+      "id": "HLLV-F057",
+      "title": "Tactical Map marker controls",
+      "category": "Controls",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Marker List mouse selection covers the whole row; D-pad navigation retains focus. Placement over existing markers is restored after a 1.7 regression.",
+        "source_ids": [
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "Repairs three scoped marker-control defects in the existing interface; this is not release evidence for the broader controller-map redesign.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "Repairs three scoped marker-control defects in the existing interface; this is not release evidence for the broader controller-map redesign."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-105"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "map marker list",
+        "d-pad",
+        "existing markers"
+      ]
+    },
+    {
+      "id": "HLLV-F058",
+      "title": "Mortar Aimer kill credit",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "The player aiming a Mortar receives kill credit alongside the Gunner.",
+        "source_ids": [
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "Mortar kills now credit the Aimer as well as the Gunner.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "Mortar kills now credit the Aimer as well as the Gunner."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "mortar",
+        "kill credit"
+      ]
+    },
+    {
+      "id": "HLLV-F059",
+      "title": "Console memory and vegetation refinements",
+      "category": "Graphics",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Console memory savings reduce out-of-memory risk. Simplified tree models appear farther away, with smoother vegetation LOD transitions.",
+        "source_ids": [
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "These scoped refinements are released; further optimisation and vegetation work remain planned. The same hotfix introduces an acknowledged Xbox Series S performance regression.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "These scoped refinements are released; further optimisation and vegetation work remain planned. The same hotfix introduces an acknowledged Xbox Series S performance regression."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-003",
+        "HLLV-056",
+        "HLLV-057",
+        "HLLV-124"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "console stability",
+        "memory savings",
+        "level of detail",
+        "impostor trees"
+      ]
+    },
+    {
+      "id": "HLLV-F060",
+      "title": "Replication and match-transition corrections",
+      "category": "Servers",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Further corrections address malfunctioning spawns, disappearing Tactical Map elements and vehicle-entry failures. A separate fix covers voice activation between matches; remaining replication cases may persist.",
+        "source_ids": [
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "Scoped replication and match-transition VOIP fixes are released without a guarantee of universal recovery.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "Scoped replication and match-transition VOIP fixes are released without a guarantee of universal recovery."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-008",
+        "HLLV-029",
+        "HLLV-046",
+        "HLLV-066"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "online replication",
+        "voice communications",
+        "dynamic spawns"
+      ]
+    },
+    {
+      "id": "HLLV-F061",
+      "title": "Mounted-weapon aiming stutter",
+      "category": "Vehicles",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Hotfix 1.7.1 documents an aiming-stutter correction for mounted weapons and Tank Gunners.",
+        "source_ids": [
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "The scoped aiming correction is released; broader deployment, elevation and forced-ADS requests remain separate.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "The scoped aiming correction is released; broader deployment, elevation and forced-ADS requests remain separate."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-049"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "mounted weapons",
+        "tank gunner",
+        "stuttering"
       ]
     }
   ]

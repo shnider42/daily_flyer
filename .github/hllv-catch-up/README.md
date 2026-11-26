@@ -1,20 +1,31 @@
 # Catch Up: returning-player guide
 
 Public route: `/#catch-up`. The homepage introduction and top navigation link here.
-Twenty curated topics describe released mechanics from the content ledger. The guide
-is partial coverage of October 7–21, 2026, reviewed November 18. It is not a complete
+Twenty-five curated topics describe released mechanics from the content ledger. The guide
+is partial coverage of October 7–November 19, 2026, reviewed November 26. It is not a complete
 tutorial, tactical ranking, or independent gameplay test.
+
+The November 26 review advances the released baseline to Hotfix 1.7.1. It adds base
+PS5 QSSR, the temporary Community Server visibility measure, Unit-name corrections,
+and five topics covering marker controls, Mortar Aimer credit, console/vegetation
+refinements, spawn/voice reliability and mounted aiming. The Xbox Series S regression
+is linked as an open known issue: the November 19 follow-up target does not establish
+a released fix. Update 2.0 remains an early-December target and 3.0 an early-2027 target.
+The two changed existing baselines (server allocation and Unit-name display) were
+re-reviewed before their locks changed. QSSR and five new baselines receive new locks;
+all other existing baseline and source locks are preserved. The immutable review
+record lists these exact changes in `reviews/2026-11-26-hotfix-1-7-1-review.json`.
 
 The November 18 review checks the November 12 release-schedule notice and November 13
 Khe Sanh preview. Update 2.0 now targets early December and Update 3.0 early 2027;
 neither announcement establishes a new release. Both announcements are pinned as
 reviewed sources, while the twenty released-change topics, live baseline hashes and
-October 21 coverage boundary remain intact. Rebuilding also imports the latest
+October 21 coverage boundary remained intact at that review. Rebuilding also imports the latest
 reviewed summaries from the linked bug records.
 
 The November 10 review rechecks the existing official sources and adds the previously
 omitted Patch 1.6 combat-audio and spawn-sound changes. The released comparison window
-remains October 7–21; no newer patch is established. Existing baseline locks and source
+remained October 7–21 at that review; no newer patch was then established. Existing baseline locks and source
 hashes are preserved; only the newly reviewed audio baseline gains a lock.
 
 The November 9 review adds graphics/display options, server-browser persistence,

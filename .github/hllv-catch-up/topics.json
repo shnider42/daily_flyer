@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "reviewed_at": "2026-11-18",
+  "reviewed_at": "2026-11-26",
   "coverage_from": "2026-10-07",
-  "coverage_through": "2026-10-21",
-  "release": "Patch 1.7",
+  "coverage_through": "2026-11-19",
+  "release": "Hotfix 1.7.1",
   "topics": [
     {
       "id": "boat-spawning",
@@ -284,12 +284,13 @@
       ],
       "feature_ids": [
         "HLLV-F010",
-        "HLLV-F021"
+        "HLLV-F021",
+        "HLLV-F029"
       ],
-      "overview": "PS5 Pro, compatible PS5 displays and supported AMD PC graphics cards gained different graphics options.",
-      "takeaway": "PS5 Pro gained PSSR; PS5 and PS5 Pro gained VRR on compatible displays. Supported AMD GPUs gained FSR Frame Generation.",
-      "context": "PSSR reconstructs the image on PS5 Pro. VRR matches display refresh to changing frame delivery. Frame Generation inserts extra frames on supported AMD hardware; these are separate technologies.",
-      "caution": "PSSR is specific to PS5 Pro, and VRR requires a compatible display. The AMD addition does not establish a fix for NVIDIA DLSS settings reports.",
+      "overview": "Base PS5 now uses QSSR automatically. Earlier PS5 Pro, display and AMD PC options remain platform-specific.",
+      "takeaway": "Hotfix 1.7.1 adds QSSR by default on base PS5. PS5 Pro retains PSSR; compatible PS5 displays support VRR, and supported AMD GPUs offer FSR Frame Generation.",
+      "context": "QSSR and PSSR reconstruct the image on different PlayStation models. VRR matches display refresh to frame delivery; Frame Generation adds frames on supported AMD PC hardware.",
+      "caution": "QSSR needs no manual setting change. These additions do not prove every visual defect is fixed, release Xbox FSR 4.1, or resolve NVIDIA DLSS settings reports.",
       "issue_ids": [
         "HLLV-006",
         "HLLV-057",
@@ -301,6 +302,12 @@
           "summary": "Released PSSR for PS5 Pro, VRR for compatible PS5 displays, and AMD FSR Frame Generation on supported 5000-series-and-newer GPUs.",
           "before": "These PS5 and AMD options had not been released in the reviewed patch history. Xbox Series X|S already supported VRR.",
           "after": "The new options are available on their supported hardware. They do not apply equally to every console or PC."
+        },
+        {
+          "source_id": "hotfix171",
+          "summary": "Released QSSR for base PS5, enabled by default.",
+          "before": "QSSR was an upcoming HLLV integration in the reviewed November 13 developer statement.",
+          "after": "Base PS5 uses QSSR automatically; PS5 Pro continues to use its separate PSSR technology."
         }
       ],
       "overview_order": 11
@@ -315,10 +322,10 @@
       "feature_ids": [
         "HLLV-F006"
       ],
-      "overview": "The server list prioritises fuller matches. Filters and saved favourites received persistence fixes.",
-      "takeaway": "Higher-population servers move up the list. Filters survive a game restart, and Favourites saving and server targeting have release-documented fixes.",
-      "context": "These changes affect the order of the server list and whether choices survive between sessions. They are separate from the number of servers a player may save.",
-      "caution": "The released corrections do not establish that every missing-server report is resolved or that Favourites capacity has increased.",
+      "overview": "Community Servers get more room in the list after a temporary reduction in Official Servers. The search cap remains.",
+      "takeaway": "Hotfix 1.7.1 reduces active Official Servers to improve Community Server visibility within the 200-result EOS search cap. Earlier filter and Favourites fixes remain live.",
+      "context": "The search cap limits the results returned at once. Changing the number of Official Servers is a temporary allocation measure, separate from the planned 2.0 workaround.",
+      "caution": "Not every server is guaranteed to appear. The 2.0 search workaround and a Favourites-cap increase are not confirmed released.",
       "issue_ids": [
         "HLLV-058",
         "HLLV-059",
@@ -330,6 +337,12 @@
           "summary": "Prioritised fuller servers and corrected filter persistence and Favourites saving/targeting.",
           "before": "Filters could reset after restarting, and Favourites could fail to save or select the intended server. Fuller-server ordering was not prioritised as it is now.",
           "after": "Fuller servers are prioritised, selected filters persist, and the notes document corrections to Favourites saving and targeting."
+        },
+        {
+          "source_id": "hotfix171",
+          "summary": "Reduced active Official Servers to improve Community Server visibility.",
+          "before": "Large server populations could fill the 200 returned results and hide Community Servers.",
+          "after": "The temporary allocation gives Community Servers more visibility; the underlying search cap remains."
         }
       ],
       "overview_order": 12
@@ -426,7 +439,7 @@
         "HLLV-F026"
       ],
       "overview": "Units now use names such as Alfa, Bravo and Charlie from the NATO phonetic alphabet.",
-      "takeaway": "The Unit naming scheme changed to the NATO phonetic alphabet, including Alfa, Bravo and Charlie.",
+      "takeaway": "Units retain NATO phonetic names such as Alfa, Bravo and Charlie. Hotfix 1.7.1 fixes a missing-name string after rejoining a server.",
       "context": "These words identify lettered Units. Returning players may encounter a different spoken or displayed Unit name.",
       "caution": "This change concerns Unit naming. It does not release Clan Tags or change the number of players in a Unit.",
       "issue_ids": [],
@@ -436,6 +449,12 @@
           "summary": "Changed the Unit naming scheme to NATO phonetic names.",
           "before": "The previous naming scheme was replaced; this announcement does not enumerate every former name.",
           "after": "Units use NATO phonetic names, including Alfa, Bravo, Charlie and Delta."
+        },
+        {
+          "source_id": "hotfix171",
+          "summary": "Corrected Unit names failing to display after a join, leave and rejoin sequence.",
+          "before": "Rejoining the same server could replace Unit names with a missing-string error.",
+          "after": "The hotfix corrects that display failure without changing the NATO naming scheme."
         }
       ],
       "overview_order": 16
@@ -554,6 +573,147 @@
         }
       ],
       "overview_order": 20
+    },
+    {
+      "id": "map-marker-controls",
+      "title": "Map marker selection & overlap",
+      "area": "Using the Tactical Map",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F057"
+      ],
+      "overview": "The existing Marker List is easier to select with mouse or D-pad, and markers can overlap again.",
+      "takeaway": "Mouse selection covers the full row, D-pad focus loss is corrected, and the 1.7 marker-overlap regression is fixed.",
+      "context": "These are corrections to existing marker controls. The separately announced controller-map redesign remains unconfirmed as released.",
+      "caution": "The earlier player report associated its onset with 1.6; the hotfix identifies a 1.7 regression. They are not proven to be the same case.",
+      "issue_ids": [
+        "HLLV-105"
+      ],
+      "changes": [
+        {
+          "source_id": "hotfix171",
+          "summary": "Mouse selection covers the full row, D-pad focus loss is corrected, and the 1.7 marker-overlap regression is fixed.",
+          "before": "Only row text could be selected, D-pad focus could be lost, and 1.7 could block placement over an existing marker.",
+          "after": "The release corrects those three cases; it does not announce the complete future controller-map redesign."
+        }
+      ],
+      "overview_order": 21
+    },
+    {
+      "id": "mortar-kill-credit",
+      "title": "Mortar Aimer kill credit",
+      "area": "Mortar teamwork",
+      "roles": [
+        "infantry",
+        "engineer"
+      ],
+      "feature_ids": [
+        "HLLV-F058"
+      ],
+      "overview": "A Mortar kill now gives credit to the aiming player as well as the Gunner.",
+      "takeaway": "Mortar Aimers receive kill credit alongside Gunners.",
+      "context": "The release changes who receives kill credit, without documenting a new scoring multiplier or broader reward system.",
+      "caution": "This does not add Commendations or establish a fix for every Mortar construction or tutorial report.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "hotfix171",
+          "summary": "Mortar Aimers receive kill credit alongside Gunners.",
+          "before": "The Aimer was not included in the kill credit described by this correction.",
+          "after": "Both the Aimer and Gunner receive credit."
+        }
+      ],
+      "overview_order": 22
+    },
+    {
+      "id": "console-stability-vegetation",
+      "title": "Console stability & tree detail",
+      "area": "Performance and distant scenery",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F059"
+      ],
+      "overview": "The hotfix reduces console memory pressure and refines distant trees; Xbox Series S has a newly acknowledged performance issue.",
+      "takeaway": "Console memory savings and tree-detail transitions receive improvements in 1.7.1.",
+      "context": "Memory limits can affect stability. LOD changes how complex scenery is shown at distance; neither change proves every crash or visual report is fixed.",
+      "caution": "Xbox Series S can lose performance during intense play. A further fix was in testing on November 19; its release remains unconfirmed at the November 26 review.",
+      "issue_ids": [
+        "HLLV-003",
+        "HLLV-056",
+        "HLLV-057",
+        "HLLV-124"
+      ],
+      "changes": [
+        {
+          "source_id": "hotfix171",
+          "summary": "Console memory savings and tree-detail transitions receive improvements in 1.7.1.",
+          "before": "Some console scenarios exceeded memory limits, and simplified trees could appear sooner with more visible detail transitions.",
+          "after": "Further memory savings and tree-transition changes are released. More optimisation is planned and the new Series S issue stays open."
+        }
+      ],
+      "overview_order": 23
+    },
+    {
+      "id": "spawn-voice-reliability",
+      "title": "Spawn & voice reliability",
+      "area": "Joining and staying in a match",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F060"
+      ],
+      "overview": "Further fixes address missing spawns, map elements, vehicle entry and voice activation between matches.",
+      "takeaway": "Hotfix 1.7.1 adds replication corrections and a separate match-transition voice fix.",
+      "context": "Replication keeps the client and server in agreement. Similar visible failures may still have different causes.",
+      "caution": "The publisher does not guarantee every replication case is resolved. The release does not close every Commander, construction, HUD-refresh or all-channel VOIP report.",
+      "issue_ids": [
+        "HLLV-046",
+        "HLLV-029",
+        "HLLV-066"
+      ],
+      "changes": [
+        {
+          "source_id": "hotfix171",
+          "summary": "Hotfix 1.7.1 adds replication corrections and a separate match-transition voice fix.",
+          "before": "Some spawn points, Tactical Map elements and vehicle interactions could stop working; voice could fail to activate between matches.",
+          "after": "Further corrections are released for those cases, with remaining replication edge cases still monitored."
+        }
+      ],
+      "overview_order": 24
+    },
+    {
+      "id": "mounted-aiming",
+      "title": "Mounted-weapon aiming",
+      "area": "Mounted guns and tank gunnery",
+      "roles": [
+        "infantry",
+        "armour",
+        "boats"
+      ],
+      "feature_ids": [
+        "HLLV-F061"
+      ],
+      "overview": "Mounted weapons and Tank Gunners receive another aiming-stutter correction.",
+      "takeaway": "Hotfix 1.7.1 fixes an aiming-stutter case affecting mounted weapons and Tank Gunners.",
+      "context": "Earlier camera and movement-smoothing changes remain part of the release history.",
+      "caution": "This is separate from deployment limits, elevation complaints and forced-ADS requests, which are not established as newly released improvements.",
+      "issue_ids": [
+        "HLLV-049"
+      ],
+      "changes": [
+        {
+          "source_id": "hotfix171",
+          "summary": "Hotfix 1.7.1 fixes an aiming-stutter case affecting mounted weapons and Tank Gunners.",
+          "before": "Aiming with a mounted weapon or as Tank Gunner could stutter.",
+          "after": "The hotfix documents a correction for that aiming case; independent outcome testing is not recorded."
+        }
+      ],
+      "overview_order": 25
     }
   ],
   "reviewed_source_ids": [

@@ -49,12 +49,12 @@ class GuideEvidenceTests(unittest.TestCase):
     def test_reviewed_announcement_does_not_become_a_release(self):
         data = module['build']()
         self.assertIn('cf9', {s['id'] for s in data['sources']})
-        self.assertEqual(data['coverage_through'], '2026-10-21')
-        self.assertEqual(data['reviewed_at'], '2026-11-18')
+        self.assertEqual(data['coverage_through'], '2026-11-19')
+        self.assertEqual(data['reviewed_at'], '2026-11-26')
         self.assertNotIn('cf9', {c['source_id'] for t in data['topics'] for c in t['changes']})
         # The current frontend compares announcement IDs/hashes and uses the
         # newest reviewed source as its review boundary. Its data now includes
-        # the checked post while release comparisons still stop at Patch 1.7.
+        # the checked post without treating it as a released change.
         source = next(s for s in data['sources'] if s['id'] == 'cf9')
         self.assertEqual(source['announcement_id'], '1848664643345363')
         self.assertEqual(source['content_sha256'], 'b59bbce41a03e7d1da32b151a3ae1b7ead4f266a4698860535a7aa69ff8f7c02')
@@ -78,7 +78,7 @@ class GuideEvidenceTests(unittest.TestCase):
             self.assertEqual(by_source[sid]['content_sha256'], content_hash)
         self.assertFalse(set(expected) & {c['source_id'] for t in data['topics'] for c in t['changes']})
         self.assertNotIn('HLLV-F009', {f for t in data['topics'] for f in t['feature_ids']})
-        self.assertEqual(max(c['date'] for t in data['topics'] for c in t['changes']), '2026-10-21')
+        self.assertEqual(max(c['date'] for t in data['topics'] for c in t['changes']), '2026-11-19')
         for sid in expected:
             with self.subTest(source=sid):
                 changed = copy.deepcopy(features)
@@ -91,6 +91,49 @@ class GuideEvidenceTests(unittest.TestCase):
         topics['reviewed_source_ids'] = ['unreviewed-post']
         with self.assertRaisesRegex(AssertionError, 'missing from the source ledger'):
             module['build'](topics=topics)
+
+    def test_hotfix_advances_only_the_released_comparisons(self):
+        data = module['build']()
+        self.assertEqual(data['release'], 'Hotfix 1.7.1')
+        source = next(s for s in data['sources'] if s['id'] == 'hotfix171')
+        self.assertEqual(source['announcement_id'], '1849827110428418')
+        self.assertEqual(source['content_sha256'], '365d239d0a36e6d4ce7a8d687c4f9f10d573cdb735203b228afb3c87aafb96a8')
+        hotfix_changes = [c for t in data['topics'] for c in t['changes'] if c['source_id'] == 'hotfix171']
+        self.assertTrue(hotfix_changes)
+        self.assertEqual({c['date'] for c in hotfix_changes}, {'2026-11-19'})
+        self.assertNotIn('HLLV-F038', {f for t in data['topics'] for f in t['feature_ids']})
+        self.assertNotIn('HLLV-F046', {f for t in data['topics'] for f in t['feature_ids']})
+
+    def test_qssr_is_live_without_promoting_xbox_or_roadmap_content(self):
+        data = module['build']()
+        graphics = next(t for t in data['topics'] if t['id'] == 'graphics-options')
+        qssr = next(f for f in graphics['baselines'] if f['id'] == 'HLLV-F029')
+        self.assertIn('enabled by default', qssr['summary'])
+        self.assertIn('base PS5', qssr['summary'])
+        by_feature = {f['id']: f for f in features['features']}
+        for fid in ['HLLV-F009', 'HLLV-F028', 'HLLV-F050', 'HLLV-F055']:
+            self.assertEqual(by_feature[fid]['current']['availability'], 'not_confirmed_live')
+
+    def test_series_s_target_does_not_close_the_regression(self):
+        data = module['build']()
+        performance = next(t for t in data['topics'] if t['id'] == 'console-stability-vegetation')
+        issue = next(i for i in performance['issues'] if i['id'] == 'HLLV-124')
+        self.assertEqual(issue['status_key'], 'investigating')
+        self.assertEqual(issue['last_updated'], '2026-11-19')
+        self.assertIn('release unconfirmed', issue['status_label'])
+        self.assertIn('release remains unconfirmed', performance['caution'])
+
+    def test_review_does_not_relock_unrelated_rules(self):
+        review = json.loads(Path('hllv_tracker/reviews/2026-11-26-hotfix-1-7-1-review.json').read_text())
+        old_lock = {
+            'features': review['catch_up']['baseline_locks_before'],
+            'sources': review['catch_up']['source_locks_before'],
+        }
+        new_lock = json.loads(Path('.github/hllv-catch-up/review-lock.json').read_text())
+        changed = {key for key, value in old_lock['features'].items() if new_lock['features'][key] != value}
+        self.assertEqual(changed, {'HLLV-F006', 'HLLV-F026'})
+        for key, value in old_lock['sources'].items():
+            self.assertEqual(new_lock['sources'][key], value)
 
 if __name__ == '__main__':
     unittest.main()
