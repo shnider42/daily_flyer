@@ -92,9 +92,9 @@
       "Bug Tracker",
       "Hell Let Loose Vietnam"
     ],
-    "updatedAt": "2026-11-18",
-    "updateSummary": "Reviewed 123 issue dossiers, 56 content topics and 20 Catch Up briefings against the latest official plans and supporting evidence.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/e7d1b143eedf6e69b480acab92a0f4f21bce0578",
+    "updatedAt": "2026-11-26",
+    "updateSummary": "Reviewed 124 issue dossiers, 61 content topics and 25 Catch Up briefings, including Patch 1.7.1 and 10 released patches.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/6fd68c475c5cf9781b5db72ffabd65385e117e74",
     "device": {
       "best": "both",
       "note": "Read briefings on a phone; use a larger screen to compare issues and evidence."
@@ -373,9 +373,9 @@
       "Futebol",
       "Manchester City"
     ],
-    "updatedAt": "2026-11-16",
-    "updateSummary": "NFL and Manchester City coverage refreshed Nov 16, with dated game details, team news and explainers.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/e9d38bcb7dbf4b6e2dc67bf6959a7f8d2054459c",
+    "updatedAt": "2026-11-26",
+    "updateSummary": "November 26 edition: 165 NFL finals and six new sourced stories, plus refreshed Manchester City results, tables and fixtures.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/d2eb864cbc9d2f53a3e5e2e4787797a758348a22",
     "device": {
       "best": "mobile",
       "note": "Short team briefings and explainers suit catching up from a phone."
@@ -434,9 +434,9 @@
       "Fantasy Catch Up",
       "Fantasy Football Catch-up"
     ],
-    "updatedAt": "2026-11-09",
-    "updateSummary": "A compact fantasy desk with chronological reports, player tables and clearer source dates.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/bab3b5b43af495749bfdcd15bfcf7fc0a2ed92d6",
+    "updatedAt": "2026-11-26",
+    "updateSummary": "Week 12 fantasy refresh: 3,242 players, 28 news reports and 30 waiver trends, with dated source coverage.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/89c95ea6ec66a541650cfc31ae2e52462ffcaa33",
     "device": {
       "best": "desktop",
       "note": "Player tables, league imports and side-by-side fantasy research are easier at a desk."
@@ -560,7 +560,10 @@
       "best": "mobile",
       "note": "Read format guides and work through returning-player paths in short phone sessions."
     },
-    "featureWeight": 3
+    "featureWeight": 3,
+    "updatedAt": "2026-11-26",
+    "updateSummary": "21 selected Magic milestones, with coverage through November 23 and dated context for returning players.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/6a01cd040b1e0a76c53fcc5dcd6d2910a6d2f9af"
   },
   {
     "id": "rlcs",
@@ -589,7 +592,10 @@
       "best": "both",
       "note": "Browse the esports timeline and choose where to resume on either screen."
     },
-    "featureWeight": 3
+    "featureWeight": 3,
+    "updatedAt": "2026-11-26",
+    "updateSummary": "November Club Open qualifier results and the upcoming London Kick-Off schedule, with 21 sourced milestones.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/7e1ff5ec28b211c4605f25093075606dd8bf27c2"
   },
   {
     "id": "skyward",
@@ -1593,7 +1599,10 @@
       "best": "mobile",
       "note": "Keep briefings and squad reference notes beside you on a phone."
     },
-    "featureWeight": 3
+    "featureWeight": 3,
+    "updatedAt": "2026-11-26",
+    "updateSummary": "Updated for released Update 21, open issues and the revised Update 22 plan, with confirmed changes separated from planned work.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/a8966bcfc6e709fe8043f32146b577786e2f0608"
   },
   {
     "id": "magic-quadratic",
