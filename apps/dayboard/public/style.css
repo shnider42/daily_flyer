@@ -10,6 +10,7 @@
   --input: #1a1f26;
   --hover: #39424e;
   --ink: #f0f3f7;
+  --task-title-outline: rgb(0 0 0 / .65);
   --secondary: #cbd3df;
   --muted: #acb7c7;
   --line: #596577;
@@ -63,6 +64,7 @@
   --input: #fff;
   --hover: #dce4ee;
   --ink: #202c3c;
+  --task-title-outline: rgb(0 0 0 / .22);
   --secondary: #3c4b60;
   --muted: #53647a;
   --line: #8e9cad;
@@ -1177,6 +1179,18 @@ h1 {
 }
 button.task-title:hover {
   text-decoration: underline;
+}
+/* A fine edge around each letter, without blurring or shrinking its fill. */
+.task-title,.focus-mini button.task-link {
+  text-shadow:
+    -.35px -.35px 0 var(--task-title-outline),
+     0     -.35px 0 var(--task-title-outline),
+     .35px -.35px 0 var(--task-title-outline),
+    -.35px  0     0 var(--task-title-outline),
+     .35px  0     0 var(--task-title-outline),
+    -.35px  .35px 0 var(--task-title-outline),
+     0      .35px 0 var(--task-title-outline),
+     .35px  .35px 0 var(--task-title-outline);
 }
 .task-note {
   font-size: .889rem;
@@ -3223,6 +3237,11 @@ dialog::backdrop {
     scroll-behavior: auto!important;
     transition: none!important;
     animation: none!important;
+  }
+}
+@media print, (forced-colors:active) {
+  .task-title,.focus-mini button.task-link {
+    text-shadow: none;
   }
 }
 @media print {
