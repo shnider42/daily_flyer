@@ -1,0 +1,12 @@
+{
+  "policy": "Editorial holds are scoped to an exact public response and wording hash. Identity verification does not establish relevance. All other responses remain automatically collected, not editorially approved.",
+  "holds": [
+    {
+      "thread_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/",
+      "response_id": "590691669350879924",
+      "content_sha256": "e3796b377fa6245e440dbe2805fadd29353abb27c282cf373dfe87295e22cdc5",
+      "flagged_at": "2026-10-15T14:17:00Z",
+      "reason": "Collected text appears unrelated to the tracked issue. The preview is withheld pending a check of the original response and context; no game-status conclusion is supported."
+    }
+  ]
+}

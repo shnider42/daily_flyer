@@ -1,0 +1,13 @@
+.member-registration{max-width:44rem;margin:0 auto}
+.member-registration [hidden]{display:none!important}
+.member-steps{color:var(--muted);font-size:.86rem;line-height:1.7}
+.member-steps span{margin:0 .35rem}
+.member-email-receipt{border-inline-start:3px solid var(--red);padding:.5rem 1rem;margin:1rem 0}
+#sgSignupEmailHelp{margin:1rem 0;padding-top:1rem;border-top:1px solid var(--line)}
+#sgSignupEmailHelp input{display:block;width:100%;box-sizing:border-box;margin:.5rem 0 .8rem;padding:.7rem;font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:4px}
+#sgSignupEmailHelp button{max-width:100%}
+#sgAccount [hidden]{display:none!important}
+.account-bar-actions{flex-wrap:wrap}
+#sgCreateAccount .auth-feedback:empty{display:none}
+#sgCreateAccount input:focus-visible,#sgCreateAccount button:focus-visible,#sgCreateAccount a:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+html[data-theme="dark"] #sgSignupEmailHelp input{background:#20262a;color:#e5e7e5}

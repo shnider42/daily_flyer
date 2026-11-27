@@ -1,0 +1,44 @@
+ function account(){
+  const reviewButton=document.querySelector('[data-sg-view="review"]');reviewButton.hidden=!profile||!['moderator','reviewer'].includes(profile.role);
+  if(!client||!persistence){el('sgAccount').replaceChildren();window.HLLVPassword?.status({available:false});return;}
+  if(validReadOnlyConfig(configuration)){el('sgAccount').textContent='Read-only setup. Account sign-in is unavailable.';window.HLLVPassword?.status({available:false});return;}
+  const generation=epoch;
+  HLLVPassword.mount({container:el('sgAccount'),client,profile,email:accountEmail,persistence,onIdentity:loadIdentity,signOut,isCurrent:()=>generation===epoch});
+  if(pendingAccountTarget){const target=pendingAccountTarget;pendingAccountTarget='';HLLVPassword.open(target);}
+ }
+ function requestAccount(target='sign-in'){
+  pendingAccountTarget=target;
+  if(target==='review')view='review';
+ }
+ function refreshIdentitySoon(){
+  clearTimeout(identityTimer);identityTimer=setTimeout(()=>{if(!initializing&&!logoutInProgress)loadIdentity();},0);
+ }
+ async function forgetSession(){
+  let error=null;try{const result=await client.auth.signOut({scope:'local'});error=result?.error||null;}catch(e){error=e;}
+  await persistence.storage.removeItem(persistence.key);
+  return error;
+ }
+ async function signOut(){
+  if(!client||logoutInProgress)return;logoutInProgress=true;clearTimeout(identityTimer);
+  epoch++;loadSerial++;profile=null;accountEmail='';myRows=[];queue=[];board=[];view='board';
+  content('<p>Signing out…</p>');el('sgAccount').replaceChildren();window.HLLVPassword?.status();
+  let error;try{error=await forgetSession();}finally{logoutInProgress=false;}
+  account();await render();message(error?'Signed out of this browser. Server session revocation could not be confirmed; reconnect before using a shared device.':'Signed out of this browser. Private content has been cleared.',Boolean(error));
+ }
+ async function loadIdentity(){
+  const generation=++epoch;profile=null;accountEmail='';myRows=[];queue=[];content('<p>Checking pilot access…</p>');window.HLLVPassword?.status({checking:true});let notice='';
+  try{
+   const {data,error}=await client.auth.getSession();if(error)throw error;
+   if(data.session){
+    const checked=await client.auth.getUser();if(checked.error||!checked.data?.user)throw new Error('User verification failed');
+    const p=await rpc('hllv_profile');if(generation!==epoch)return;
+    if(!p||!['participant','moderator','reviewer'].includes(p.role)||(validOperatorConfig(configuration)&&!['moderator','reviewer'].includes(p.role)))throw new Error('Staff membership required');
+    profile=p;accountEmail=checked.data.user.email||'';if(validOperatorConfig(configuration))view='review';
+   }
+  }catch(_){
+   if(generation!==epoch)return;profile=null;accountEmail='';view='board';
+   notice='Sign-in could not be verified or this account has no active staff invitation. Private access remains closed. Your saved work is unchanged.';
+  }
+  if(generation!==epoch)return;
+  account();await render();if(notice)message(notice,true);
+ }

@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-07",
+  "page_updated_at": "2026-10-07T13:07:56Z",
+  "patch_source": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+  "reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+  "issues": 75,
+  "source_references": 157,
+  "distinct_urls": 34,
+  "refined_claims": 21,
+  "new_issue_ids": [
+    "HLLV-067",
+    "HLLV-068",
+    "HLLV-069",
+    "HLLV-070",
+    "HLLV-071",
+    "HLLV-072",
+    "HLLV-073",
+    "HLLV-074",
+    "HLLV-075"
+  ],
+  "updated_issue_ids": [
+    "HLLV-003",
+    "HLLV-004",
+    "HLLV-007",
+    "HLLV-033",
+    "HLLV-057",
+    "HLLV-058",
+    "HLLV-059",
+    "HLLV-060",
+    "HLLV-061",
+    "HLLV-062",
+    "HLLV-063",
+    "HLLV-064"
+  ],
+  "link_access_ok": 33,
+  "link_access_other": {
+    "https://www.reddit.com/r/HellLetLooseVietnam/comments/1vxeovn/developer_ama_1_hell_let_loose_vietnam_reddit/": {
+      "checked_at": "2026-10-07",
+      "http_status": 403,
+      "scope": "Automated request failed; not proof of deletion"
+    }
+  },
+  "independent_gameplay_checks": 0,
+  "rollback_commit": "a8bdacdfd2175c6ee5fbcc97dc10dc78c21ac57d"
+}

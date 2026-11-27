@@ -1,0 +1,70 @@
+{
+  "version": "patch17-v1",
+  "release": "Patch 1.7",
+  "date": "2026-10-21",
+  "baseline_commit": "0b0d84b467f774e3b51107bdf8ed8f948c782039",
+  "reviewed_commit": "2d33453fc5b5f4ae526dfb0c459582fe81505058",
+  "source": {
+    "title": "Patch 1.7 | Full Changelog | Now Live!",
+    "publisher": "Hell Let Loose / Team17",
+    "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+    "published_at": "2026-10-21T10:00:57Z",
+    "reviewed_at": "2026-10-21",
+    "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16"
+  },
+  "items": [
+    {
+      "id": "HLLV-061", "type": "bug", "title": "Voice volume stays excessively loud", "tag": "Explicit fix",
+      "before": {"status": "investigating", "summary": "An October 9 Support reply adds another volume-slider report. The earlier 1.7 target remains unverified as a release."},
+      "proposed": {"status": "shipped", "summary": "Patch 1.7 explicitly fixes voice-volume slider scaling across audio channels. Independent post-patch outcome testing is not recorded."},
+      "evidence": "Voice-volume sliders now scale correctly across audio channels.",
+      "locator": "Find in notes: Voice Volume",
+      "reason": "The release notes explicitly name the slider defect, so its release status can advance.",
+      "caution": "This evidence does not resolve separate voice-channel outages."
+    },
+    {
+      "id": "HLLV-062", "type": "bug", "title": "Running boat engines prevent spawning", "tag": "Scoped behavior change",
+      "before": {"status": "investigating", "summary": "The revised proposal turns the engine off when a driver exits manually, not when killed. It may arrive in 1.7 or later; no release is confirmed."},
+      "proposed": {"status": "shipped", "summary": "Patch 1.7 shuts the engine off on manual driver exit so the boat can become a spawn point. A killed driver deliberately leaves it running."},
+      "evidence": "Manually leaving the driver seat stops the engine; a driver killed in the seat leaves it running.",
+      "locator": "Find in notes: boat engine",
+      "reason": "The revised manual-exit behavior has release evidence. Keep its trigger explicit in the summary.",
+      "caution": "Driver-death behavior is intentional. Other boat replication problems remain separate."
+    },
+    {
+      "id": "HLLV-102", "type": "bug", "title": "Rubberbanding along shorelines", "tag": "Partial improvement", "before": null,
+      "proposed": {"status": "partial", "summary": "Patch 1.7 reduces rubberbanding while walking or running along water edges; the wording does not promise elimination."},
+      "evidence": "Rubberbanding is reduced when walking or running beside water.",
+      "locator": "Find in notes: rubberbanding",
+      "reason": "Add a scoped record for the shoreline improvement, using the degree of improvement the publisher describes.",
+      "caution": "Reduced does not establish a complete fix."
+    },
+    {
+      "id": "HLLV-033", "type": "bug", "title": "Tutorial completion may not stay saved", "tag": "Keep status open",
+      "before": {"status": "investigating", "summary": "October 11 Support follow-up confirms continuing tutorial/reset reports were escalated. A completion-saving fix is still unconfirmed."},
+      "proposed": {"status": "investigating", "summary": "Patch 1.7 clarifies tutorial completion labels. Saving lost completion progress is still not confirmed fixed."},
+      "evidence": "Tutorial completion labels are clearer.",
+      "locator": "Find in notes: tutorial completion",
+      "reason": "Record the relevant announcement while retaining the unresolved status of completion saving.",
+      "caution": "A clearer label does not establish that saved progress now persists."
+    },
+    {
+      "id": "HLLV-F017", "type": "feature", "title": "M1A1 Thompson", "tag": "New content", "before": null,
+      "proposed": {"status": "released", "summary": "Adds a US submachine-gun option to the listed roles."},
+      "target": "Released in Patch 1.7",
+      "evidence": "The Thompson is available to ten specified US roles.",
+      "locator": "Find in notes: M1A1 Thompson",
+      "reason": "Create a content record with the published role restrictions. The linked live record lists those roles.",
+      "caution": "Availability is role-specific."
+    },
+    {
+      "id": "HLLV-F028", "type": "feature", "title": "ANZAC Forces", "tag": "Future content", "before": null,
+      "proposed": {"status": "planned", "summary": "Announced as an expansion of US & Allied Forces in Update 2.0; not released by Patch 1.7."},
+      "target": "Update 2.0 · November 2026 target",
+      "evidence": "ANZAC Forces are planned for Update 2.0 in November.",
+      "locator": "Find in notes: ANZAC",
+      "reason": "Track the announced expansion and its target separately from what this patch released.",
+      "caution": "November is a target window; an exact launch day is not stated."
+    }
+  ]
+}

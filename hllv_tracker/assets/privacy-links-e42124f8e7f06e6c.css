@@ -1,0 +1,5 @@
+.site-policy-footer{box-sizing:border-box;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px 24px;padding:20px 22px 26px;border-top:1px solid var(--line,#c8c1b0);background:var(--paper,#eee9db);font:13px/1.5 Arial,Helvetica,sans-serif;color:var(--muted,#686d65)}
+.site-policy-footer a{display:inline-flex;align-items:center;min-height:44px;color:inherit;text-decoration:underline;text-underline-offset:4px}
+.site-policy-footer a:hover{color:var(--ink,#20231f)}
+.site-policy-footer a:focus-visible{outline:2px solid currentColor;outline-offset:4px}
+@media print{.site-policy-footer{display:none}}

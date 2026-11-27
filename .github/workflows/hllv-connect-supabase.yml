@@ -1,0 +1,98 @@
+name: HLLV hosted Supabase connection
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths:
+      - .github/hllv-connection/**
+      - .github/workflows/hllv-connect-supabase.yml
+permissions:
+  contents: write
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+jobs:
+  connect-test-publish:
+    if: github.repository == 'shnider42/daily_flyer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: pilot_fixture_only
+          POSTGRES_DB: pilot_test
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U postgres -d pilot_test" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PILOT_TEST_DATABASE_URL: postgresql://postgres:pilot_fixture_only@localhost:5432/pilot_test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+      - name: Prepare read-only hosted connection
+        run: |
+          python3 -m py_compile .github/hllv-connection/*.py
+          python3 .github/hllv-connection/connect.py
+          node --check .github/hllv-pilot/suggestions.js
+          node --test .github/hllv-connection/test_connection.cjs .github/hllv-pilot/test_ui.cjs .github/hllv-evidence/test_evidence.cjs
+          git diff --check
+      - name: Install isolated test dependencies
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check 'psycopg[binary]==3.2.10' playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit >/tmp/hllv-browsers.log 2>&1 || { tail -40 /tmp/hllv-browsers.log; exit 1; }
+      - name: Check database rules in isolated fixtures
+        run: python3 suggestion_box/tests/test_database.py
+      - name: Verify before publishing
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/hllv-local.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          python3 .github/hllv-connection/test_connection.py
+          python3 .github/hllv-connection/test_connection.py --engine webkit
+          python3 .github/hllv-pilot/test_browser.py
+          python3 .github/hllv-pilot/test_browser.py --engine webkit
+          python3 .github/hllv-evidence/test_browser.py
+          python3 .github/hllv-evidence/test_browser.py --engine webkit
+      - name: Publish only the tested tracker connection
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- .github/hllv-pilot/suggestions.js .github/hllv-pilot/test_browser.py hllv_tracker/suggestions-config.json hllv_tracker/index.html hllv_tracker/data/issues.json hllv_tracker/data/issues.*.json hllv_tracker/assets hllv_tracker/deployment-manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Connect Suggestion Box to hosted Supabase with intake and sign-in still closed'
+            git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          fi
+          echo "PUBLISHED_COMMIT=$(git rev-parse HEAD)"
+      - name: Verify actual deployed files and browser connection
+        run: |
+          python3 -u - <<'PY'
+          import json,time,urllib.request
+          from pathlib import Path
+          root=Path('hllv_tracker')
+          manifest=json.loads((root/'deployment-manifest.json').read_text())
+          paths=['','index.html']+manifest['files']
+          last='No response'
+          for attempt in range(72):
+              try:
+                  for path in paths:
+                      with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=15) as r: actual=r.read()
+                      expected=(root/(path.split('?')[0] or 'index.html')).read_bytes()
+                      assert actual==expected, 'Production mismatch: '+(path or '/')
+                  print('PRODUCTION_EXACT_MATCH: normal homepage and actual referenced files')
+                  break
+              except Exception as e:
+                  last=str(e)
+                  if attempt%6==0: print(last)
+              time.sleep(5)
+          else: raise RuntimeError(last)
+          PY
+          python3 .github/hllv-connection/test_connection.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-connection/test_connection.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+          python3 .github/hllv-evidence/test_browser.py --url https://hllv-bug-track.onrender.com/
+      - name: Record verified boundary
+        run: |
+          echo "Verified commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Hosted public status/board are connected. Hosted anonymous writes/private reads are denied. No Auth code request, real invitation, participant record, reviewer authorization or live vote created. Intake remains setup/closed; real authentication and email delivery remain launch gates.' >> "$GITHUB_STEP_SUMMARY"

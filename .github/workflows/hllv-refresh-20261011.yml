@@ -1,0 +1,82 @@
+name: HLLV reviewed October 11 refresh
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths:
+      - .github/hllv-refresh-20261011/**
+      - .github/workflows/hllv-refresh-20261011.yml
+permissions:
+  contents: write
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+jobs:
+  review-test-publish:
+    if: github.repository == 'shnider42/daily_flyer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+      - name: Apply only the reviewed content and audit source destinations
+        run: |
+          python3 -m py_compile .github/hllv-refresh-20261011/*.py
+          python3 .github/hllv-refresh-20261011/refresh.py
+          python3 .github/hllv-refresh-20261011/test_refresh.py
+          node --test .github/hllv-evidence/test_evidence.cjs
+          git diff --check
+      - name: Install isolated browser-test dependencies
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit >/tmp/hllv-refresh-browsers.log 2>&1 || { tail -40 /tmp/hllv-refresh-browsers.log; exit 1; }
+      - name: Verify the site before publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/hllv-refresh-local.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          python3 .github/hllv-refresh-20261011/test_refresh.py --url http://127.0.0.1:8765/
+          python3 .github/hllv-evidence/test_browser.py
+          python3 .github/hllv-evidence/test_browser.py --engine webkit
+          python3 .github/hllv-password/test_browser.py
+          python3 .github/hllv-password/test_browser.py --engine webkit
+      - name: Commit only verified tracker content
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git add -- hllv_tracker/data/issues.json hllv_tracker/data/issues.*.json hllv_tracker/index.html hllv_tracker/deployment-manifest.json hllv_tracker/reviews/2026-10-11-community-feedback-7.json .github/hllv-patches/notes.json .github/hllv-patches/build.py
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'Refresh HLLV evidence through October 11 with Community Feedback 7 and qualified patch summaries'
+            git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          fi
+          echo "Published commit: $(git rev-parse HEAD)"
+      - name: Verify the normal production page and exact referenced files
+        run: |
+          python3 -u - <<'PY'
+          import json,time,urllib.request
+          from pathlib import Path
+          root=Path('hllv_tracker');manifest=json.loads((root/'deployment-manifest.json').read_text())
+          paths=['','index.html','data/issues.json','deployment-manifest.json']+manifest['files']
+          last='Deployment not checked'
+          for attempt in range(48):
+              try:
+                  for path in paths:
+                      with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=15) as r:actual=r.read()
+                      assert actual==(root/(path.split('?')[0] or 'index.html')).read_bytes(),'Mismatch: '+(path or '/')
+                  print('PRODUCTION_EXACT_MATCH: normal homepage, source JSON, manifest and every referenced asset');break
+              except Exception as e:
+                  last=str(e)
+                  if attempt%6==0:print(last)
+              time.sleep(5)
+          else:raise RuntimeError(last)
+          PY
+          python3 .github/hllv-refresh-20261011/test_refresh.py --url https://hllv-bug-track.onrender.com/
+      - name: Record verification scope
+        run: |
+          echo "Verified content commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'October 11 evidence review. Community Feedback 7 is a developer update, not a release. Patch 1.6 remains latest verified. Ten existing issue records, patch caveats and source link checks refreshed. No accounts, Supabase settings, submissions, moderation, reviewer approvals or game retesting performed.' >> "$GITHUB_STEP_SUMMARY"

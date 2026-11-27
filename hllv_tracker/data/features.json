@@ -1,0 +1,2808 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-26",
+  "coverage_from": "2026-10-01",
+  "coverage_note": "Selected released functionality and future plans reviewed November 26. Hotfix 1.7.1, released November 19, is the latest verified release; it includes base PS5 QSSR and scoped fixes. Its Xbox Series S regression remains open with a fix only in testing. Update 2.0 targets early December and 3.0 early 2027; Khe Sanh, ANZAC and other roadmap content remain planned. No independent gameplay verification.",
+  "sources": [
+    {
+      "id": "khe_sanh_preview_20261113",
+      "announcement_id": "1849192144188312",
+      "title": "Khe Sanh | Developer Deep Dive Video",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016409",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144188312",
+      "published_at": "2026-11-13T17:23:35Z",
+      "content_sha256": "b69919ad7760c05eeea6952960e9cc239aca97aea3d69680949d28433be83df0",
+      "reviewed_at": "2026-11-18",
+      "review_scope": "Publisher preview text describes upcoming Khe Sanh mechanics and setting. The linked video was not watched; previewed mechanics are not a released update or independent gameplay test."
+    },
+    {
+      "id": "sony_qssr_20261113",
+      "source_type": "official_developer_statement",
+      "external_id": "playstation-blog-425724",
+      "title": "QSSR arrives in Marvel’s Spider-Man 2, Control Resonant, The Finals, Arc Raiders, No Man’s Sky, and Hell Let Loose: Vietnam",
+      "publisher": "Sony Interactive Entertainment / Expression Games",
+      "authority": "verified_developer",
+      "url": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam",
+      "published_at": "2026-11-13T14:00:16Z",
+      "modified_at": "2026-11-14T01:18:15Z",
+      "content_sha256": "142cc716521f144abd0aef5dcab75ae3366e9ef1ea323d3c8349cb576e35625b",
+      "reviewed_at": "2026-11-18",
+      "review_scope": "Expression Games game director statement confirming QSSR for HLLV in an upcoming update, with no named release date/version. Other games have different release states; none is transferred to HLLV.",
+      "reviewed_via": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam",
+      "source_locator": "Expression Games — Paul Rustchynsky",
+      "hash_basis": "Title + newline + normalized visible article entry-content; collector plain() normalization; excludes comments/navigation."
+    },
+    {
+      "id": "release_dates_20261112",
+      "announcement_id": "1849192144183671",
+      "title": "Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144183671",
+      "published_at": "2026-11-12T16:34:51Z",
+      "content_sha256": "5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db",
+      "reviewed_at": "2026-11-18",
+      "review_scope": "HLLV release-window changes and roadmap content, including the embedded roadmap image inspected separately. Regular HLL Update 22 is excluded. Schedule targets are not released functionality; the outage statement does not establish a game-server incident.",
+      "reviewed_images": [
+        {
+          "url": "https://clan.fastly.steamstatic.com/images/45748053/048c6e7c46b5059e96d9adbb03f510e4f4a77146.jpg",
+          "content_sha256": "f2a3698c34d4b87f230b3ca6c7f33f88630ce2122db4a5eb3e8747bd1b1b3779",
+          "hash_basis": "SHA-256 of downloaded JPEG bytes; image text is excluded from the Steam announcement text hash.",
+          "reviewed_at": "2026-11-18",
+          "source_locator": "Post Launch Roadmap: Update 2.0, Update 3.0 and General Improvements panels"
+        }
+      ]
+    },
+    {
+      "id": "cf9",
+      "announcement_id": "1848664643345363",
+      "title": "Community Feedback #9 | Command Post",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/695403007258394989",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1848664643345363",
+      "published_at": "2026-11-06T12:26:02Z",
+      "content_sha256": "b59bbce41a03e7d1da32b151a3ae1b7ead4f266a4698860535a7aa69ff8f7c02",
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Feature plans, targets and current-behavior clarifications. Statements were reviewed in full; no new release or independent gameplay validation is established. Re-read November 10; publisher text is unchanged and no later release is established."
+    },
+    {
+      "id": "ama2_live",
+      "announcement_id": "1847920302238261",
+      "title": "Watch the Livestream Today | Dev AMA #2",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609663",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847920302238261",
+      "published_at": "2026-10-30T12:00:31Z",
+      "content_sha256": "64501cdc9bc10fcdd74ce59de4ed2620445383a6e4bb6f64111d890c82fce0e9",
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Announcement text reviewed; video not watched. Event or video notice, with no independent evidence of an additional feature release. Re-read November 10; publisher text is unchanged and no later release is established."
+    },
+    {
+      "id": "ama2_invitation",
+      "announcement_id": "1847920302231605",
+      "title": "Developer AMA #2 Livestream | Hell Let Loose: Vietnam",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609659",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847920302231605",
+      "published_at": "2026-10-28T16:00:20Z",
+      "content_sha256": "88b48fd31154d52bf56a6a34220c54b8cfeebecaae4734e99c2d17fc4b442516",
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Announcement text reviewed; video not watched. Event or video notice, with no independent evidence of an additional feature release. Re-read November 10; publisher text is unchanged and no later release is established."
+    },
+    {
+      "id": "patch17",
+      "announcement_id": "1847286114028257",
+      "title": "Patch 1.7 | Full Changelog | Now Live!",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+      "published_at": "2026-10-21T10:00:57Z",
+      "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Released functionality, hardware limits and separately stated future plans in the full Patch 1.7 announcement; no independent gameplay test. Re-read November 10; publisher text is unchanged and no later release is established."
+    },
+    {
+      "id": "cf8",
+      "announcement_id": "1846651706678313",
+      "title": "Community Feedback #8 | Command Post",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://www.hellletloose.com/blog/community-update-8",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
+      "published_at": "2026-10-15T16:00:50Z",
+      "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Selected functionality statements, including Clan Tags and rank emblems. Re-read October 20; the publisher text hash is unchanged. Tracked requests are not confirmed development. Re-read November 10; publisher text is unchanged and no later release is established."
+    },
+    {
+      "id": "cf7",
+      "announcement_id": "1846018067933766",
+      "title": "Community Feedback #7 | Command Post",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://www.hellletloose.com/blog/community-update-7",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846018067933766",
+      "published_at": "2026-10-09T15:37:43Z",
+      "content_sha256": "1198ac1a60afcf31405651f1d191774605bda3a0ecc7ca0e27e256481fd38672",
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement. Re-read November 10; publisher text is unchanged and no later release is established."
+    },
+    {
+      "id": "patch16",
+      "announcement_id": "1846018067925606",
+      "title": "Patch 1.6 | Hell Let Loose: Vietnam",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846018067925606",
+      "published_at": "2026-10-07T10:01:03Z",
+      "content_sha256": "78f03b3e7e6bc6c69e088e108ef353eeac05d3788193f052093d0199f91cbd5c",
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement. Re-read November 10; publisher text is unchanged and no later release is established."
+    },
+    {
+      "id": "commandpost_15_16",
+      "announcement_id": "1845383656387240",
+      "title": "Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/676259427855107286",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1845383656387240",
+      "published_at": "2026-10-02T17:47:33Z",
+      "content_sha256": "8308f924252dfc1362b9746a800beff9241c73d0fdf4a122eb58dc6d0509db1a",
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Announcement text reviewed; video not watched. Event or video notice, with no independent evidence of an additional feature release. Re-read November 10; publisher text is unchanged and no later release is established."
+    },
+    {
+      "id": "cf6",
+      "announcement_id": "1845383656381776",
+      "title": "Community Feedback #6 | Command Post",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://www.hellletloose.com/blog/community-update-6",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1845383656381776",
+      "published_at": "2026-10-01T15:12:24Z",
+      "content_sha256": "15b2da22c6d9e7eed823ce0764640a7797e63f8ad90c5f05816e24c8c3fcf83a",
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement. Re-read November 10; publisher text is unchanged and no later release is established."
+    },
+    {
+      "id": "hotfix171",
+      "announcement_id": "1849827110428418",
+      "title": "Hotfix 1.7.1 | Changelog | Live Now",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-7-1",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849827110428418",
+      "published_at": "2026-11-19T13:58:08Z",
+      "content_sha256": "365d239d0a36e6d4ce7a8d687c4f9f10d573cdb735203b228afb3c87aafb96a8",
+      "reviewed_at": "2026-11-26",
+      "review_scope": "Full official release, released functionality and scoped fixes; Xbox Series S known regression and unshipped targets kept separate. No independent gameplay testing."
+    }
+  ],
+  "features": [
+    {
+      "id": "HLLV-F001",
+      "title": "Engineer buildables & Barbed Wire",
+      "category": "Gameplay",
+      "kind": "balance_change",
+      "current": {
+        "availability": "live",
+        "summary": "Level 1 construction remains free of Supplies; upgrades still cost Supplies. Barbed Wire is now three per Engineer, capped at 50 per side.",
+        "source_ids": [
+          "patch16",
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "The announced Barbed Wire increase is now released.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Free basic construction and revised placement limits released."
+        },
+        {
+          "source_id": "cf8",
+          "status": "planned",
+          "summary": "Barbed Wire limits revised following feedback."
+        },
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "The announced Barbed Wire increase is now released."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-072"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "barbed wire",
+        "buildables",
+        "engineer"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Level 1 construction costs no Supplies; upgrades still do. Barbed Wire: two per Engineer, with no team cap in 1.6.",
+              "source_ids": [
+                "patch16"
+              ]
+            },
+            "change": "Barbed Wire: three per Engineer and 50 per side are planned.",
+            "status": "planned",
+            "target": "Patch 1.7"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F002",
+      "title": "Unit composition & Medics",
+      "category": "Gameplay",
+      "kind": "balance_change",
+      "current": {
+        "availability": "live",
+        "summary": "Units have two Medic slots and two Rifleman slots, replacing one and three respectively.",
+        "source_ids": [
+          "patch16"
+        ]
+      },
+      "status": "under_consideration",
+      "change": "Further Medic and role improvements are being explored.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Unit slot allocation changed."
+        },
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "Additional role changes remain exploratory."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "medic",
+        "unit composition"
+      ]
+    },
+    {
+      "id": "HLLV-F003",
+      "title": "Controller Crouch / Melee swap",
+      "category": "Controls",
+      "kind": "new_option",
+      "current": {
+        "availability": "live",
+        "summary": "All controller layouts offer a Crouch / Melee input swap.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "The Crouch / Melee swap has shipped; it is not full controller remapping.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "under_consideration",
+          "summary": "Additional controller options were being reviewed."
+        },
+        {
+          "source_id": "cf8",
+          "status": "planned",
+          "summary": "A specific input swap now has a target release."
+        },
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "The Crouch / Melee swap has shipped; it is not full controller remapping."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "crouch",
+        "melee",
+        "controller customisation"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "This option is not confirmed live by the reviewed sources.",
+              "source_ids": []
+            },
+            "change": "A Crouch / Melee input swap is announced.",
+            "status": "planned",
+            "target": "Patch 1.7"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F004",
+      "title": "Controller Radio / Equipment swap",
+      "category": "Controls",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "This option is not confirmed live by the reviewed sources.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The earlier Radio / Equipment swap plan targets 2.0. That update now targets early December; the scheduling post does not separately reconfirm this option.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "cf8",
+          "status": "planned",
+          "summary": "An additional controller option is planned."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The earlier Radio / Equipment swap plan targets 2.0. That update now targets early December; the scheduling post does not separately reconfirm this option."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "radio and equipment",
+        "radio",
+        "controller customisation"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "This option is not confirmed live by the reviewed sources.",
+              "source_ids": []
+            },
+            "change": "A Radio / Equipment input swap is planned.",
+            "status": "planned",
+            "target": "Update 2.0",
+            "latest_source_id": "cf8"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F005",
+      "title": "Controller dead zones & remapping",
+      "category": "Controls",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Additional ADS dead-zone and separate sensitivity options are not confirmed live by these sources.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Dead-zone and sensitivity requests remain under review; full remapping is not planned near term.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "under_consideration",
+          "summary": "ADS dead zones and separate sensitivity settings requested."
+        },
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "Requests reviewed; no short-term full-remapping commitment."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-067"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "dead zones",
+        "remapping",
+        "sensitivity settings"
+      ]
+    },
+    {
+      "id": "HLLV-F006",
+      "title": "Server Browser sorting & filters",
+      "category": "Servers",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Fuller servers are prioritised, filters persist and Favourites target the correct server. Official Server numbers are temporarily reduced for Community Server visibility; the 200-result EOS search limit remains.",
+        "source_ids": [
+          "patch16",
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "The temporary server-allocation change is released. The broader EOS-search workaround remains planned for 2.0.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Browser ordering, persistent filters and Favourites corrections shipped."
+        },
+        {
+          "source_id": "cf8",
+          "status": "released",
+          "summary": "Developer follow-up confirms the released behavior."
+        },
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "The temporary server-allocation change is released. The broader EOS-search workaround remains planned for 2.0."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-058",
+        "HLLV-069"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "server browser",
+        "persistent filters",
+        "fuller servers"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-26",
+          "reason": "Hotfix 1.7.1 reviewed against the existing feature scope.",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Fuller servers are prioritised; filters persist between sessions and Favourites target the correct server.",
+              "source_ids": [
+                "patch16"
+              ]
+            },
+            "change": "The developer confirms the browser changes are live.",
+            "status": "released",
+            "target": "Released in Patch 1.6",
+            "latest_source_id": "cf8"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F007",
+      "title": "Favourites capacity",
+      "category": "Servers",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Favourites saving was corrected in 1.6. These sources do not specify the current numerical limit.",
+        "source_ids": [
+          "patch16"
+        ]
+      },
+      "status": "planned",
+      "change": "The previously announced 50-server cap remains planned for 2.0. Its release window has moved to early December; the larger cap is not confirmed live.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "A capacity increase is conditional on technical feasibility."
+        },
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "The Favourites cap is now announced as 50 servers for Update 2.0. The larger limit is not confirmed live."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The previously announced 50-server cap remains planned for 2.0. Its release window has moved to early December; the larger cap is not confirmed live."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-069"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "favourites",
+        "favorites"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-09",
+          "reason": "Community Feedback #9 review; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Favourites saving was corrected in 1.6. These sources do not specify the current numerical limit.",
+              "source_ids": [
+                "patch16"
+              ]
+            },
+            "change": "A higher Favourites limit is under technical review.",
+            "status": "under_consideration",
+            "target": "No confirmed release",
+            "latest_source_id": "cf8"
+          }
+        },
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Favourites saving was corrected in 1.6. These sources do not specify the current numerical limit.",
+              "source_ids": [
+                "patch16"
+              ]
+            },
+            "change": "The Favourites cap is now announced as 50 servers for Update 2.0. The larger limit is not confirmed live.",
+            "status": "planned",
+            "target": "Update 2.0",
+            "latest_source_id": "cf9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F008",
+      "title": "Transport boat engine shutdown",
+      "category": "Vehicles",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Manual driver exit switches the engine off. Driver death in the seat leaves it running, which prevents transport-boat spawning until it is switched off.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "The manual driver exit rule is released, preserving driver-kill counterplay.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "cf6",
+          "status": "under_consideration",
+          "summary": "Exit-triggered and idle-time shutdown approaches were discussed."
+        },
+        {
+          "source_id": "cf7",
+          "status": "in_development",
+          "summary": "Feedback narrowed the plan to manual exit rather than driver death."
+        },
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "The manual driver exit rule is released, preserving driver-kill counterplay."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-062",
+        "HLLV-068"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "boat",
+        "transport boats",
+        "engine shutdown"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "An engine left running prevents transport-boat spawning.",
+              "source_ids": [
+                "cf6"
+              ]
+            },
+            "change": "The revised plan shuts the engine off on manual driver exit, preserving driver-kill counterplay.",
+            "status": "in_development",
+            "target": "Patch 1.7 if feasible; otherwise a later update"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F009",
+      "title": "Khe Sanh map",
+      "category": "Maps",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "A live release is not confirmed in the reviewed sources.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The preview describes the 1968 combat base as HLLV’s first Assault map, with a changing monsoon and interactive elephant grass. This is upcoming content, not a release notice.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "khe_sanh_preview_20261113",
+      "history": [
+        {
+          "source_id": "cf8",
+          "status": "planned",
+          "summary": "New map confirmed for the upcoming major update."
+        },
+        {
+          "source_id": "patch17",
+          "status": "planned",
+          "summary": "Khe Sanh is reaffirmed for Update 2.0, with the major update expected in November. No exact launch day is stated."
+        },
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "Khe Sanh will include weather. The map remains planned for Update 2.0; an exact launch day is not confirmed."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "Khe Sanh remains in Update 2.0, now targeted for early December following the publisher’s infrastructure disruption. No exact launch day is announced."
+        },
+        {
+          "source_id": "khe_sanh_preview_20261113",
+          "status": "planned",
+          "summary": "The preview describes the 1968 combat base as HLLV’s first Assault map, with a changing monsoon and interactive elephant grass. This is upcoming content, not a release notice."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "khe sanh",
+        "map variety",
+        "weather"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "A live release is not confirmed in the reviewed sources.",
+              "source_ids": []
+            },
+            "change": "Khe Sanh is announced as the next new map.",
+            "status": "planned",
+            "target": "Update 2.0"
+          }
+        },
+        {
+          "date": "2026-11-09",
+          "reason": "Community Feedback #9 review; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "A live release is not confirmed in the reviewed sources.",
+              "source_ids": []
+            },
+            "change": "Khe Sanh is reaffirmed for Update 2.0, with the major update expected in November. No exact launch day is stated.",
+            "status": "planned",
+            "target": "Update 2.0 · November 2026 target",
+            "latest_source_id": "patch17"
+          }
+        },
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "A live release is not confirmed in the reviewed sources.",
+              "source_ids": []
+            },
+            "change": "Khe Sanh will include weather. The map remains planned for Update 2.0; an exact launch day is not confirmed.",
+            "status": "planned",
+            "target": "Update 2.0 · November 2026 target",
+            "latest_source_id": "cf9"
+          }
+        },
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "A live release is not confirmed in the reviewed sources.",
+              "source_ids": []
+            },
+            "change": "Khe Sanh remains in Update 2.0, now targeted for early December following the publisher’s infrastructure disruption. No exact launch day is announced.",
+            "status": "planned",
+            "target": "Update 2.0 · early December 2026 target",
+            "latest_source_id": "release_dates_20261112"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F010",
+      "title": "PS5 display options",
+      "category": "Graphics",
+      "kind": "new_option",
+      "current": {
+        "availability": "live",
+        "summary": "PSSR is available on PS5 Pro. VRR is available on PS5 and PS5 Pro with compatible displays.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "The platform-specific display options are released. PSSR is not announced for base PS5.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "planned",
+          "summary": "PSSR targets PS5 Pro; VRR targets PS5 and PS5 Pro, subject to testing."
+        },
+        {
+          "source_id": "cf8",
+          "status": "planned",
+          "summary": "The upcoming-patch target is reiterated."
+        },
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "The platform-specific display options are released. PSSR is not announced for base PS5."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-006",
+        "HLLV-057"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "pssr",
+        "vrr",
+        "console visual"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The reviewed sources do not yet confirm release of these display options.",
+              "source_ids": []
+            },
+            "change": "PSSR and VRR remain targeted for the next patch.",
+            "status": "planned",
+            "target": "Patch 1.7"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F011",
+      "title": "Saved role loadouts",
+      "category": "Gameplay",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Saved presets are not confirmed live in the reviewed source.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Role presets are being explored within longer-term UI plans. Discussion does not establish a delivery commitment.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf7",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "under_consideration",
+          "summary": "Saved loadouts enter longer-term UI discussion."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "role loadouts",
+        "loadout presets",
+        "saveable"
+      ]
+    },
+    {
+      "id": "HLLV-F012",
+      "title": "Vote Kick visibility & voting time",
+      "category": "Community tools",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Vote Kick notifications default to visible; the response window increased from 15 to 30 seconds.",
+        "source_ids": [
+          "patch16"
+        ]
+      },
+      "status": "released",
+      "change": "Released moderation changes remain under observation.",
+      "target": "Released in Patch 1.6",
+      "latest_source_id": "cf7",
+      "history": [
+        {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Default visibility and longer voting time released."
+        },
+        {
+          "source_id": "cf7",
+          "status": "released",
+          "summary": "Developers are monitoring the response to the live changes."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-063"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "vote kick",
+        "votekick",
+        "vote to kick"
+      ]
+    },
+    {
+      "id": "HLLV-F013",
+      "title": "Expanded match statistics",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Expanded statistics are not confirmed live by these sources.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Expanded statistics remain a tracked community request.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "under_consideration",
+          "summary": "Expanded statistics discussed within longer-term UI plans."
+        },
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "Tracking a request is not confirmation of development."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "statistics",
+        "match stats"
+      ]
+    },
+    {
+      "id": "HLLV-F014",
+      "title": "Text chat usability",
+      "category": "Community tools",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Developers describe limited chat length and limited conversation scrollback.",
+        "source_ids": [
+          "cf6"
+        ]
+      },
+      "status": "in_development",
+      "change": "Chat size, positioning and history navigation are being investigated together; a higher character limit alone would not address usability.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf6",
+      "history": [
+        {
+          "source_id": "cf6",
+          "status": "in_development",
+          "summary": "Wider chat-interface improvements are being investigated."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "text chat",
+        "character limit",
+        "scroll back"
+      ]
+    },
+    {
+      "id": "HLLV-F015",
+      "title": "Clan Tags",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The reviewed statement does not establish availability.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Clan Tags were previously linked to Battalions. The revised roadmap lists Battalions as a beta in Update 3.0, now early 2027; it does not separately restate Clan Tag functionality.",
+      "target": "Update 3.0 · early 2027 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "Publisher acknowledges the request without a delivery commitment."
+        },
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "Clan Tags are planned alongside Battalions, targeting Update 3.0, rather than a separate interim implementation."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "Clan Tags were previously linked to Battalions. The revised roadmap lists Battalions as a beta in Update 3.0, now early 2027; it does not separately restate Clan Tag functionality."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "clan tags",
+        "battalions"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-09",
+          "reason": "Community Feedback #9 review; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The reviewed statement does not establish availability.",
+              "source_ids": []
+            },
+            "change": "Clan Tags are named among community requests the publisher is tracking; development is not confirmed.",
+            "status": "under_consideration",
+            "target": "No confirmed release",
+            "latest_source_id": "cf8"
+          }
+        },
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The reviewed statement does not establish availability.",
+              "source_ids": []
+            },
+            "change": "Clan Tags are planned alongside Battalions, targeting Update 3.0, rather than a separate interim implementation.",
+            "status": "planned",
+            "target": "Update 3.0 target",
+            "latest_source_id": "cf9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F016",
+      "title": "Rank emblems",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The reviewed statement does not establish availability.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "The team is exploring better ways to display player experience and rank; a specific emblem implementation remains unconfirmed.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "Publisher acknowledges the request without a delivery commitment."
+        },
+        {
+          "source_id": "cf9",
+          "status": "under_consideration",
+          "summary": "The team is exploring better ways to display player experience and rank; a specific emblem implementation remains unconfirmed."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "rank emblems",
+        "player experience",
+        "representing player",
+        "rank"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-09",
+          "reason": "Community Feedback #9 review; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The reviewed statement does not establish availability.",
+              "source_ids": []
+            },
+            "change": "Rank emblems are named among community requests the publisher is tracking; development is not confirmed.",
+            "status": "under_consideration",
+            "target": "No confirmed release",
+            "latest_source_id": "cf8"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F017",
+      "title": "M1A1 Thompson",
+      "category": "Weapons",
+      "kind": "new_content",
+      "current": {
+        "availability": "live",
+        "summary": "US access: Commander, Tank Commander, Crewman, Mortar Observer, Sniper, Squad Leader, Medic, Specialist, Grenadier and Engineer.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Adds a US submachine-gun option to the listed roles.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Adds a US submachine-gun option to the listed roles."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "thompson",
+        "m1a1"
+      ]
+    },
+    {
+      "id": "HLLV-F018",
+      "title": "M16A1 30-round magazines",
+      "category": "Weapons",
+      "kind": "new_option",
+      "current": {
+        "availability": "live",
+        "summary": "Optional 30-round configuration: six magazines by default, up to ten via Barracks. The weapon gains one Weight; each magazine costs two Weight versus one for a 20-round magazine.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Adds capacity with a loadout-weight trade-off; the 20-round option remains.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Adds capacity with a loadout-weight trade-off; the 20-round option remains."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "m16a1",
+        "30-round"
+      ]
+    },
+    {
+      "id": "HLLV-F019",
+      "title": "Tank shell unloading",
+      "category": "Vehicles",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Selecting another shell type unloads the chambered round and automatically loads the chosen type.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "A tank crew no longer has to fire its loaded round just to switch shell types.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "A tank crew no longer has to fire its loaded round just to switch shell types."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-093"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "shell unloading",
+        "chambered shell"
+      ]
+    },
+    {
+      "id": "HLLV-F020",
+      "title": "Boat handling, speed & Fuel balance",
+      "category": "Vehicles",
+      "kind": "balance_change",
+      "current": {
+        "availability": "live",
+        "summary": "Both factions gain handling and top-speed improvements. The US PBR has a larger speed/acceleration advantage; the supply-carrying NVA boat now costs 250 Fuel, up from 200.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Boat handling and resource costs are rebalanced.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Boat handling and resource costs are rebalanced."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "boat handling",
+        "pbr",
+        "250 fuel"
+      ]
+    },
+    {
+      "id": "HLLV-F021",
+      "title": "AMD FSR Frame Generation",
+      "category": "Graphics",
+      "kind": "new_option",
+      "current": {
+        "availability": "live",
+        "summary": "Available in Video Settings on supported AMD GPUs, specified as 5000 series and newer. The publisher recommends a base rate around 60 FPS or higher to limit added latency.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Adds AMD frame generation; it is separate from NVIDIA DLSS persistence reports.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Adds AMD frame generation; it is separate from NVIDIA DLSS persistence reports."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-060"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "fsr frame generation",
+        "amd"
+      ]
+    },
+    {
+      "id": "HLLV-F022",
+      "title": "Redeploy punishment timer",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Choosing Redeploy no longer adds a ten-second punishment; the normal deployment timer still applies.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Removes the extra redeploy penalty, not all waiting time.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Removes the extra redeploy penalty, not all waiting time."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "redeploy",
+        "punishment"
+      ]
+    },
+    {
+      "id": "HLLV-F023",
+      "title": "Commander ability team-kill punishment",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Friendly deaths from Commander abilities such as Napalm, Artillery Strikes and Bombing Runs no longer add a team-kill punishment to the Commander.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Personal weapons and other direct actions keep their normal punishment behavior.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Personal weapons and other direct actions keep their normal punishment behavior."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "commander orders",
+        "team-kill"
+      ]
+    },
+    {
+      "id": "HLLV-F024",
+      "title": "Official Server AFK timer",
+      "category": "Servers",
+      "kind": "balance_change",
+      "current": {
+        "availability": "live",
+        "summary": "Official Servers now remove inactive players after ten minutes instead of thirty.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "The published change is scoped to Official Servers; no universal community-server setting is inferred.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "The published change is scoped to Official Servers; no universal community-server setting is inferred."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "afk",
+        "inactive"
+      ]
+    },
+    {
+      "id": "HLLV-F025",
+      "title": "Faster Barracks navigation & unsaved-options warning",
+      "category": "Interface",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Lengthy Barracks entry/exit camera transitions are removed. Leaving front-end Options with unsaved edits now prompts the player.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Improves menu flow without establishing that every saved setting persists through restart.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Improves menu flow without establishing that every saved setting persists through restart."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-084"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "barracks",
+        "unsaved changes"
+      ]
+    },
+    {
+      "id": "HLLV-F026",
+      "title": "NATO phonetic Unit names",
+      "category": "Interface",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Units use NATO phonetic names, including Alfa, Bravo and Charlie. Hotfix 1.7.1 corrects a missing-name string after rejoining the same server.",
+        "source_ids": [
+          "patch17",
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "Corrects a Unit-name display failure after a join, leave and rejoin sequence; the naming scheme is unchanged.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Updates Unit naming; this does not add Clan Tags or rank emblems."
+        },
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "Corrects a Unit-name display failure after a join, leave and rejoin sequence; the naming scheme is unchanged."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "phonetic",
+        "unit names"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-26",
+          "reason": "Hotfix 1.7.1 reviewed against the existing feature scope.",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Units use NATO phonetic names, including Alfa, Bravo and Charlie.",
+              "source_ids": [
+                "patch17"
+              ]
+            },
+            "change": "Updates Unit naming; this does not add Clan Tags or rank emblems.",
+            "status": "released",
+            "target": "Released in Patch 1.7",
+            "latest_source_id": "patch17"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F027",
+      "title": "Vehicle impact kill threshold",
+      "category": "Gameplay",
+      "kind": "balance_change",
+      "current": {
+        "availability": "live",
+        "summary": "Vehicles must reach a higher speed before an impact kills infantry; the notes give no numerical threshold.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Raises the threshold again to reduce slow-vehicle deaths.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Raises the threshold again to reduce slow-vehicle deaths."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "vehicle impact",
+        "run over"
+      ]
+    },
+    {
+      "id": "HLLV-F028",
+      "title": "ANZAC Forces",
+      "category": "Factions",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Not released in the reviewed announcement.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "ANZAC representation remains planned for 2.0 in early December. The roadmap labels ANZAC player cosmetics as Deluxe Edition content; it does not establish a separate playable faction or exclusive combat mechanics.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "planned",
+          "summary": "Announced as an expansion of US & Allied Forces in Update 2.0; not released by Patch 1.7."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "ANZAC representation remains planned for 2.0 in early December. The roadmap labels ANZAC player cosmetics as Deluxe Edition content; it does not establish a separate playable faction or exclusive combat mechanics."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "anzac",
+        "allied forces"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Not released in the reviewed announcement.",
+              "source_ids": []
+            },
+            "change": "Announced as an expansion of US & Allied Forces in Update 2.0; not released by Patch 1.7.",
+            "status": "planned",
+            "target": "Update 2.0 · November 2026 target",
+            "latest_source_id": "patch17"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F029",
+      "title": "Base PS5 QSSR",
+      "category": "Graphics",
+      "kind": "new_option",
+      "current": {
+        "availability": "live",
+        "summary": "QSSR is enabled by default on base PS5. No setting change is required; PS5 Pro retains its separate PSSR support.",
+        "source_ids": [
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "The previously announced base-PS5 QSSR integration is now released and enabled by default.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "planned",
+          "summary": "The publisher intends to integrate QSSR when available to implement. No release date or Update 2.0 commitment is stated."
+        },
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "QSSR integration still depends on Sony making the technology available. The publisher describes availability later in 2026; no game release date is confirmed."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The roadmap retains PS5 QSSR under General Improvements without assigning a particular update or exact date. No HLLV release is established."
+        },
+        {
+          "source_id": "sony_qssr_20261113",
+          "status": "in_development",
+          "summary": "Expression’s game director confirms PS5 QSSR integration through an upcoming HLLV update. The developer statement names no release day or version; the feature is not confirmed live."
+        },
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "The previously announced base-PS5 QSSR integration is now released and enabled by default."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-006"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "qssr"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-09",
+          "reason": "Community Feedback #9 review; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Not released in the reviewed announcement.",
+              "source_ids": []
+            },
+            "change": "The publisher intends to integrate QSSR when available to implement. No release date or Update 2.0 commitment is stated.",
+            "status": "planned",
+            "target": "No confirmed release date",
+            "latest_source_id": "patch17"
+          }
+        },
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Not released in the reviewed announcement.",
+              "source_ids": []
+            },
+            "change": "QSSR integration still depends on Sony making the technology available. The publisher describes availability later in 2026; no game release date is confirmed.",
+            "status": "planned",
+            "target": "Dependent on Sony availability · no confirmed release date",
+            "latest_source_id": "cf9"
+          }
+        },
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Not released in the reviewed announcement.",
+              "source_ids": []
+            },
+            "change": "The roadmap retains PS5 QSSR under General Improvements without assigning a particular update or exact date. No HLLV release is established.",
+            "status": "planned",
+            "target": "Upcoming integration · no confirmed release date",
+            "latest_source_id": "release_dates_20261112"
+          }
+        },
+        {
+          "date": "2026-11-26",
+          "reason": "Hotfix 1.7.1 reviewed against the existing feature scope.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Not released in the reviewed announcement.",
+              "source_ids": []
+            },
+            "change": "Expression’s game director confirms PS5 QSSR integration through an upcoming HLLV update. The developer statement names no release day or version; the feature is not confirmed live.",
+            "status": "in_development",
+            "target": "Upcoming HLLV update · date and version unannounced",
+            "latest_source_id": "sony_qssr_20261113"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F030",
+      "title": "Tank coaxial & boat MG ammunition top-ups",
+      "category": "Vehicles",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Tank coaxial MGs and boat Machine Gunner positions can be resupplied before their ammunition is completely empty.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Extends pre-empty resupply; equal refilling of both bow guns is not explicitly confirmed.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Extends pre-empty resupply; equal refilling of both bow guns is not explicitly confirmed."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-031"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "coaxial",
+        "resupplied"
+      ]
+    },
+    {
+      "id": "HLLV-F031",
+      "title": "Tutorial completion labels",
+      "category": "Interface",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Tutorial status more clearly identifies completed and incomplete tutorials.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Clarifies the display; it does not establish a completion-saving fix.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Clarifies the display; it does not establish a completion-saving fix."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-033"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "tutorial status",
+        "tutorials"
+      ]
+    },
+    {
+      "id": "HLLV-F032",
+      "title": "Commander vehicle-limit & Encourage indicators",
+      "category": "Interface",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Commander vehicle Orders show the active vehicle limit; Encourage has an active-state indicator.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Patch 1.7 repeats the vehicle-limit UI listed in 1.6 and names an Encourage indicator. The 1.6 notes called their ability indicator Reinforce; equivalence is not established.",
+      "target": "Vehicle limits documented in 1.6 · Encourage listed in 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Vehicle-order active limits and a Reinforce active-state indicator are listed in Patch 1.6."
+        },
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Patch 1.7 repeats the vehicle-limit UI listed in 1.6 and names an Encourage indicator. The 1.6 notes called their ability indicator Reinforce; equivalence is not established."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-096"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "encourage",
+        "active vehicle limit"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-09",
+          "reason": "Cross-check of Patch 1.6 establishes earlier documentation; Patch 1.7 baseline retained.",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Commander vehicle Orders show the active vehicle limit; Encourage has an active-state indicator.",
+              "source_ids": [
+                "patch17"
+              ]
+            },
+            "change": "Adds feedback about limits and current ability state.",
+            "status": "released",
+            "target": "Released in Patch 1.7",
+            "history": [
+              {
+                "source_id": "patch17",
+                "status": "released",
+                "summary": "Adds feedback about limits and current ability state."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F033",
+      "title": "Tunnel-collapse travel outcome",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Players in transit are killed immediately if their Tunnel network collapses.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Patch 1.7 repeats the immediate tunnel-collapse outcome already documented in 1.6; broader replication and connectivity fixes are separate.",
+      "target": "Released by Patch 1.6 · reiterated in 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Players in transit die immediately when their Tunnel network collapses, rather than when travel finishes."
+        },
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Patch 1.7 repeats the immediate tunnel-collapse outcome already documented in 1.6; broader replication and connectivity fixes are separate."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "tunnel network collapses",
+        "travelling"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-09",
+          "reason": "Cross-check of Patch 1.6 establishes earlier documentation; Patch 1.7 baseline retained.",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Players in transit are killed immediately if their Tunnel network collapses.",
+              "source_ids": [
+                "patch17"
+              ]
+            },
+            "change": "Changes the outcome during a collapsing network, not general Tunnel replication or connectivity.",
+            "status": "released",
+            "target": "Released in Patch 1.7",
+            "history": [
+              {
+                "source_id": "patch17",
+                "status": "released",
+                "summary": "Changes the outcome during a collapsing network, not general Tunnel replication or connectivity."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F034",
+      "title": "In-match Party Chat across Units",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The announced in-match extension is not confirmed live; earlier lobby Party Voice Chat fixes are a separate record.",
+        "source_ids": []
+      },
+      "status": "in_development",
+      "change": "Party Chat remains on the roadmap under General Improvements. The earlier 2.0 target was conditional on completion; the revised graphic does not assign it an update-specific date.",
+      "target": "Earlier 2.0 target conditional · roadmap timing unspecified",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "in_development",
+          "summary": "Party Chat for groups split across Units and roles is in development, targeting 2.0 subject to completion."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "in_development",
+          "summary": "Party Chat remains on the roadmap under General Improvements. The earlier 2.0 target was conditional on completion; the revised graphic does not assign it an update-specific date."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-038"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "party chat",
+        "party voice",
+        "different units"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The announced in-match extension is not confirmed live; earlier lobby Party Voice Chat fixes are a separate record.",
+              "source_ids": []
+            },
+            "change": "Party Chat for groups split across Units and roles is in development, targeting 2.0 subject to completion.",
+            "status": "in_development",
+            "target": "Update 2.0 target · subject to completion",
+            "latest_source_id": "cf9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F035",
+      "title": "New Engineer bunker type",
+      "category": "Gameplay",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The additional bunker type is not confirmed live. Existing Engineer buildables and Barbed Wire limits remain as previously released.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The new bunker was announced for 2.0. That update now targets early December; the scheduling post does not add bunker specifications or a shipped confirmation.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "An additional bunker type is announced for Update 2.0; construction costs and placement limits are not specified."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The new bunker was announced for 2.0. That update now targets early December; the scheduling post does not add bunker specifications or a shipped confirmation."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "new bunker",
+        "bunker type",
+        "defensive variety"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The additional bunker type is not confirmed live. Existing Engineer buildables and Barbed Wire limits remain as previously released.",
+              "source_ids": []
+            },
+            "change": "An additional bunker type is announced for Update 2.0; construction costs and placement limits are not specified.",
+            "status": "planned",
+            "target": "Update 2.0",
+            "latest_source_id": "cf9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F036",
+      "title": "More progression-unlocked cosmetics",
+      "category": "Community tools",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The expanded cosmetic selection is not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Free unlockable cosmetics remain in 2.0, now early December. The roadmap separates these from Deluxe Edition player and helicopter cosmetics.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "Update 2.0 is planned to add more unlockable cosmetics, including free rewards tied to progression."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "Free unlockable cosmetics remain in 2.0, now early December. The roadmap separates these from Deluxe Edition player and helicopter cosmetics."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "unlockable cosmetics",
+        "free cosmetics",
+        "progression rewards"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The expanded cosmetic selection is not confirmed live.",
+              "source_ids": []
+            },
+            "change": "Update 2.0 is planned to add more unlockable cosmetics, including free rewards tied to progression.",
+            "status": "planned",
+            "target": "Update 2.0",
+            "latest_source_id": "cf9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F037",
+      "title": "Player commendations",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Commendations are not confirmed live.",
+        "source_ids": []
+      },
+      "status": "in_development",
+      "change": "The revised roadmap assigns Commendations to Update 3.0 in early 2027, narrowing the earlier general 2027 plan. No exact date or reward scheme is specified.",
+      "target": "Update 3.0 · early 2027 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "in_development",
+          "summary": "Commendations are in development with a 2027 target. A particular update, month or reward scheme is not specified."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "in_development",
+          "summary": "The revised roadmap assigns Commendations to Update 3.0 in early 2027, narrowing the earlier general 2027 plan. No exact date or reward scheme is specified."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "commendations"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Commendations are not confirmed live.",
+              "source_ids": []
+            },
+            "change": "Commendations are in development with a 2027 target. A particular update, month or reward scheme is not specified.",
+            "status": "in_development",
+            "target": "2027 target",
+            "latest_source_id": "cf9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F038",
+      "title": "Controller Tactical Map markers",
+      "category": "Controls",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The announced controller-map changes are not confirmed live.",
+        "source_ids": []
+      },
+      "status": "testing",
+      "change": "Hotfix 1.7.1 releases fixes for the existing Marker List and overlap placement (HLLV-F057). It does not establish delivery of the broader D-pad-only controller-map redesign intended to preserve movement-stick input.",
+      "target": "Broader controller-map redesign · 2.0 early December target · release unconfirmed",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "testing",
+          "summary": "D-pad marker selection is intended to preserve movement-stick input. Marker placement over existing map elements is also being addressed; final testing remains."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "testing",
+          "summary": "D-pad marker selection and overlap-placement work retain their earlier 2.0 testing scope. The release window is now early December; this schedule change does not confirm final validation."
+        },
+        {
+          "source_id": "hotfix171",
+          "status": "testing",
+          "summary": "Hotfix 1.7.1 releases fixes for the existing Marker List and overlap placement (HLLV-F057). It does not establish delivery of the broader D-pad-only controller-map redesign intended to preserve movement-stick input."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-105"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "tactical map",
+        "marker menu",
+        "d-pad",
+        "placing a marker"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The announced controller-map changes are not confirmed live.",
+              "source_ids": []
+            },
+            "change": "D-pad marker selection is intended to preserve movement-stick input. Marker placement over existing map elements is also being addressed; final testing remains.",
+            "status": "testing",
+            "target": "Update 2.0 · subject to final testing",
+            "latest_source_id": "cf9"
+          }
+        },
+        {
+          "date": "2026-11-26",
+          "reason": "Hotfix 1.7.1 reviewed against the existing feature scope.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The announced controller-map changes are not confirmed live.",
+              "source_ids": []
+            },
+            "change": "D-pad marker selection and overlap-placement work retain their earlier 2.0 testing scope. The release window is now early December; this schedule change does not confirm final validation.",
+            "status": "testing",
+            "target": "Update 2.0 · early December 2026 target · final testing pending",
+            "latest_source_id": "release_dates_20261112"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F039",
+      "title": "M16A1 visual recoil",
+      "category": "Weapons",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "No visual recoil adjustment is confirmed released. The developer describes existing M16A1 mechanical recoil as lower than the AK.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Visual handling is being investigated because the carry handle and firing speed can exaggerate perceived recoil. No AK recoil increase is announced.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "under_consideration",
+          "summary": "Visual handling is being investigated because the carry handle and firing speed can exaggerate perceived recoil. No AK recoil increase is announced."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "m16a1 recoil",
+        "ak recoil",
+        "carry handle",
+        "perceived recoil"
+      ]
+    },
+    {
+      "id": "HLLV-F040",
+      "title": "Bullet penetration system",
+      "category": "Weapons",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The broader penetration-system work is not confirmed released; specific collision fixes have their own issue history.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Calibre/material penetration-system investigation is planned for 2027. Incorrect asset collision continues to receive separate batches of corrections.",
+      "target": "2027 investigation and improvement work",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "Calibre/material penetration-system investigation is planned for 2027. Incorrect asset collision continues to receive separate batches of corrections."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-004"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "bullet penetration",
+        "light cover",
+        "fishing nets"
+      ]
+    },
+    {
+      "id": "HLLV-F041",
+      "title": "Future battlefield variety",
+      "category": "Maps",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Additional urban-style battlefields are not confirmed live in this announcement.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Khe Sanh and Rung Sat now have roadmap windows in 2.0 and 3.0. The earlier urban-combat discussion still lacks a named urban map or a separate delivery date.",
+      "target": "Named maps in 2.0/3.0 · urban-map timing unconfirmed",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "Future maps are planned to broaden environments, including closer urban combat. More information is promised for 2027; individual maps and release dates are not named."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "Khe Sanh and Rung Sat now have roadmap windows in 2.0 and 3.0. The earlier urban-combat discussion still lacks a named urban map or a separate delivery date."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "urban environments",
+        "urban-style",
+        "environmental variety",
+        "future battlefields"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Additional urban-style battlefields are not confirmed live in this announcement.",
+              "source_ids": []
+            },
+            "change": "Future maps are planned to broaden environments, including closer urban combat. More information is promised for 2027; individual maps and release dates are not named.",
+            "status": "planned",
+            "target": "Future maps · no confirmed dates",
+            "latest_source_id": "cf9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F042",
+      "title": "Additional weapons and faction equipment",
+      "category": "Weapons",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The further arsenal expansion is not confirmed live; the Thompson and M16A1 magazine option already shipped in 1.7.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The roadmap names seven 2.0 weapons: scoped M14, L1A1, F1, MAT-49, Stoner 63, SVD and L16A1 mortar. PPSh-41 and M3A1 Grease Gun are listed for 3.0. Role access and balance values are not specified.",
+      "target": "Update 2.0 · early December 2026; Update 3.0 · early 2027",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "More weapons are announced for 2.0. Further weapons, vehicles and faction-specific equipment are planned beyond that without item-level dates."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The roadmap names seven 2.0 weapons: scoped M14, L1A1, F1, MAT-49, Stoner 63, SVD and L16A1 mortar. PPSh-41 and M3A1 Grease Gun are listed for 3.0. Role access and balance values are not specified."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "available arsenal",
+        "faction-specific",
+        "more weapons"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The further arsenal expansion is not confirmed live; the Thompson and M16A1 magazine option already shipped in 1.7.",
+              "source_ids": []
+            },
+            "change": "More weapons are announced for 2.0. Further weapons, vehicles and faction-specific equipment are planned beyond that without item-level dates.",
+            "status": "planned",
+            "target": "Update 2.0 arsenal expansion · further content undated",
+            "latest_source_id": "cf9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F043",
+      "title": "Deeper role progression",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "An expanded role-progression system is not confirmed live.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Deeper role progression is being explored. This has no confirmed delivery target and is separate from the 2.0 cosmetic plan and 2027 commendations.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "under_consideration",
+          "summary": "Deeper role progression is being explored. This has no confirmed delivery target and is separate from the 2.0 cosmetic plan and 2027 commendations."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "role progression",
+        "progression depth"
+      ]
+    },
+    {
+      "id": "HLLV-F044",
+      "title": "Separate VOIP audio output",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Separate voice-output selection is not confirmed released.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Developers want to support separate voice output; additional audio-system work is needed.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf6",
+      "history": [
+        {
+          "source_id": "cf6",
+          "status": "under_consideration",
+          "summary": "Routing request acknowledged; delivery uncommitted."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "audio routing",
+        "audio output",
+        "voice comms"
+      ]
+    },
+    {
+      "id": "HLLV-F045",
+      "title": "Aim Assist improvements",
+      "category": "Controls",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The announced improvements are not confirmed released.",
+        "source_ids": []
+      },
+      "status": "in_development",
+      "change": "The earlier Aim Assist plan targets 2.0 subject to development and testing. That update now targets early December; the scheduling post does not independently confirm completion.",
+      "target": "Update 2.0 · early December 2026 target · testing conditional",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "cf6",
+          "status": "in_development",
+          "summary": "Conditional target announced."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "in_development",
+          "summary": "The earlier Aim Assist plan targets 2.0 subject to development and testing. That update now targets early December; the scheduling post does not independently confirm completion."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-034"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "aim assist"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The announced improvements are not confirmed released.",
+              "source_ids": []
+            },
+            "change": "Aim Assist work targets 2.0, conditional on development and testing.",
+            "status": "in_development",
+            "target": "Update 2.0 target · subject to development and testing",
+            "latest_source_id": "cf6"
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F046",
+      "title": "Mounted machine-gun usability",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Broader mounted-weapon improvements are not confirmed released.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Deployment, elevation and forced aiming-down-sights complaints are tracked for future improvements.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf6",
+      "history": [
+        {
+          "source_id": "cf6",
+          "status": "under_consideration",
+          "summary": "Usability feedback acknowledged; no implementation specified."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-064"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "mounted machine guns",
+        "mounted weapons",
+        "forced into ads"
+      ]
+    },
+    {
+      "id": "HLLV-F047",
+      "title": "Weapon access across roles",
+      "category": "Gameplay",
+      "kind": "balance_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Additional M14 or SKS role access is not confirmed by this discussion.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Developers are reviewing requests for wider weapon access while preserving role differences.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf7",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "under_consideration",
+          "summary": "Loadout changes remain open to feedback, without named new combinations."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "weapon and role",
+        "m14",
+        "sks"
+      ]
+    },
+    {
+      "id": "HLLV-F048",
+      "title": "Player markers & nameplate controls",
+      "category": "Interface",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Additional visibility controls are not confirmed released.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "More control over player markers and nameplates is part of longer-term interface discussions.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf7",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "under_consideration",
+          "summary": "Future interface flexibility discussed."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "nameplate visibility",
+        "player markers",
+        "ui/ux"
+      ]
+    },
+    {
+      "id": "HLLV-F049",
+      "title": "Combat audio & spawn sounds",
+      "category": "Audio",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Patch 1.6 remixed weapons and explosions, added ambient battle sounds, and changed how spawn sounds travel through cover.",
+        "source_ids": [
+          "patch16"
+        ]
+      },
+      "status": "released",
+      "change": "The audio refresh is released.",
+      "target": "Released in Patch 1.6",
+      "latest_source_id": "patch16",
+      "history": [
+        {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Combat and spawn audio updated."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-028",
+        "HLLV-099"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "audio overhaul",
+        "audio pass",
+        "spawn audio",
+        "distant gunfire"
+      ]
+    },
+    {
+      "id": "HLLV-F050",
+      "title": "Rung Sat map",
+      "category": "Maps",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Rung Sat is not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Rung Sat is named as the map for Update 3.0, now targeted for early 2027. The announcement does not give a launch day or detailed map rules.",
+      "target": "Update 3.0 · early 2027 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "Rung Sat is named as the map for Update 3.0, now targeted for early 2027. The announcement does not give a launch day or detailed map rules."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "rung sat"
+      ]
+    },
+    {
+      "id": "HLLV-F051",
+      "title": "US and NVA armored personnel carriers",
+      "category": "Vehicles",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The new APC vehicle class is not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The roadmap lists APCs for both US and NVA in 3.0. Passenger capacity, spawn behavior, costs and armament specifications are not provided.",
+      "target": "Update 3.0 · early 2027 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The roadmap lists APCs for both US and NVA in 3.0. Passenger capacity, spawn behavior, costs and armament specifications are not provided."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "armored personnel carriers",
+        "armoured personnel carriers",
+        "apcs"
+      ]
+    },
+    {
+      "id": "HLLV-F052",
+      "title": "Battalions beta",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Battalions is not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The revised roadmap labels Battalions as a beta for 3.0. The earlier Clan Tags connection remains recorded separately; detailed membership and management behavior is not described.",
+      "target": "Update 3.0 · early 2027 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The revised roadmap labels Battalions as a beta for 3.0. The earlier Clan Tags connection remains recorded separately; detailed membership and management behavior is not described."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "battalions"
+      ]
+    },
+    {
+      "id": "HLLV-F053",
+      "title": "Green Berets, Navy SEALs and NVA cosmetics",
+      "category": "Community tools",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "These additional cosmetic packs are not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The roadmap lists Green Berets, Navy SEALs and NVA infantry player cosmetics as Deluxe Edition content for 2.0. This does not establish separate gameplay factions or combat advantages.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The roadmap lists Green Berets, Navy SEALs and NVA infantry player cosmetics as Deluxe Edition content for 2.0. This does not establish separate gameplay factions or combat advantages."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "green berets",
+        "navy seals",
+        "nva infantry",
+        "deluxe edition"
+      ]
+    },
+    {
+      "id": "HLLV-F054",
+      "title": "Vehicle cosmetic expansion",
+      "category": "Vehicles",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The roadmap’s additional vehicle skins are not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Vehicle skins are listed for 2.0, with helicopter skins separately labelled Deluxe Edition content. APC skins are listed for 3.0. No vehicle performance changes are established by these cosmetic entries.",
+      "target": "Update 2.0 · early December 2026; APC skins in 3.0 · early 2027",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "Vehicle skins are listed for 2.0, with helicopter skins separately labelled Deluxe Edition content. APC skins are listed for 3.0. No vehicle performance changes are established by these cosmetic entries."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "vehicle skins",
+        "helicopter skins",
+        "apc skins"
+      ]
+    },
+    {
+      "id": "HLLV-F055",
+      "title": "Xbox FSR 4.1",
+      "category": "Graphics",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "FSR 4.1 for Xbox is not confirmed released in HLLV.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The revised roadmap lists Xbox FSR 4.1 under General Improvements, without a particular update or date. PC AMD upscaling and frame-generation releases do not establish Xbox availability.",
+      "target": "General Improvements · release date unspecified",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The revised roadmap lists Xbox FSR 4.1 under General Improvements, without a particular update or date. PC AMD upscaling and frame-generation releases do not establish Xbox availability."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "fsr 4.1",
+        "xbox"
+      ]
+    },
+    {
+      "id": "HLLV-F056",
+      "title": "Khe Sanh monsoon and elephant grass",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "These Khe Sanh environmental mechanics are not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The preview describes weather shifting into a monsoon that reduces visibility and masks sounds. Elephant grass slows movement and produces nearby audio cues; numerical effects are not specified.",
+      "target": "Khe Sanh in Update 2.0 · early December 2026 target",
+      "latest_source_id": "khe_sanh_preview_20261113",
+      "history": [
+        {
+          "source_id": "khe_sanh_preview_20261113",
+          "status": "planned",
+          "summary": "The preview describes weather shifting into a monsoon that reduces visibility and masks sounds. Elephant grass slows movement and produces nearby audio cues; numerical effects are not specified."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "monsoon",
+        "elephant grass",
+        "dynamic weather"
+      ]
+    },
+    {
+      "id": "HLLV-F057",
+      "title": "Tactical Map marker controls",
+      "category": "Controls",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Marker List mouse selection covers the whole row; D-pad navigation retains focus. Placement over existing markers is restored after a 1.7 regression.",
+        "source_ids": [
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "Repairs three scoped marker-control defects in the existing interface; this is not release evidence for the broader controller-map redesign.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "Repairs three scoped marker-control defects in the existing interface; this is not release evidence for the broader controller-map redesign."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-105"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "map marker list",
+        "d-pad",
+        "existing markers"
+      ]
+    },
+    {
+      "id": "HLLV-F058",
+      "title": "Mortar Aimer kill credit",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "The player aiming a Mortar receives kill credit alongside the Gunner.",
+        "source_ids": [
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "Mortar kills now credit the Aimer as well as the Gunner.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "Mortar kills now credit the Aimer as well as the Gunner."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "mortar",
+        "kill credit"
+      ]
+    },
+    {
+      "id": "HLLV-F059",
+      "title": "Console memory and vegetation refinements",
+      "category": "Graphics",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Console memory savings reduce out-of-memory risk. Simplified tree models appear farther away, with smoother vegetation LOD transitions.",
+        "source_ids": [
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "These scoped refinements are released; further optimisation and vegetation work remain planned. The same hotfix introduces an acknowledged Xbox Series S performance regression.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "These scoped refinements are released; further optimisation and vegetation work remain planned. The same hotfix introduces an acknowledged Xbox Series S performance regression."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-003",
+        "HLLV-056",
+        "HLLV-057",
+        "HLLV-124"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "console stability",
+        "memory savings",
+        "level of detail",
+        "impostor trees"
+      ]
+    },
+    {
+      "id": "HLLV-F060",
+      "title": "Replication and match-transition corrections",
+      "category": "Servers",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Further corrections address malfunctioning spawns, disappearing Tactical Map elements and vehicle-entry failures. A separate fix covers voice activation between matches; remaining replication cases may persist.",
+        "source_ids": [
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "Scoped replication and match-transition VOIP fixes are released without a guarantee of universal recovery.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "Scoped replication and match-transition VOIP fixes are released without a guarantee of universal recovery."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-008",
+        "HLLV-029",
+        "HLLV-046",
+        "HLLV-066"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "online replication",
+        "voice communications",
+        "dynamic spawns"
+      ]
+    },
+    {
+      "id": "HLLV-F061",
+      "title": "Mounted-weapon aiming stutter",
+      "category": "Vehicles",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Hotfix 1.7.1 documents an aiming-stutter correction for mounted weapons and Tank Gunners.",
+        "source_ids": [
+          "hotfix171"
+        ]
+      },
+      "status": "released",
+      "change": "The scoped aiming correction is released; broader deployment, elevation and forced-ADS requests remain separate.",
+      "target": "Released in Hotfix 1.7.1",
+      "latest_source_id": "hotfix171",
+      "history": [
+        {
+          "source_id": "hotfix171",
+          "status": "released",
+          "summary": "The scoped aiming correction is released; broader deployment, elevation and forced-ADS requests remain separate."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-049"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "mounted weapons",
+        "tank gunner",
+        "stuttering"
+      ]
+    }
+  ]
+}
