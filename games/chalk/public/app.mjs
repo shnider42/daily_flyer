@@ -1,7 +1,8 @@
 import { MISSIONS, createGame, step, issueOrder, placePing, requestFieldSupport, getFieldSupportStatus, selectSquadMember, getObjective, hasLineOfSight, chooseStoryOption, getStoryInteraction, getStoryLeaderId, getMissionInteraction, getNextCampaignMission, campaignOutcome, normalizeCampaignCarry } from './sim.mjs';
 import { Renderer } from './renderer.mjs';
 import { GameAudio } from './audio.mjs';
-import { stickVector, touchIntent, touchFireThresholds, TOUCH_AIM_DEAD_ZONE, GroundOrderTap, ThrowableDrag, touchGroundAction, thumbOrigin, thumbDisplayOrigin } from './touch-input.mjs?v=1.18.0';
+import { stickVector, touchIntent, touchFireThresholds, TOUCH_AIM_DEAD_ZONE, GroundOrderTap, ThrowableDrag, touchGroundAction, thumbOrigin, thumbDisplayOrigin } from './touch-input.mjs?v=1.19.0';
+import { touchControlLayout } from './touch-layout.mjs?v=1.19.0';
 import { CoopClient } from './coop-client.mjs';
 import { coopServerURL } from './network-config.mjs';
 import { clientToCanvasPoint } from './desktop-input.mjs';
@@ -119,6 +120,34 @@ function attr(node, name, value) { value = String(value); if (node.getAttribute(
 function style(node, name, value) { if (node.style[name] !== value) node.style[name] = value; }
 function flag(node, name, enabled) { if (node.classList.contains(name) !== !!enabled) node.classList.toggle(name, !!enabled); }
 function toast(text) { $('toast').textContent = text; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 3400); }
+function syncTouchLayout(rect) {
+  if (!touch) return 'desktop';
+  const padding = getComputedStyle($('touchControls'));
+  const landscape = rect.width > rect.height && rect.height <= 600;
+  const layout = touchControlLayout({ width: rect.width, height: rect.height,
+    moveScale: preferences.touchMoveSize, aimScale: preferences.touchAimSize, landscape,
+    left: parseFloat(padding.paddingLeft) || 8, right: parseFloat(padding.paddingRight) || 8,
+    bottom: parseFloat(padding.paddingBottom) || 14 });
+  const values = {
+    '--move-stick-size': layout.move.size, '--aim-stick-size': layout.aim.size,
+    '--move-knob-size': layout.move.knob, '--aim-knob-size': layout.aim.knob,
+    '--move-pad-width': layout.move.padWidth, '--move-pad-height': layout.move.padHeight,
+    '--aim-pad-width': layout.aim.padWidth, '--aim-pad-height': layout.aim.padHeight,
+    '--move-pad-left': layout.move.left, '--aim-pad-right': layout.aim.right, '--stick-bottom': layout.move.bottom,
+    '--dock-left': layout.dock.left, '--dock-bottom': layout.dock.bottom, '--dock-width': layout.dock.width,
+    '--move-actions-left': layout.moveActions.left, '--move-actions-bottom': layout.moveActions.bottom,
+    '--aim-status-right': layout.aimStatus.right, '--aim-status-bottom': layout.aimStatus.bottom,
+    '--assist-left': layout.assist.left, '--assist-bottom': layout.assist.bottom, '--assist-width': layout.assist.width,
+    '--tray-left': layout.tray.left, '--tray-width': layout.tray.width, '--tray-bottom': layout.tray.bottom,
+    '--tray-max-height': layout.tray.maxHeight, '--resolved-control-height': layout.controlHeight,
+    '--mobile-stick-height': Math.max(layout.move.padHeight, layout.aim.padHeight), '--touch-height': layout.controlHeight,
+  };
+  for (const [key, value] of Object.entries(values)) {
+    const px = `${value}px`;
+    if (document.body.style.getPropertyValue(key) !== px) document.body.style.setProperty(key, px);
+  }
+  return JSON.stringify(values);
+}
 function syncSquadRoster() {
   const host = touch ? $('touchSquadRosterHost') : squadRosterHome;
   if ($('squadRoster').parentElement !== host) host.appendChild($('squadRoster'));
@@ -127,7 +156,7 @@ function fit() {
   document.body.classList.toggle('touch', touch && mode !== 'menu');
   syncSquadRoster();
   const rect = $('battlefield').getBoundingClientRect();
-  const size = `${Math.round(rect.width)}:${Math.round(rect.height)}:${touch}`;
+  const size = `${Math.round(rect.width)}:${Math.round(rect.height)}:${touch}:${syncTouchLayout(rect)}`;
   if (viewportSize && size !== viewportSize) clearInput();
   viewportSize = size;
   renderer.resize(rect.width, rect.height, renderDensity(rect.width, rect.height, devicePixelRatio || 1, preferences.renderScale, preferences.graphicsQuality));
@@ -233,7 +262,7 @@ function applySettings(key) {
   $('aimStick').style.setProperty('--fire-boundary-size', `${68 * (fireThreshold - TOUCH_AIM_DEAD_ZONE) / (1 - TOUCH_AIM_DEAD_ZONE)}%`);
   $('performanceStats').hidden = !preferences.showFPS;
   soundUI(); syncSettings();
-  if (!key || ['graphicsQuality','renderScale','hudScale','hudDetail','mobileHudScale','mobileHudDetail','touchControls','guidance'].includes(key)) fit();
+  if (!key || ['graphicsQuality','renderScale','hudScale','hudDetail','mobileHudScale','mobileHudDetail','touchControls','touchMoveSize','touchAimSize','guidance'].includes(key)) fit();
   if (!key || ['graphicsQuality','renderScale','frameLimit'].includes(key)) { framePacer.reset(); frameMeter.reset(); }
   if (game) {
     if (['guidance','touchControls'].includes(key) && preferences.guidance === 'simple' && !touch && !guidanceSession.active) guidanceSession.start({ role: game.role });
@@ -242,7 +271,7 @@ function applySettings(key) {
   }
 }
 function changeSetting(key, value) {
-  if (key === 'keyBindings' || key === 'touchFireThreshold') { clearInput(); storyRenderKey = ''; }
+  if (['keyBindings','touchFireThreshold','touchMoveSize','touchAimSize'].includes(key)) { clearInput(); storyRenderKey = ''; }
   if (key === 'guidance') tutorialManual = false;
   preferences = normalizePreferences({ ...preferences, [key]: value }, defaults);
   applySettings(key); save();

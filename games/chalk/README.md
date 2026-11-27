@@ -1,6 +1,14 @@
 # CHALK
 
-Version 1.18.0 makes the mobile HUD minimal and gives the right thumbstick more room to aim before firing. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. The four-person squad, missions, dialogue, and outcomes are fictionalized; the six standalone operations are explicitly fictional scenarios.
+Version 1.19.0 adds independently adjustable asymmetric mobile thumbsticks: a smaller movement stick and a much larger aim stick. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. The four-person squad, missions, dialogue, and outcomes are fictionalized; the six standalone operations are explicitly fictional scenarios.
+
+## Independent mobile stick sizes: version 1.19
+
+The movement stick now defaults to **80%** size and the aiming stick to **150%**, relative to the former 100 px circle. **Settings → Aim & controls** has independent **Left stick size** (60–120%) and **Right stick size** (100–200%) sliders alongside **Distance to fire**. Existing saved preferences gain the new defaults without changing previous aim, HUD, camera or mission settings.
+
+The right stick changes actual thumb travel as well as appearance: at the default 150 px diameter, firing starts at 44.88 px of displacement with the existing 88% threshold. The left stick retains a padded pickup area and both sticks still begin neutral at the actual touchdown. Size changes release both gestures before applying new geometry. Narrow screens fit the controls to available space while preserving the saved size preferences; portrait uses a vertical Squad/Gear dock in the gap, and landscape keeps a horizontal dock. Reload, Regroup, equipment, Assist and panels move with the resolved geometry.
+
+Version 1.19 validation: **493 full-suite tests**, **466 frontend build tests**, and **253 authoritative server tests** pass (the suites overlap). Browser checks exercised **375 × 667 portrait** and **812 × 375 landscape** at defaults and maximum stick preferences, including roster and equipment panels. Geometry tests cover narrower portrait viewports and notched landscape safe areas. Physical-phone calibration remains untested.
 
 ## Minimal mobile HUD and deliberate aiming: version 1.18
 

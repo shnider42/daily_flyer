@@ -1,6 +1,6 @@
 {
   "game": "CHALK",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "date": "2026-11-27",
   "missions": 10,
   "roles": [
@@ -28,15 +28,10 @@
     "camera": "Controlled soldier stays centered in the usable area between HUD and thumb controls, including world edges and zoom transitions",
     "guidance": "Healthy world names and roles appear in Simple only; Expert removes routine world labels and coaching while preserving target markers and critical casualty cues",
     "throwables": "Gear opens grenade types and drag-to-aim throw; tray clears during aiming and closes after a completed throw",
-    "dock": "Dedicated Regroup / Ready beside Reload; Squad / Radio and Gear stay compact; Assist contextual; both full-size thumb targets retained",
+    "dock": "Independent smaller movement and larger aiming sticks; vertical Squad/Radio and Gear dock in portrait, horizontal in landscape; other controls follow actual pad geometry",
     "pings": "Squad / Radio > Ping a place, or tap overview map; both roles, no changed movement order",
     "aimPickup": "Both sticks start neutral at the actual thumb pickup; bounded visual centers keep the rings inside their touch pads",
     "objective": "Compact title and progress, full explanation expands on demand",
-    "closedControlBandPixels": {
-      "portrait": 140,
-      "shortLandscape": 124,
-      "plusSafeBottomInset": true
-    },
     "thumbstickGeometry": "One centering rule in portrait and landscape keeps drawn rings and knobs aligned with the touch pads; no doubled portrait translation",
     "roster": "Squad / Radio opens soldier status and selection on demand; remains available while the current soldier is down. Desktop retains its permanent roster.",
     "health": "Controlled soldier health and ammunition remain visible in a compact equipment panel",
@@ -50,6 +45,21 @@
       ],
       "setting": "Settings > Aim & controls > Distance to fire",
       "feedback": "Visible firing boundary and AIM / FIRE states; immediate release/cancel and fresh-gesture reset"
+    },
+    "stickSizes": {
+      "leftDefault": 0.8,
+      "rightDefault": 1.5,
+      "leftRange": [
+        0.6,
+        1.2
+      ],
+      "rightRange": [
+        1,
+        2
+      ],
+      "nominalDiameterPixels": 100,
+      "responsiveFit": "Requested sizes persist; pickup pads, central buttons and safe-area insets constrain effective sizes without overlap",
+      "input": "Measured base diameter controls actual travel; default150px right circle requires44.88px drag to start firing at88percent"
     }
   },
   "desktop": {
@@ -353,8 +363,8 @@
   },
   "people": "Stable clothing, skin, headwear, load-bearing kit and small build differences; boots, shoulder seams, packs, radios, hands and readable specialties. Individual gait phases, restrained idle movement, reload gestures and reduced-motion support. Independent friendly squads use a distinct ring and leader callsign.",
   "validation": {
-    "fullTests": 485,
-    "frontendBuildTests": 458,
+    "fullTests": 493,
+    "frontendBuildTests": 466,
     "authoritativeServerTests": 253,
     "suitesOverlap": true,
     "nativeCanvasChecks": [
@@ -368,8 +378,8 @@
       "812x375 landscape",
       "1280x720 desktop"
     ],
-    "mobileControls": "Shipped gesture listeners verified with independent pointers, firing hysteresis, cancel/release, resize, setting persistence, roster placement, and role-aware Regroup / Ready.",
-    "browserChecks": "Portrait drawer clears direct controls; soldier selection changes member labels; firing-distance preference survives reload; desktop roster restores.",
+    "mobileControls": "Independent size preferences, geometry fitting with safe insets, actual larger-stick travel, separate pointers and cancellation before size changes are covered.",
+    "browserChecks": "375x667 portrait and812x375 landscape checked at defaults and maximum stick settings, with role controls, roster and Gear trays.",
     "mobileLimit": "Viewport and automated gesture checks; no physical-phone multitouch or mobile Safari validation."
   }
 }

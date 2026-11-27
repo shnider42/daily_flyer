@@ -7,14 +7,14 @@
   <meta name="description" content="CHALK: a top-down squad game inspired by the Battle of Mogadishu. Lead four soldiers or follow an AI leader through four campaign chapters and six fictional field operations, solo or with a friend.">
   <title>CHALK — Mogadishu, 1993</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=1.18.0">
+  <link rel="stylesheet" href="style.css?v=1.19.0">
 </head>
 <body class="in-menu" data-guidance="simple">
   <main id="game" aria-label="CHALK squad game">
     <div id="battlefield"><canvas id="world" tabindex="0" aria-label="Battlefield. Move with W A S D, aim with the mouse, hold left mouse to fire. E to assist, R to reload. Press Escape for controls."></canvas></div>
     <div class="film-grain" aria-hidden="true"></div>
     <div id="menu" class="menu-screen">
-      <header class="menu-header"><a href="https://dfe-directory.onrender.com/" class="dfe-link">DAILY FLYER <span>GAMES</span></a><div class="menu-header-actions"><span class="edition">SQUAD CAMPAIGN / 1.18.0</span><button id="menuSettings" class="menu-settings-button" data-dialog="settingsDialog"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg>Settings</button></div></header>
+      <header class="menu-header"><a href="https://dfe-directory.onrender.com/" class="dfe-link">DAILY FLYER <span>GAMES</span></a><div class="menu-header-actions"><span class="edition">SQUAD CAMPAIGN / 1.19.0</span><button id="menuSettings" class="menu-settings-button" data-dialog="settingsDialog"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg>Settings</button></div></header>
       <div class="menu-layout">
         <section class="title-block">
           <p class="eyebrow"><span class="small-cross" aria-hidden="true">+</span> MOGADISHU · 3–4 OCTOBER 1993</p>
@@ -124,7 +124,7 @@
       <h3>Equipment, in plain words</h3><p><strong>Smoke</strong> hides movement for a short time. <strong>Frag</strong> explodes and can hurt anyone nearby. <strong>Flash</strong> briefly blinds people who can see its burst; it causes no direct health damage. Walls shield these effects. Check your squad and civilians before throwing.</p><p>Select a type with <kbd data-control="cycleThrowable">Y</kbd> or its equipment button; aim and press <kbd data-control="throwThrowable">N</kbd> to throw. Mercer's <strong>40 mm launcher</strong> is separate. His binoculars let you look farther but slow movement.</p>
       <h3>Four soldiers</h3><p><strong>Hale</strong> leads. <strong>Mercer</strong> carries binoculars and the launcher. <strong>Ames</strong> is the medic. <strong>Webb</strong> carries the machine gun; its large belt takes longer to reload.</p>
       <h3>Friendly support</h3><p>In Cordon, open <strong>Squad</strong> on mobile (<strong>Radio</strong> when following Hale) or use the desktop orders panel. Choose <strong>Request support here</strong>, then select a location on the map. The relief team travels there and reports its progress. One commitment is available; another friendly squad may already need it. A normal ping keeps current orders. When you reach a wounded ally, hold <strong>Assist</strong> to help them recover.</p>
-      <h3>On a phone</h3><p>Drag the left stick to move; push it farther to sprint. The right stick starts where you touch: aim inside the dashed ring, push into the outer band to fire, and pull back to stop firing while keeping your aim. Lifting your thumb stops firing immediately. Change <strong>Distance to fire</strong> in Settings → Aim &amp; controls if you need more or less travel.</p><p>As leader, tap visible ground to move your squad. The small <strong>Regroup</strong> button brings them back to you; as a squad member, it becomes <strong>Ready</strong>. Open <strong>Squad</strong> (or <strong>Radio</strong> as a member) for soldier health, switching soldiers, other orders, support, and <strong>Ping a place</strong>. A ping only marks a location; tapping the overview map places a ping. Tap the objective arrow for its explanation.</p><p><strong>Reload</strong> stays above the left stick. Hold <strong>Assist</strong> when it appears. Open <strong>Gear</strong> to choose a grenade, then drag its throw button and release; drag back to cancel.</p>
+      <h3>On a phone</h3><p>Drag the left stick to move; push it farther to sprint. The right stick starts where you touch: aim inside the dashed ring, push into the outer band to fire, and pull back to stop firing while keeping your aim. Lifting your thumb stops firing immediately. Change <strong>Distance to fire</strong> in Settings → Aim &amp; controls if you need more or less travel.</p><p>As leader, tap visible ground to move your squad. The small <strong>Regroup</strong> button brings them back to you; as a squad member, it becomes <strong>Ready</strong>. Open <strong>Squad</strong> (or <strong>Radio</strong> as a member) for soldier health, switching soldiers, other orders, support, and <strong>Ping a place</strong>. A ping only marks a location; tapping the overview map places a ping. Tap the objective arrow for its explanation. Change the two stick sizes separately in <strong>Settings → Aim &amp; controls</strong>.</p><p><strong>Reload</strong> stays above the left stick. Hold <strong>Assist</strong> when it appears. Open <strong>Gear</strong> to choose a grenade, then drag its throw button and release; drag back to cancel.</p>
       <h3>Play with a friend</h3><p>Create a co-op squad and share the room code or invite link. Each person chooses one of the four soldiers. Click a free soldier in the briefing or on the squad cards during play. The other soldiers stay under computer control. A soldier claimed by your partner is labelled with their name. Menus and this guide do not pause an online mission.</p><p>Preferences stay in this browser. Reloading restarts a solo mission; an online session attempts to reconnect.</p>
     </dialog>
     <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
@@ -152,7 +152,7 @@
           <p id="renderInfo" class="render-info">Canvas 2D · Resolution updates with the game window.</p>
         </section>
         <section id="settingsPanelControls" class="settings-panel" role="tabpanel" aria-labelledby="settingsTabControls" data-settings-panel="controls" hidden>
-          <div class="settings-section-intro"><h3>Aim &amp; controls</h3><p>Adjust aiming cues, the camera, and how far the mobile aim stick travels before firing. Mouse aim follows your cursor directly.</p></div>
+          <div class="settings-section-intro"><h3>Aim &amp; controls</h3><p>Adjust the two mobile sticks independently, aiming cues, and the camera. Mouse aim follows your cursor directly.</p></div>
           <div class="settings-grid">
             <label class="setting-field" for="cameraLookahead"><span>Look toward aim <output id="cameraLookaheadValue" for="cameraLookahead">0%</output></span><input id="cameraLookahead" data-setting="cameraLookahead" type="range" min="0" max="1" step="0.05" value="0"><small>At 0%, the view stays on your soldier. Increase it to see farther toward your mouse.</small></label>
             <label class="setting-field" for="crosshairStyle"><span>Crosshair</span><select id="crosshairStyle" data-setting="crosshairStyle"><option value="cross" selected>Cross</option><option value="ring">Ring</option><option value="dot">Dot</option></select><small>The aiming mark that follows your mouse. Choose the shape that is easiest to see.</small></label>
@@ -161,6 +161,8 @@
             <label class="setting-toggle" for="aimLine"><span><strong>Aim path</strong><small>Show an aiming line and the first solid wall in its path.</small></span><input id="aimLine" data-setting="aimLine" type="checkbox" checked></label>
             <label class="setting-toggle" for="autoReload"><span><strong>Reload when empty</strong><small>Starts a reload without holding fire. With this off, fire or use your Reload shortcut to reload.</small></span><input id="autoReload" data-setting="autoReload" type="checkbox" checked></label>
             <label class="setting-toggle" for="settingsTouchControls"><span><strong>Touch controls</strong><small>Show the movement and aim thumbsticks.</small></span><input id="settingsTouchControls" data-setting="touchControls" type="checkbox"></label>
+            <label class="setting-field" for="touchMoveSize"><span>Left stick size <output id="touchMoveSizeValue" for="touchMoveSize">80%</output></span><input id="touchMoveSize" data-setting="touchMoveSize" type="range" min="0.6" max="1.2" step="0.05" value="0.8"><small>Movement. A smaller circle clears more of the view; its touch area stays padded.</small></label>
+            <label class="setting-field" for="touchAimSize"><span>Right stick size <output id="touchAimSizeValue" for="touchAimSize">150%</output></span><input id="touchAimSize" data-setting="touchAimSize" type="range" min="1" max="2" step="0.05" value="1.5"><small>Aiming and firing. A larger circle gives your thumb more travel before firing. Controls fit the available screen space.</small></label>
             <label class="setting-field" for="touchFireThreshold"><span>Distance to fire <output id="touchFireThresholdValue" for="touchFireThreshold">88%</output></span><input id="touchFireThreshold" data-setting="touchFireThreshold" type="range" min="0.72" max="0.96" step="0.01" value="0.88"><small>Mobile right stick: a higher value leaves more room to aim before firing. The dashed ring marks where firing starts; pull back toward the center to stop.</small></label>
           </div>
           <section class="settings-keymap bindings-editor" aria-label="Rebind desktop controls">
@@ -230,6 +232,6 @@
     <div id="toast" class="toast" role="status" hidden></div>
   </main>
   <noscript>This game needs JavaScript enabled.</noscript>
-  <script type="module" src="app.mjs?v=1.18.0"></script>
+  <script type="module" src="app.mjs?v=1.19.0"></script>
 </body>
 </html>

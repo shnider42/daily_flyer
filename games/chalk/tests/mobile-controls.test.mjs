@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import {stickVector,touchIntent,GroundOrderTap,ThrowableDrag,thumbOrigin,thumbDisplayOrigin} from '../public/touch-input.mjs';
 import {renderDensity,normalizePreferences} from '../public/settings.mjs';
+import {touchControlLayout} from '../public/touch-layout.mjs';
 
 // Execute the shipped app listeners and resize cleanup with two separate
 // captured pointers. The fixture supplies geometry, not a second controller.
@@ -15,16 +16,17 @@ const section=(start,end)=>{
 };
 const listeners=section('function updateTouchIntent()','function screenPoint(event)');
 const clear=section('function clearInput()','function startMission(');
-const resize=section('function syncSquadRoster()','function measureSafeInsets()');
+const resize=section('function syncTouchLayout(rect)','function measureSafeInsets()');
 const closeMenus=section('function closeGear()','function syncObjectiveDetails()');
 const menuListeners=section("$('touchOrder').addEventListener('click'","$('touchGear').addEventListener('click'");
+const settingsChange=section('function changeSetting(key, value)','function syncControlHints()');
 const rect=(left,top,width,height)=>({left,top,width,height,right:left+width,bottom:top+height});
 class Surface{
   handlers=new Map();captured=new Set();released=[];
   classes=new Set();properties=new Map();attributes=new Map();children=[];parentElement=null;textContent='';
   constructor(bounds=rect(0,0,1,1)){
     this.bounds=bounds;
-    this.style={setProperty:(key,value)=>this.properties.set(key,value),removeProperty:key=>this.properties.delete(key)};
+    this.style={setProperty:(key,value)=>this.properties.set(key,value),getPropertyValue:key=>this.properties.get(key)||'',removeProperty:key=>this.properties.delete(key)};
     this.classList={add:(...names)=>names.forEach(n=>this.classes.add(n)),remove:(...names)=>names.forEach(n=>this.classes.delete(n)),
       contains:name=>this.classes.has(name),toggle:(name,on)=>{const enabled=on??!this.classes.has(name);if(enabled)this.classes.add(name);else this.classes.delete(name);return enabled;}};
   }
@@ -44,28 +46,32 @@ class Surface{
 function fixture(settings={}){
   const viewport=new Surface(rect(0,0,390,844)),move=new Surface(rect(4,690,128.7,140)),aim=new Surface(rect(257.3,690,128.7,140));
   for(const pad of [move,aim]){pad.base=new Surface(rect(0,0,100,100));pad.knob=new Surface(rect(0,0,42,42));}
-  const nodes={battlefield:viewport,moveStick:move,aimStick:aim,touchThrow:new Surface(),touchInteract:new Surface(),aimStickLabel:new Surface(),
+  const nodes={battlefield:viewport,moveStick:move,aimStick:aim,touchControls:new Surface(),touchThrow:new Surface(),touchInteract:new Surface(),aimStickLabel:new Surface(),
     squadRoster:new Surface(),touchSquadRosterHost:new Surface(),touchOrder:new Surface(),touchRegroup:new Surface(),orderClose:new Surface(),touchGear:new Surface(),touchGearTray:new Surface()};
   const squadRosterHome=new Surface();squadRosterHome.appendChild(nodes.squadRoster);
-  const heldActions=new Set(),orders=[];
+  const heldActions=new Set(),orders=[],savedSettings=[],appliedSettings=[];
   const state={
-    $:id=>nodes[id],canvas:viewport,activeSticks:new Map(),stickVector,touchIntent,thumbOrigin,thumbDisplayOrigin,renderDensity,squadRosterHome,
+    $:id=>nodes[id],canvas:viewport,activeSticks:new Map(),stickVector,touchIntent,thumbOrigin,thumbDisplayOrigin,renderDensity,touchControlLayout,squadRosterHome,
     touchInput:{moveX:0,moveY:0,aimX:0,aimY:0,aimStrength:0,wasFiring:false,interact:false},
     pointer:{fire:false,valid:false},keys:new Set(),desktopPointerId:null,interactionPointer:null,
     touchAim:null,throwAim:null,observing:false,touch:true,mode:'playing',viewportSize:'',canvasRect:viewport.bounds,
-    devicePixelRatio:3,preferences:normalizePreferences(settings),
+    devicePixelRatio:3,preferences:normalizePreferences(settings),defaults:normalizePreferences({}),
+    normalizePreferences:(raw,defaults)=>normalizePreferences(JSON.parse(JSON.stringify(raw)),defaults),
     actions:{reload:false,smoke:false,grenade:false,frag:false,flashbang:false},
     throwableDrag:new ThrowableDrag(),groundOrderTap:new GroundOrderTap(),
     document:{body:new Surface(),querySelector:selector=>selector==='dialog[open]'&&state.dialogOpen?{}:null,querySelectorAll:selector=>selector==='.stick-knob'?[move.knob,aim.knob]:selector==='.joystick'?[move,aim]:[]},
+    getComputedStyle:()=>({paddingLeft:'8px',paddingRight:'8px',paddingBottom:'14px'}),
     renderer:{width:390,height:844,resize(width,height){this.width=width;this.height=height;}},
     online:()=>false,audio:{unlock(){}},text(id,value){const node=typeof id==='string'?nodes[id]:id;if(node)node.textContent=String(value);},
     flag(node,name,value){node.classList.toggle(name,!!value);},attr(node,name,value){node.setAttribute(name,value);},held:action=>heldActions.has(action),measureSafeInsets(){},enabled:true,
     game:{role:'leader'},paused:false,showMap:false,placingOrder:false,placingPing:false,storyCardOpen:false,gearOpen:false,dialogOpen:false,
     updateHUD(){},updateStoryUI(){},doOrder:type=>orders.push(type),
+    applySettings(key){appliedSettings.push({key,heldPointers:state.activeSticks.size});state.fit();},save(){savedSettings.push({...state.preferences});},
+    storyRenderKey:'',tutorialManual:false,
   };
   state.canAct=()=>state.enabled;
-  vm.runInNewContext(clear+'\n'+resize+'\n'+listeners+'\n'+closeMenus+'\n'+menuListeners,state);
-  state.fit();return{state,move,aim,viewport,nodes,heldActions,orders};
+  vm.runInNewContext(clear+'\n'+resize+'\n'+listeners+'\n'+closeMenus+'\n'+menuListeners+'\n'+settingsChange,state);
+  state.fit();return{state,move,aim,viewport,nodes,heldActions,orders,savedSettings,appliedSettings};
 }
 function neutral(state){assert.equal(state.touchInput.moveX,0);assert.equal(state.touchInput.moveY,0);assert.equal(state.touchInput.aimX,0);assert.equal(state.touchInput.aimY,0);assert.equal(state.touchInput.aimStrength,0);assert.equal(state.touchInput.wasFiring,false);}
 function aimAt(aim,strength,pointerId=2){aim.emit('pointermove',{pointerId,clientX:320+34*strength,clientY:760});}
@@ -124,6 +130,42 @@ test('shipped aim listeners keep the visual state and firing latch together acro
     assert.equal(aim.classes.has('firing'),firing,`firing feedback at ${strength}`);
     assert.equal(aim.classes.has('aiming'),!firing,`aiming feedback at ${strength}`);
     assert.equal(nodes.aimStickLabel.textContent,label);
+  }
+});
+
+test('measured asymmetric sticks provide more physical aiming travel while retaining neutral pickup',()=>{
+  const {state,move,aim,nodes}=fixture();
+  move.bounds=rect(8,700,104,130);move.base.bounds=rect(0,0,80,80);move.knob.bounds=rect(0,0,32,32);
+  aim.bounds=rect(208,656,174,174);aim.base.bounds=rect(0,0,150,150);aim.knob.bounds=rect(0,0,48,48);
+  move.emit('pointerdown',{pointerId:1,clientX:10,clientY:824});
+  aim.emit('pointerdown',{pointerId:2,clientX:375,clientY:820});neutral(state);
+  assert.equal(state.activeSticks.get(1).radius,80*.34);
+  assert.equal(state.activeSticks.get(2).radius,150*.34);
+  move.emit('pointermove',{pointerId:1,clientX:10,clientY:804});
+  assert.equal(state.touchInput.moveX,0);assert.ok(state.touchInput.moveY<0);
+  aim.emit('pointermove',{pointerId:2,clientX:375,clientY:790});
+  assert.equal(state.touchInput.wasFiring,false,'30px remains in the larger aim-only zone');
+  assert.equal(nodes.aimStickLabel.textContent,'AIM');
+  assert.equal(state.touchInput.aimX,0);assert.ok(state.touchInput.aimY<0);
+  aim.emit('pointermove',{pointerId:2,clientX:375,clientY:775});
+  assert.equal(state.touchInput.wasFiring,true,'45px crosses the larger stick firing boundary');
+  assert.equal(nodes.aimStickLabel.textContent,'FIRE');
+  aim.emit('pointercancel',{pointerId:2});
+  assert.equal(state.touchInput.wasFiring,false);assert.ok(state.touchInput.moveY<0,'aim cancellation leaves the other thumb moving');
+});
+
+test('changing either stick size releases both held gestures before layout updates and preserves independent preferences',()=>{
+  for(const [key,value,otherKey,otherValue] of [['touchMoveSize',.65,'touchAimSize',1.8],['touchAimSize',1.9,'touchMoveSize',.7]]){
+    const {state,move,aim,savedSettings,appliedSettings}=fixture({[otherKey]:otherValue,touchFireThreshold:.94});
+    move.emit('pointerdown',{pointerId:1,clientX:70,clientY:760});move.emit('pointermove',{pointerId:1,clientX:70,clientY:710});
+    aim.emit('pointerdown',{pointerId:2,clientX:320,clientY:760});aimAt(aim,1);
+    assert.equal(state.touchInput.wasFiring,true);assert.equal(state.activeSticks.size,2);
+    state.changeSetting(key,String(value));neutral(state);
+    assert.equal(state.activeSticks.size,0);assert.deepEqual(move.released,[1]);assert.deepEqual(aim.released,[2]);
+    assert.equal(appliedSettings.at(-1).heldPointers,0,'geometry changes only after captured input is released');
+    assert.equal(state.preferences[key],value);assert.equal(state.preferences[otherKey],otherValue);assert.equal(state.preferences.touchFireThreshold,.94);
+    assert.equal(savedSettings.at(-1)[key],value);assert.equal(savedSettings.at(-1)[otherKey],otherValue);
+    move.emit('pointermove',{pointerId:1,clientX:95,clientY:700});aim.emit('pointermove',{pointerId:2,clientX:380,clientY:760});neutral(state);
   }
 });
 

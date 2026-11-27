@@ -30,6 +30,8 @@ const RANGES = {
   hudScale: [.85, 1.3],
   mobileHudScale: [.75, 1.15],
   touchFireThreshold: [.72, .96],
+  touchMoveSize: [.6, 1.2],
+  touchAimSize: [1, 2],
 };
 const BOOLEANS = ['sound', 'reducedMotion', 'aimLine', 'autoReload', 'showFPS', 'bloodEffects'];
 const FRAME_LIMITS = [0, 60, 120];
@@ -47,6 +49,7 @@ export function createDefaults({ reducedMotion = false, touchControls } = {}) {
     hudScale: 1, hudDetail: 'standard', showFPS: false,
     mobileCameraZoom: .75, mobileHudScale: .85, mobileHudDetail: 'compact',
     touchFireThreshold: .88,
+    touchMoveSize: .8, touchAimSize: 1.5,
     keyBindings: createDefaultBindings(),
     ...(typeof touchControls === 'boolean' ? { touchControls } : {}),
   };

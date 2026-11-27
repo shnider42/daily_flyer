@@ -870,3 +870,48 @@ body:not(.touch).map-open .map-legend{bottom:22px;width:max-content;max-width:ca
   .touch .touch-actions #touchRegroup{left:calc(max(24px,env(safe-area-inset-left)) + 87px);bottom:calc(var(--touch-bottom) + 121px)}
   .touch.orders-open #squadOrders{bottom:calc(var(--touch-bottom) + 57px);width:min(400px,calc(100vw - 288px));max-height:calc(100dvh - var(--touch-bottom) - 110px)}
 }
+
+/* Each thumb has its own measured geometry. Resolved positions already include
+   safe-area insets; HUD text scale never changes the touch targets. */
+.touch,.touch:has(#touchInteract:not(:disabled)),.touch:has(#touchInteract.working){--mobile-stick-height:calc(var(--resolved-control-height,var(--control-height,206px)) - var(--stick-bottom,14px));--touch-height:var(--resolved-control-height,var(--control-height,206px));--control-safe-bottom:var(--touch-height)}
+.touch .touch-controls{height:var(--resolved-control-height,var(--control-height,206px));padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right));padding-bottom:max(14px,env(safe-area-inset-bottom))}
+.touch #moveStick{left:var(--move-pad-left,8px);right:auto;bottom:var(--stick-bottom,14px);width:var(--move-pad-width,104px);height:var(--move-pad-height,122px)}
+.touch #aimStick{left:auto;right:var(--aim-pad-right,8px);bottom:var(--stick-bottom,14px);width:var(--aim-pad-width,174px);height:var(--aim-pad-height,192px)}
+.touch #moveStick .stick-base{--stick-size:var(--move-stick-size,80px)}
+.touch #aimStick .stick-base{--stick-size:var(--aim-stick-size,150px)}
+.touch #moveStick .stick-knob{--knob-size:var(--move-knob-size,32px)}
+.touch #aimStick .stick-knob{--knob-size:var(--aim-knob-size,56px)}
+.touch #moveStick .stick-knob,.touch #aimStick .stick-knob{width:var(--knob-size);height:var(--knob-size);left:calc(50% - var(--knob-size)/2);top:calc(50% - var(--knob-size)/2)}
+.touch .stick-knob svg{width:52%;height:52%;max-width:29px;max-height:29px}
+.touch .touch-dock{left:var(--dock-left,128.5px);right:auto;bottom:var(--dock-bottom,22px);width:var(--dock-width,48px);transform:none;flex-direction:column;gap:8px}
+.touch .touch-dock #touchOrder,.touch .touch-dock #touchGear{width:48px;min-width:44px;height:48px;min-height:48px;padding:4px 2px;flex-direction:column;gap:3px}
+.touch .touch-dock button svg{width:18px;height:18px}
+.touch .touch-actions #touchReload{left:var(--move-actions-left,8px);bottom:var(--move-actions-bottom,144px)}
+.touch .touch-actions #touchRegroup{left:calc(var(--move-actions-left,8px) + 87px);bottom:var(--move-actions-bottom,144px)}
+.touch .weapon-panel,.touch:has(#touchInteract:not(:disabled)) .weapon-panel,.touch:has(#touchInteract.working) .weapon-panel{right:var(--aim-status-right,8px);bottom:var(--aim-status-bottom,214px);width:128px;max-width:128px;min-height:58px}
+.touch .touch-actions .touch-assist{left:var(--assist-left,128.5px);right:auto;bottom:var(--assist-bottom,196px);transform:none;width:var(--assist-width,48px);min-width:44px;max-width:none;height:44px;min-height:44px;padding:3px 2px;flex-direction:column;gap:2px;font:10px/1.15 Arial,sans-serif}
+.touch .touch-actions .touch-assist:active{transform:none}
+.touch .touch-actions .touch-assist svg{width:15px;height:15px;flex:none}
+.touch .touch-actions .touch-assist span{max-width:100%;overflow-wrap:anywhere}
+.touch .performance-stats{bottom:calc(var(--move-actions-bottom,144px) + 52px);left:var(--move-actions-left,8px);max-width:145px}
+.touch .context-hint{bottom:calc(var(--tray-bottom,296px) + 4px);max-width:calc(100% - 24px)}
+.touch .toast{bottom:calc(var(--tray-bottom,296px) + 4px)}
+.touch .touch-gear-tray,.touch.orders-open #squadOrders{left:var(--tray-left,12px);right:auto;bottom:var(--tray-bottom,296px);transform:none;width:var(--tray-width,351px);min-width:0;max-width:calc(100vw - 24px);max-height:min(var(--tray-max-height,260px),max(88px,calc(100dvh - var(--tray-bottom,296px) - max(calc(env(safe-area-inset-top) + 108px),var(--story-top,108px)))))}
+.touch.orders-open:has(#storyRadio:not([hidden])) #squadOrders,.touch:has(#storyRadio:not([hidden])) .touch-gear-tray{max-height:min(var(--tray-max-height,260px),max(88px,calc(100dvh - var(--tray-bottom,296px) - max(calc(env(safe-area-inset-top) + 108px),var(--story-top,108px)) - 44px)))}
+
+@media(orientation:landscape) and (max-height:600px){
+  .touch .touch-controls{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  .touch .radio-line{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  .touch .touch-dock{flex-direction:row;gap:7px}
+  .touch .touch-dock #touchOrder,.touch .touch-dock #touchGear{width:66px;height:46px;min-height:46px;flex-direction:row;gap:5px;font-size:12px}
+  .touch .touch-actions .touch-assist{flex-direction:row;gap:5px;padding:5px;font-size:12px}
+  .touch .touch-actions .touch-assist svg{width:17px;height:17px}
+  .touch .context-hint,.touch .toast{left:var(--tray-left,200px);right:auto;width:var(--tray-width,400px);max-width:var(--tray-width,400px);transform:none;bottom:calc(var(--assist-bottom,72px) + 52px)}
+  .touch .touch-gear-tray,.touch.orders-open #squadOrders,.touch.orders-open:has(#storyRadio:not([hidden])) #squadOrders,.touch:has(#storyRadio:not([hidden])) .touch-gear-tray{max-height:min(var(--tray-max-height,260px),max(88px,calc(100dvh - var(--tray-bottom,72px) - max(calc(env(safe-area-inset-top) + 53px),53px))))}
+}
+@media(orientation:landscape) and (max-width:700px){
+  .touch .touch-gear-tray{display:block}
+  .touch .touch-gear-tray .touch-grenade-types{margin-top:6px}
+  .touch .touch-gear-tray .touch-gear-hint{margin:8px 0 0}
+  .touch .touch-gear-tray .specialty-actions{margin-top:8px;padding-top:8px;border-top:1px solid #7d907349}
+}

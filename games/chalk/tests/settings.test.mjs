@@ -83,6 +83,38 @@ test('touch firing distance migrates independently and survives saved slider val
   }
 });
 
+test('older preferences gain asymmetric stick defaults without changing firing distance or saved progress', () => {
+  const older = normalizePreferences({
+    touchFireThreshold: .94, mobileHudScale: 1.1, mobileCameraZoom: .9,
+    hudScale: 1.2, cameraZoom: 1.3, completed: { cordon: true },
+  });
+  assert.equal(older.touchMoveSize, .8); assert.equal(older.touchAimSize, 1.5);
+  assert.equal(older.touchFireThreshold, .94);
+  assert.equal(older.mobileHudScale, 1.1); assert.equal(older.mobileCameraZoom, .9);
+  assert.equal(older.hudScale, 1.2); assert.equal(older.cameraZoom, 1.3);
+  assert.deepEqual(older.completed, { cordon: true });
+  const saved = normalizePreferences(JSON.parse(JSON.stringify({ ...older, touchMoveSize: '0.65', touchAimSize: '1.9' })));
+  assert.equal(saved.touchMoveSize, .65); assert.equal(saved.touchAimSize, 1.9);
+  assert.equal(saved.touchFireThreshold, .94); assert.equal(saved.mobileHudScale, 1.1);
+  const changedLeft = normalizePreferences({ ...saved, touchMoveSize: 1.1 });
+  assert.equal(changedLeft.touchMoveSize, 1.1); assert.equal(changedLeft.touchAimSize, 1.9);
+  const changedRight = normalizePreferences({ ...saved, touchAimSize: 1.2 });
+  assert.equal(changedRight.touchMoveSize, .65); assert.equal(changedRight.touchAimSize, 1.2);
+});
+
+test('stick-size preferences clamp each independent range and reject malformed saved values', () => {
+  const minimum = normalizePreferences({ touchMoveSize: -2, touchAimSize: 0 });
+  assert.equal(minimum.touchMoveSize, .6); assert.equal(minimum.touchAimSize, 1);
+  const maximum = normalizePreferences({ touchMoveSize: 99, touchAimSize: 99 });
+  assert.equal(maximum.touchMoveSize, 1.2); assert.equal(maximum.touchAimSize, 2);
+  for (const value of [null, '', {}, [], NaN, Infinity]) {
+    const restored = normalizePreferences({ touchMoveSize: value, touchAimSize: value });
+    assert.equal(restored.touchMoveSize, .8); assert.equal(restored.touchAimSize, 1.5);
+  }
+  const reset = createDefaults();
+  assert.equal(reset.touchMoveSize, .8); assert.equal(reset.touchAimSize, 1.5);
+});
+
 test('automatic rendering observes pixel budgets and quality DPR caps at desktop and mobile sizes', () => {
   for (const [quality, pixels, maxDpr] of [['performance',1_600_000,1],['balanced',2_073_600,1.5],['high',5_300_000,2]]) {
     const density = renderDensity(2560, 1440, 2, 'auto', quality);
