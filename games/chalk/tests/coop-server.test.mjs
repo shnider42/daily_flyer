@@ -6,6 +6,7 @@ import {CoopRooms} from '../server/rooms.mjs';
 import {createCoopServer,allowedOrigin} from '../server/index.mjs';
 import {PROTOCOL,cleanInput,newSecret,secretHash,verifySecret,RateLimit} from '../server/protocol.mjs';
 import {SnapshotDeltaDecoder} from '../public/snapshot-delta.mjs';
+import {MISSIONS} from '../public/mission-definitions.mjs';
 
 class Peer {
   constructor(){this.messages=[];this.wire=[];this.states=[];this.bufferedAmount=0;this.decoder=new SnapshotDeltaDecoder();}
@@ -125,8 +126,8 @@ test('support requests require a live assigned soldier and current mission, and 
   command(host,'field_support',{point});assert.equal(host.messages.at(-1).ok,false);
 });
 
-test('all four added missions configure, deploy, restart and snapshot through authoritative rooms',()=>{
-  for(let mission=6;mission<10;mission++){
+test('standalone missions configure, deploy, restart and snapshot through authoritative rooms',()=>{
+  for(let mission=6;mission<MISSIONS.length;mission++){
     const {room,host,guest,command}=setup();
     command(host,'configure',{mission});assert.equal(host.messages.at(-1).ok,true);assert.equal(room.game.missionIndex,mission);
     command(host,'start');assert.equal(host.messages.at(-1).ok,true);assert.equal(room.status,'playing');
@@ -136,7 +137,7 @@ test('all four added missions configure, deploy, restart and snapshot through au
     if(mission===7)assert.equal(guest.latest.state.vehicles.length,2);
     if(mission===8)assert.equal(guest.latest.state.survivors.filter(actor=>actor.missionWait).length,3);
     const epoch=room.epoch;command(host,'restart');assert.ok(room.epoch>epoch);assert.equal(room.game.missionIndex,mission);assert.equal(room.game.stageIndex,0);
-    command(host,'return_lobby');command(host,'configure',{mission:10});assert.equal(host.messages.at(-1).ok,false);assert.equal(room.game.missionIndex,mission);
+    command(host,'return_lobby');command(host,'configure',{mission:MISSIONS.length});assert.equal(host.messages.at(-1).ok,false);assert.equal(room.game.missionIndex,mission);
   }
 });
 

@@ -1,7 +1,8 @@
 import { createGame, rebuildNavigationGrid } from './sim.mjs';
 import { syncBuildingDamage } from './destruction.mjs';
-import { getSolidWalls } from './building-geometry.mjs';
-import { movementSpeed } from './squad-roles.mjs';
+import { getMovementSolids } from './building-geometry.mjs';
+import { pointBlockedByVehicle } from './armored-vehicles.mjs';
+import { movementSpeed, canObserve, isSquadCommander, normalizeSquadRoles } from './squad-roles.mjs';
 import { PROTOCOL, INPUT_HZ, THROW_ACTIONS, cleanInput, EMPTY_INPUT, normalizeRoomCode, validRoomCode } from './coop-protocol.mjs';
 import { SnapshotDeltaDecoder } from './snapshot-delta.mjs';
 
@@ -19,7 +20,7 @@ const finite = (value, fallback = 0) => Number.isFinite(value) ? value : fallbac
 const monotonicNow = () => globalThis.performance?.now?.() ?? Date.now();
 const defaultStorage = () => { try { return globalThis.sessionStorage; } catch { return undefined; } };
 const actorCollections = ['squad', 'allies', 'enemies', 'civilians', 'survivors', 'vehicles'];
-const staticKeys = new Set(['world', 'grid', 'stages', 'fieldSquads', 'fieldSupport', '__proto__', 'constructor', 'prototype']);
+const staticKeys = new Set(['world', 'grid', 'stages', 'fieldSquads', 'fieldSupport', 'armorControl', '__proto__', 'constructor', 'prototype']);
 const angleBetween = (from, to, fraction) => from + Math.atan2(Math.sin(to-from), Math.cos(to-from)) * fraction;
 
 export function socketURL(value = globalThis.location?.origin) {
@@ -41,14 +42,15 @@ export function readCoopSession(storage = defaultStorage()) {
 }
 
 /** Cosmetic movement only. Damage, ammunition, rescue, and mission work stay authoritative. */
-export function predictMovement(actor, input, seconds, world) {
+export function predictMovement(actor, input, seconds, world, vehicles = []) {
   const result = { ...actor };
   if (!actor || actor.alive === false || actor.downed || !world || !Number.isFinite(seconds) || seconds <= 0) return result;
   const controls = cleanInput(input), duration = Math.min(seconds, MAX_PREDICTION_MS / 1000);
   const radius = finite(actor.radius, 13), width = finite(world.width, 2400), height = finite(world.height, 1900);
   const free = (x, y) => x >= radius && y >= radius && x <= width-radius && y <= height-radius &&
-    !getSolidWalls(world).some(b => x >= b.x-radius && x <= b.x+b.w+radius && y >= b.y-radius && y <= b.y+b.h+radius);
-  result.observing = actor.role === 'grenadier' && controls.observe;
+    !getMovementSolids(world).some(b => x >= b.x-radius && x <= b.x+b.w+radius && y >= b.y-radius && y <= b.y+b.h+radius) &&
+    !pointBlockedByVehicle({ vehicles }, x, y, radius);
+  result.observing = canObserve(actor) && controls.observe;
   const speed = movementSpeed(result, controls.sprint);
   for (let remaining = duration; remaining > 0;) {
     const dt = Math.min(1/60, remaining); remaining -= dt;
@@ -73,12 +75,14 @@ export class CoopStateHydrator {
     const epoch = `${packet.room.code}:${packet.init.epoch}`;
     const changedEpoch = !this.game || epoch !== this.epoch;
     if (changedEpoch) {
-      this.game = createGame({ seed: packet.init.seed, mission: packet.init.mission, difficulty: packet.init.difficulty, campaign: packet.init.campaign });
+      this.game = createGame({ seed: packet.init.seed, mission: packet.init.mission, difficulty: packet.init.difficulty, campaign: packet.init.campaign, squadRoles: packet.init.squadRoles });
       // Reconstruct terrain only: NPC orders and unseen garrison posts belong
       // to the authority, and are not retained from the seeded local setup.
       delete this.game.fieldSquads;
       delete this.game.fieldSupport;
+      delete this.game.armorControl;
       this.game.allies = [];
+      this.game.enemies = []; this.game.vehicles = [];
       this.epoch = epoch;
     }
     const game = this.game;
@@ -98,7 +102,7 @@ export class CoopStateHydrator {
     }
     const local = packet.room.players?.find(peer => peer.id === playerId) || packet.room.players?.find(peer => peer.id === packet.selfId);
     const actorId = local?.actorId ?? packet.actorId;
-    const role = local?.role || (game.squad.find(actor => actor.id === actorId)?.role === 'leader' ? 'leader' : 'member');
+    const role = local?.role || (isSquadCommander(game.squad.find(actor => actor.id === actorId)) ? 'leader' : 'member');
     const changedActor = this.actorId !== actorId;
     game.playerId = actorId; game.role = role; game.coop = true;
     game.multiplayer = { code: packet.room.code, selfId: playerId || packet.selfId, hostId: packet.room.hostId, players: clone(packet.room.players || []) };
@@ -175,9 +179,9 @@ export class CoopClient {
   get localPlayer() { return this._room?.players?.find(peer => peer.id === this._session?.playerId) || null; }
   get role() { return this.localPlayer?.role || this.game?.role || 'leader'; }
   get latency() { return { rtt:this._rtt, interpolationMs:this.interpolator.delayMs, snapshotAgeMs:this._receivedAt ? Math.max(0,this.now()-this._receivedAt) : 0, skippedInputs:this.skippedInputs, bufferedBytes:this.socket?.bufferedAmount || 0 }; }
-  async create({name='Player',role='leader',mission=0,difficulty='standard'}={}) {
+  async create({name='Player',role='leader',mission=0,difficulty='standard',squadRoles}={}) {
     this._abandon();
-    return this._open({type:'create',protocol:PROTOCOL,name:String(name).trim().slice(0,24)||'Player',role:role==='member'?'member':'leader',mission,difficulty});
+    return this._open({type:'create',protocol:PROTOCOL,name:String(name).trim().slice(0,24)||'Player',role:role==='member'?'member':'leader',mission,difficulty,squadRoles:normalizeSquadRoles(squadRoles)});
   }
   async join({code,name='Player'}={}) {
     code=normalizeRoomCode(code);
@@ -383,9 +387,9 @@ export class CoopClient {
     for (const frame of this._history) {
       const from=Math.max(frame.from,cursor), to=Math.min(frame.to,end);
       if (to<=from) continue;
-      actor=predictMovement(actor,frame.input,(to-from)/1000,this.game.world); cursor=to;
+      actor=predictMovement(actor,frame.input,(to-from)/1000,this.game.world,this.game.vehicles); cursor=to;
     }
-    if (cursor<end && this._renderAt!==null) actor=predictMovement(actor,this._input,(end-Math.max(cursor,this._renderAt))/1000,this.game.world);
+    if (cursor<end && this._renderAt!==null) actor=predictMovement(actor,this._input,(end-Math.max(cursor,this._renderAt))/1000,this.game.world,this.game.vehicles);
     return actor;
   }
   getState(dt=0) {
@@ -430,7 +434,8 @@ export class CoopClient {
   continueOperation() { this.clearInput(); return this._command('continue_operation'); }
   start() { return this._command('start'); }
   restart() { return this._command('restart'); }
-  configure({mission,difficulty}={}) { return this._command('configure',{...(mission!==undefined?{mission}:{}),...(difficulty?{difficulty}:{})}); }
+  configure({mission,difficulty,squadRoles}={}) { return this._command('configure',{...(mission!==undefined?{mission}:{}),...(difficulty?{difficulty}:{}),...(squadRoles!==undefined?{squadRoles}:{})}); }
+  armorOrder(order) { return this._command('armor_order', { order }); }
   swapRoles() { this.clearInput(); return this._command('swap_roles'); }
   returnToLobby() { this.clearInput(); return this._command('return_lobby'); }
   _rejectCommands(reason) { for (const pending of this._pending.values()) { clearTimeout(pending.timer); pending.reject(new Error(reason)); } this._pending.clear(); }

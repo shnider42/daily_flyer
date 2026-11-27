@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGame,step,stepCoop,setHumanPlayers,getFieldSupportStatus,requestFieldSupport,hasLineOfSight,combatLOS,rebuildNavigationGrid,findPath} from '../public/sim.mjs';
 import {FIELD_AID,fieldAidSafe} from '../public/field-support.mjs';
+import {FIELD_SQUAD_LIMITS} from '../public/independent-squads.mjs';
 import {enemyProfile,ballisticProfile} from '../public/combat-profiles.mjs';
 import {squadCanSeePoint} from '../public/visibility.mjs';
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -17,7 +18,7 @@ function positionGroup(s,id,spots){
 
 test('Cordon relief is finite, prepositioned, and reports actual availability without exposing hidden orders',()=>{
   const s=createGame({seed:17}),status=getFieldSupportStatus(s),reserve=s.allies.filter(a=>a.fieldSquadId==='field-relief');
-  assert.equal(reserve.length,3);assert.equal(s.allies.length,8);assert.equal(s.squad.length,4);
+  assert.equal(reserve.length,3);assert.equal(s.allies.length,FIELD_SQUAD_LIMITS.allies);assert.equal(s.squad.length,4);
   assert.equal(status.available,true);assert.equal(status.remaining,1);assert.equal(status.status,'available');
   assert.deepEqual(Object.keys(status).sort(),['enabled','available','remaining','status','callsign','text','updatedAt','requestId'].sort());
   assert.equal(JSON.stringify(status).includes('destination'),false);assert.ok(reserve.every(a=>a.visible===squadCanSeePoint(s,a)));
@@ -59,7 +60,7 @@ test('one explicit request moves the existing detachment, covers the area, then 
   assert.ok(reserve.some(a=>distance(a,before.find(b=>b.id===a.id))>100));
   assert.deepEqual(s.order,order);assert.equal(s.stats.shots,0);assert.equal(s.stats.squadDowns,0);
   run(s,50);assert.equal(getFieldSupportStatus(s).status,'complete');assert.equal(getFieldSupportStatus(s).available,false);
-  assert.equal(requestFieldSupport(s,{x:200,y:1340}),false);assert.equal(s.allies.length,8);
+  assert.equal(requestFieldSupport(s,{x:200,y:1340}),false);assert.equal(s.allies.length,FIELD_SQUAD_LIMITS.allies);
   assert.deepEqual(s.allies.map(a=>a.id),before.map(a=>a.id));
 });
 
@@ -114,6 +115,20 @@ test('buddy aid consumes a supply, keeps a casualty alive, and never joins the e
   assert.equal(members.reduce((sum,a)=>sum+a.medkits,0),kitsBefore-1);
   assert.equal(s.squad.length,4);assert.equal(s.stats.squadDowns,0);assert.equal(s.stats.rescued,0);
   assert.equal(s.bodies.some(b=>b.actorId===casualty.id),false);
+});
+
+test('the added medic team can treat a nearby other squad with its own finite supplies',()=>{
+  const s=quiet(clearWorld(createGame({seed:17})));
+  const {members:raven}=positionGroup(s,'field-raven',[{x:570,y:500},{x:620,y:500},{x:570,y:560}]);
+  const {group,members:atlas}=positionGroup(s,'field-atlas',[{x:480,y:500},{x:480,y:560},{x:530,y:520}]);
+  group.order='patrol';group.departAt=30;
+  const casualty=raven[0],medic=atlas.find(a=>a.role==='medic');
+  raven.forEach(a=>a.medkits=0);atlas.filter(a=>a!==medic).forEach(a=>a.medkits=0);
+  Object.assign(casualty,{hp:0,downed:true,bleed:2});const before=medic.medkits;
+  run(s,4.2);
+  assert.equal(casualty.downed,false);assert.equal(casualty.fieldRecovered,true);
+  assert.equal(medic.medkits,before-1);assert.equal(s.fieldSupport.remaining,1);
+  assert.equal(s.squad.length,4);assert.equal(s.stats.rescued,0);
 });
 
 test('a blocked or exposed aid approach waits instead of sending every buddy into the same fire',()=>{

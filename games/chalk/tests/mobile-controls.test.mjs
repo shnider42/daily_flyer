@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {stickVector,touchIntent,GroundOrderTap,ThrowableDrag,thumbOrigin,thumbDisplayOrigin} from '../public/touch-input.mjs';
 import {renderDensity,normalizePreferences} from '../public/settings.mjs';
 import {touchControlLayout} from '../public/touch-layout.mjs';
+import {observationBlocksFire} from '../public/squad-roles.mjs';
 
 // Execute the shipped app listeners and resize cleanup with two separate
 // captured pointers. The fixture supplies geometry, not a second controller.
@@ -67,9 +68,10 @@ function fixture(settings={}){
     game:{role:'leader'},paused:false,showMap:false,placingOrder:false,placingPing:false,storyCardOpen:false,gearOpen:false,dialogOpen:false,
     updateHUD(){},updateStoryUI(){},doOrder:type=>orders.push(type),
     applySettings(key){appliedSettings.push({key,heldPointers:state.activeSticks.size});state.fit();},save(){savedSettings.push({...state.preferences});},
-    storyRenderKey:'',tutorialManual:false,
+    storyRenderKey:'',tutorialManual:false,observationBlocksFire,testPlayer:{role:'grenadier'},
   };
   state.canAct=()=>state.enabled;
+  state.player=()=>state.testPlayer;
   vm.runInNewContext(clear+'\n'+resize+'\n'+listeners+'\n'+closeMenus+'\n'+menuListeners+'\n'+settingsChange,state);
   state.fit();return{state,move,aim,viewport,nodes,heldActions,orders,savedSettings,appliedSettings};
 }
@@ -235,4 +237,16 @@ test('opening Squad clears both held thumbs and the dedicated button dispatches 
     state[blockedBy]=true;nodes.touchRegroup.emit('click');state[blockedBy]=false;
   }
   assert.deepEqual(orders,['follow','ready'],'targeting and modal screens cannot issue an unintended regroup');
+});
+
+test('a mobile sniper scope keeps deliberate outer-ring firing while binoculars keep scanning',()=>{
+  const {state,aim,nodes}=fixture();
+  state.testPlayer={role:'sniper'};state.observing=true;
+  aim.emit('pointerdown',{pointerId:2,clientX:320,clientY:760});
+  aimAt(aim,.82);assert.equal(state.touchInput.wasFiring,false);assert.equal(nodes.aimStickLabel.textContent,'AIM');
+  aimAt(aim,.94);assert.equal(state.touchInput.wasFiring,true);assert.equal(nodes.aimStickLabel.textContent,'FIRE');
+  aim.emit('pointerup',{pointerId:2});
+  state.testPlayer={role:'grenadier'};state.observing=true;
+  aim.emit('pointerdown',{pointerId:2,clientX:320,clientY:760});
+  aimAt(aim,.94);assert.equal(state.touchInput.wasFiring,false);assert.equal(nodes.aimStickLabel.textContent,'SCAN');
 });

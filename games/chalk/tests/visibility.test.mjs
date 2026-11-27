@@ -169,7 +169,7 @@ test('actual doorway samples distinguish clear sight, explored memory, and never
   const { state, observer } = fixture();
   state.world.walls = [{ x: 150, y: 0, w: 10, h: 260 }, { x: 150, y: 340, w: 10, h: 1260 }];
   const locations = [{ x: 90, y: 300 }, { x: 350, y: 300 }, { x: 350, y: 80 }, { x: 1400, y: 1200 }];
-  const layer = new SharedSightLayer({ createCanvas: sampledCanvas(locations.map(point => ({ x: point.x / 4, y: point.y / 4 }))) });
+  const layer = new SharedSightLayer({ density: 1, createCanvas: sampledCanvas(locations.map(point => ({ x: point.x / 4, y: point.y / 4 }))) });
   layer.update(state, 1);
   let shades = layer.overlay.pixels.map(point => point.alpha);
   assert.deepEqual(shades.slice(0, 2), [0, 0], 'the open doorway leaves current sight clear');
@@ -266,4 +266,22 @@ test('a geometry revision refreshes current sight immediately while preserving e
   assert.equal(layer.remembered, memory); assert.equal(layer.resetCount, resets);
   assert.equal(memory.calls.filter(call => call.method === 'clearRect').length, clears);
   assert.equal(layer.update(state, 1.02), false, 'unchanged geometry returns to throttled work');
+});
+
+test('changing fog while paused recomposites existing masks without rescanning, forgetting terrain, or revealing enemies', () => {
+  const { state } = fixture();
+  const layer = new SharedSightLayer({ createCanvas: fakeCanvas });
+  state.world.walls = [{ x: 150, y: 0, w: 10, h: 1600 }];
+  layer.update(state, 1);
+  const { remembered, polygons, revision, resetCount } = layer;
+  const memoryClears = remembered.calls.filter(call => call.method === 'clearRect').length;
+  const overlayClears = layer.overlay.calls.filter(call => call.method === 'clearRect').length;
+  assert.equal(layer.setDensity(1), true);
+  assert.equal(layer.revision, revision); assert.equal(layer.resetCount, resetCount);
+  assert.equal(layer.polygons, polygons); assert.equal(layer.remembered, remembered);
+  assert.equal(remembered.calls.filter(call => call.method === 'clearRect').length, memoryClears);
+  assert.equal(layer.overlay.calls.filter(call => call.method === 'clearRect').length, overlayClears + 1);
+  assert.equal(layer.setDensity(0), true);
+  assert.equal(enemyInSharedSight(state, { x: 300, y: 300, visible: true }), false);
+  assert.equal(layer.setDensity(0), false);
 });

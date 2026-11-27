@@ -7,9 +7,9 @@ const run=(s,seconds,input={})=>{for(let f=0;f<Math.ceil(seconds*30)&&s.status==
 const stage=(s,id)=>s.stages.find(p=>p.id===id);
 function enterStage(s,id){s.stageIndex=s.stages.findIndex(p=>p.id===id);s.phaseTime=0;step(s,{},1/30);return s.stages[s.stageIndex];}
 
-test('ten operations have distinct action routes, real indoor targets, and a four-chapter continuation boundary',()=>{
-  assert.equal(MISSIONS.length,10);assert.deepEqual(MISSIONS.map(m=>m.category),[...Array(4).fill('campaign'),...Array(6).fill('side')]);
-  assert.deepEqual(MISSIONS.map((_,i)=>getNextCampaignMission(i)),[1,2,3,...Array(7).fill(null)]);
+test('fourteen operations have distinct action routes, real indoor targets, and a four-chapter continuation boundary',()=>{
+  assert.equal(MISSIONS.length,14);assert.deepEqual(MISSIONS.map(m=>m.category),[...Array(4).fill('campaign'),...Array(10).fill('side')]);
+  assert.deepEqual(MISSIONS.map((_,i)=>getNextCampaignMission(i)),[1,2,3,...Array(11).fill(null)]);
   for(let mission=0;mission<MISSIONS.length;mission++)for(const seed of [4,17,63]){
     const s=quiet({mission,seed});assert.ok(s.stages.length>=5);
     assert.ok(s.stages.some(p=>['recon','interact','deliver','escort'].includes(p.kind)));
@@ -85,10 +85,10 @@ test('Night Relief has a physical carrier restart after the first road obstructi
 test('snapshot object positions keep delivery interactions correct after a route decision',()=>{
   const s=quiet();const p=enterStage(s,'cordon-delivery'),item=s.operation.items[0],hale=s.squad[0];
   // Client stages are reconstructed once; operation objects carry revised coordinates.
-  const object=s.operation.objects.find(o=>o.id===p.id);object.x=1640;object.y=960;
-  item.status='carried';item.carrierId=hale.id;Object.assign(hale,{x:1640,y:960});
-  assert.equal(p.y,580);assert.equal(getMissionInteraction(s)?.label,'Hand over radio');
-  run(s,3.1,{interact:true});assert.equal(item.status,'delivered');assert.equal(item.y,960);
+  const object=s.operation.objects.find(o=>o.id===p.id);object.x=1570;object.y=960;
+  item.status='carried';item.carrierId=hale.id;Object.assign(hale,{x:1570,y:960});
+  assert.equal(p.y,650);assert.equal(getMissionInteraction(s)?.label,'Hand over radio');
+  run(s,3.1,{interact:true});assert.equal(item.status,'delivered');assert.equal(item.x,1570);assert.equal(item.y,960);
 });
 
 test('the Assist action remains available after switching away from an AI cargo carrier, only when cargo has physically arrived',()=>{

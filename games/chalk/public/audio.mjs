@@ -9,6 +9,7 @@ import { VOICE_SAMPLE_FILES, VOICE_LINES } from './squad-voice-lines.mjs';
 import { createVoiceDirector, chooseVoiceLine, squadVoiceCategory, findVoiceSpeaker, squadVoiceRoute, fieldVoiceRoute,
   FIELD_RADIO_SPEAKER, createFieldRadioDirector, fieldRadioCue, voicePolicy } from './squad-voice.mjs';
 import { flashIntensity } from './hand-grenades.mjs';
+import { roleProfile } from './squad-roles.mjs';
 import { SOUND_SPEED_MPS, WORLD_UNITS_PER_METRE, MAX_PENDING_ARRIVALS, ARRIVAL_LOOKAHEAD,
   ARRIVAL_LATE_TOLERANCE, acousticSourceTime, acousticArrivalTime, acousticTravelDelay, acousticHearingRange,
   distantCombatMix, reportProfile, reportBurstMix } from './acoustics.mjs';
@@ -47,8 +48,8 @@ export class GameAudio {
     this.fieldRadioDirector = createFieldRadioDirector();
     this.speechReverbBanks = {}; this.speechReflectionsNeedFlush = false; this.speechMixTimer = 0;
     this.lastFlashKey = null;
-    this.hitTimes = new Map(); this.painTimes = new Map(); this.fearTimes = new Map();
-    this.lastPainTime = -Infinity; this.lastFearTime = -Infinity; this.foregroundUntil = 0;
+    this.hitTimes = new Map(); this.painTimes = new Map(); this.fearTimes = new Map(); this.hostileVoiceTimes = new Map();
+    this.lastPainTime = -Infinity; this.lastFearTime = -Infinity; this.lastHostileVoiceTime = -Infinity; this.foregroundUntil = 0;
     this.lastSceneKey = null; this.lastStateTime = -Infinity; this.painVariant = 0; this.fearVariant = 0;
     this.pendingArrivals = []; this.arrivalTrace = []; this.eventDelay = 0; this.lastNearPassTime = -Infinity;
     this.propagationStats = { queued: 0, delivered: 0, late: 0, dropped: 0, cancelled: 0 };
@@ -169,7 +170,7 @@ export class GameAudio {
 
   _makeReports() {
     const c = this.context;
-    for (const weapon of ['rifle', 'support', 'hostile', 'hostile_support', 'sniper']) {
+    for (const weapon of ['rifle', 'support', 'hostile', 'hostile_support', 'sniper', 'vehicle-mg', 'tank-cannon']) {
       const data = fallbackReportData(c.sampleRate, weapon), buffer = c.createBuffer(1, data.length, c.sampleRate);
       buffer.getChannelData(0).set(data); this.fallbackReports.set(weapon, buffer);
     }
@@ -628,7 +629,7 @@ export class GameAudio {
       this.propagationStats.late++; return;
     }
     const priority = event.type === 'near_pass' || own && event.type === 'victim_hit' ? 5
-      : own && event.type === 'shot' ? 4 : ['explosion', 'flashbang'].includes(event.type) ||
+      : own && event.type === 'shot' ? 4 : ['explosion', 'flashbang'].includes(event.type) || event.type === 'shot' && event.weapon === 'tank-cannon' ||
         event.type === 'shot' && event.team === 'enemy' && d < 360 || event.type === 'impact' && d < 140 ? 3
         : event.team === 'squad' ? 2 : 1;
     const pending = { event: { ...point, sourceTime }, at: (this.context?.currentTime || 0) + remaining,
@@ -669,28 +670,31 @@ export class GameAudio {
     if (!player) return;
     const spatial = this._spatial(event, player, state?.world), own = event.actorId === player.id;
     if (spatial.d > acousticHearingRange('shot', state?.world)) return;
+    const weapon = event.weapon || (event.team === 'enemy' ? 'hostile' : 'rifle'), cannon = weapon === 'tank-cannon';
     const distant = !own && spatial.d > 650;
     const closeThreat = !own && event.team === 'enemy' && spatial.d < 360 && !spatial.occluded;
-    if (!own && (distant ? this.distantShotBudget : closeThreat ? this.threatShotBudget : this.shotBudget) < 1) return;
-    if (distant) {
+    // A real, slow cannon report has blast priority. Distant automatic rifles
+    // cannot consume its admission; the shared voice/arrival caps still apply.
+    if (!own && !cannon && (distant ? this.distantShotBudget : closeThreat ? this.threatShotBudget : this.shotBudget) < 1) return;
+    if (distant && !cannon) {
       const at = this.context.currentTime + this.eventDelay, last = this.distantShooters.get(event.actorId) ?? -Infinity;
       if (at - last < .105) return;
       this.distantShooters.set(event.actorId, at);
       if (this.distantShooters.size > 64) this.distantShooters.delete(this.distantShooters.keys().next().value);
       this.distantShotBudget = Math.max(0, this.distantShotBudget - 1);
-    } else if (closeThreat) this.threatShotBudget = Math.max(0, this.threatShotBudget - 1);
-    else if (!own) this.shotBudget = Math.max(0, this.shotBudget - 1);
-    const weapon = event.weapon || (event.team === 'enemy' ? 'hostile' : 'rifle');
+    } else if (closeThreat && !cannon) this.threatShotBudget = Math.max(0, this.threatShotBudget - 1);
+    else if (!own && !cannon) this.shotBudget = Math.max(0, this.shotBudget - 1);
     const profile = reportProfile(weapon), recorded = this.samples.get(profile.sample);
     const sample = recorded || this.fallbackReports.get(weapon) || this.fallbackReports.get('rifle');
     if (!sample) return;
     const gain = own ? 1 : spatial.gain;
     const pan = own ? 0 : spatial.pan;
     const rate = profile.rate * (.998 + Math.random() * .004);
-    const priority = own ? 4 : closeThreat ? 3 : distant ? 1 : 2;
+    const priority = own ? 4 : cannon || closeThreat ? 3 : distant ? 1 : 2;
     const key = `${event.actorId ?? event.team ?? 'unknown'}:${weapon}`, variants = recorded ? profile.offsets : [0];
     const sourceTime = acousticSourceTime(event, this.context.currentTime + this.eventDelay), previous = this.reportBursts.get(key);
     const interval = previous ? sourceTime - previous.time : Infinity;
+    if (cannon && interval >= 0 && interval < 1.8) return;
     const continuation = interval > .02 && interval <= profile.burstWindow ? Math.min(8, previous.continuation + 1) : 0;
     const burst = reportBurstMix(weapon, continuation);
     let turn = this.reportTurns.get(key);
@@ -821,6 +825,27 @@ export class GameAudio {
       actorId: event.victimId ?? event.actorId });
   }
 
+  _hostileShout(event, player, state) {
+    if (event.team !== 'enemy' || event.alive !== true || event.downed || this.levels.distress === 0 ||
+      !Number.isFinite(event.x) || !Number.isFinite(event.y)) return;
+    // The source may be absent from a co-op actor snapshot. Use the physical
+    // event, while a later fatal event can still cancel an obsolete call.
+    if ((state?.soundEvents || []).some(hit => hit.type === 'victim_hit' && hit.alive === false &&
+      (hit.victimId ?? hit.actorId) === event.actorId && acousticSourceTime(hit) >= acousticSourceTime(event))) return;
+    const s = this._spatial(event, player, state?.world), now = (this.context?.currentTime || 0) + this.eventDelay;
+    if (s.d > (s.occluded ? 340 : acousticHearingRange('hostile_shout', state?.world)) ||
+      now - this.lastHostileVoiceTime < 9 || now - this.lastPainTime < .8 || now - this.lastFearTime < .8 ||
+      !this._cooldown(this.hostileVoiceTimes, event.actorId, now, 42)) return;
+    // Reuse the credited HaelDB nonverbal alarm performances, not squad words,
+    // injury sounds, radio recordings, or an invented language/accent.
+    const sample = this.samples.get(event.variant === 1 ? 'fear2' : 'fear1');
+    if (!sample) return;
+    this.lastHostileVoiceTime = now;
+    this._voice({ buffer: sample, duration: Math.min(1.15, sample.duration), gain: .34 * s.gain,
+      lowpass: Math.min(5800, s.lowpass), highpass: 210, pan: s.pan, rate: 1, attack: .009,
+      wet: .16, space: s.space, bus: 'distress', priority: 1, actorId: event.actorId, kind: 'hostile-shout' });
+  }
+
   _event(event, player, state = this.lastState) {
     if (event.type === 'field_voice') {
       const speaker = state?.allies?.find(actor => actor.id === event.actorId);
@@ -834,6 +859,7 @@ export class GameAudio {
     if (event.type === 'impact') { this._impact(event, player, state); return; }
     if (event.type === 'victim_hit') { this._victimHit(event, player, state); return; }
     if (event.type === 'civilian_fear') { this._civilianFear(event, player, state); return; }
+    if (event.type === 'hostile_shout') { this._hostileShout(event, player, state); return; }
     const s = this._spatial(event, player, state?.world); if (s.d > acousticHearingRange(event.type, state?.world)) return;
     const own = event.actorId === player.id, gain = own ? 1 : s.gain * .65;
     if (event.type === 'grenade_throw') {
@@ -1162,8 +1188,8 @@ export class GameAudio {
       this.lastSpeech = null; this.lastCarrierAt = -Infinity; this.lastFlashKey = null;
       this.reportTurns.clear(); this.reportBursts.clear(); this.impactTurn = 0; this.lastReport = null;
       this.cityDirector = createCityAmbience(state.seed, state.missionIndex, state.time); this.cityPasses.length = 0;
-      this.hitTimes.clear(); this.painTimes.clear(); this.fearTimes.clear();
-      this.lastPainTime = -Infinity; this.lastFearTime = -Infinity; this.foregroundUntil = 0;
+      this.hitTimes.clear(); this.painTimes.clear(); this.fearTimes.clear(); this.hostileVoiceTimes.clear();
+      this.lastPainTime = -Infinity; this.lastFearTime = -Infinity; this.lastHostileVoiceTime = -Infinity; this.foregroundUntil = 0;
       this.lastNearPassTime = -Infinity; this.presentationAnchor = null; this.needsLiveCursor = false; this.arrivalTrace.length = 0;
     } else if (changedListener || changedEpoch) {
       // A role swap changes transport epoch but keeps the same mission's event
@@ -1216,7 +1242,7 @@ export class GameAudio {
           this._event({ ...effect, type: effect.type === 'smoke' ? 'smoke' : 'impact', material: effect.type === 'dust' ? 'concrete' : 'body' }, player);
         }
       }
-      if (effectsAudible && player && !skipBatch) for (let i = 0; i < Math.min(2, Math.max(0, shots - this.lastShots - playerMuzzles)); i++) this._shot({ ...player, actorId: player.id, weapon: player.role === 'support' ? 'support' : 'rifle' }, player);
+      if (effectsAudible && player && !skipBatch) for (let i = 0; i < Math.min(2, Math.max(0, shots - this.lastShots - playerMuzzles)); i++) this._shot({ ...player, actorId: player.id, weapon: roleProfile(player).weapon }, player);
       if (this.effectIds.size > 600) this.effectIds = new Set([...this.effectIds].slice(-300));
     }
     if (effectsAudible && player && !skipBatch) this._drainArrivals(state, player);

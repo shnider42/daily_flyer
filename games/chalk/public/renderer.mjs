@@ -1,5 +1,5 @@
 import { traceAim } from './desktop-input.mjs';
-import { roleProfile } from './squad-roles.mjs';
+import { roleProfile, canObserve, isSquadCommander } from './squad-roles.mjs';
 import { enemyInSharedSight, squadCanSeePoint, rayWallDistance, SharedSightLayer } from './visibility.mjs';
 import { getSolidWalls } from './building-geometry.mjs';
 import { flashIntensity } from './hand-grenades.mjs';
@@ -510,7 +510,7 @@ export class Renderer {
 
   bodySprite(body) {
     const team = body.team === 'allied' ? 'squad' : ['squad', 'civilian', 'survivor'].includes(body.team) ? body.team : 'enemy';
-    const kit = team === 'squad' && ['leader', 'medic', 'support', 'grenadier'].includes(body.role) ? body.role : ['sniper', 'gunner', 'flanker'].includes(body.kind) ? body.kind : 'rifleman';
+    const kit = team === 'squad' ? roleProfile(body).id : ['sniper', 'gunner', 'flanker'].includes(body.kind) ? body.kind : 'rifleman';
     const pose = Math.abs(Math.trunc(finite(body.pose))) % 3, key = `body:${team}:${kit}:${pose}`;
     if (this.sprites.has(key)) return this.sprites.get(key);
     const sprite = newCanvas(64, 48), ctx = sprite.getContext('2d');
@@ -603,6 +603,33 @@ export class Renderer {
       ctx.beginPath(); ctx.ellipse(x, y, 20 + hash(i) * 130, 8 + hash(i + 1) * 50, hash(i + 3) * TAU, 0, TAU); ctx.fill();
     }
     for (const district of world.districts || []) this.drawDistrict(ctx, district);
+    for (const terrain of world.terrain || []) {
+      const water = terrain.kind === 'water' || terrain.kind === 'channel';
+      ctx.fillStyle = water ? terrain.kind === 'water' ? '#354b4d' : '#46534f' : terrain.kind === 'rail' ? '#625f51' : '#7b7a67';
+      ctx.fillRect(terrain.x, terrain.y, terrain.w, terrain.h);
+      ctx.save(); ctx.beginPath(); ctx.rect(terrain.x, terrain.y, terrain.w, terrain.h); ctx.clip();
+      if (water) {
+        for (let i = 0; i < 90; i++) {
+          const x = terrain.x + hash(i + 131) * terrain.w, y = terrain.y + hash(i + 217) * terrain.h;
+          line(ctx, x, y, x + 12 + hash(i + 93) * 43, y + 1, i % 3 ? 'rgba(184,202,180,.12)' : 'rgba(22,39,36,.22)', 1.4);
+        }
+        ctx.strokeStyle = '#989985'; ctx.lineWidth = 8; ctx.strokeRect(terrain.x, terrain.y, terrain.w, terrain.h);
+      } else if (terrain.kind === 'rail') {
+        const vertical = terrain.h >= terrain.w, middle = vertical ? terrain.x + terrain.w / 2 : terrain.y + terrain.h / 2;
+        for (let p = vertical ? terrain.y : terrain.x; p < (vertical ? terrain.y + terrain.h : terrain.x + terrain.w); p += 24) {
+          if (vertical) line(ctx, middle - 22, p, middle + 22, p, '#48483d', 6);
+          else line(ctx, p, middle - 22, p, middle + 22, '#48483d', 6);
+        }
+        for (const side of [-13, 13]) {
+          if (vertical) line(ctx, middle + side, terrain.y, middle + side, terrain.y + terrain.h, '#a1a18b', 3);
+          else line(ctx, terrain.x, middle + side, terrain.x + terrain.w, middle + side, '#a1a18b', 3);
+        }
+      } else {
+        for (let x = terrain.x; x < terrain.x + terrain.w; x += 90) line(ctx, x, terrain.y, x, terrain.y + terrain.h, 'rgba(52,57,47,.18)', 1);
+        for (let y = terrain.y; y < terrain.y + terrain.h; y += 90) line(ctx, terrain.x, y, terrain.x + terrain.w, y, 'rgba(52,57,47,.18)', 1);
+      }
+      ctx.restore();
+    }
     for (const road of world.roads || []) this.drawRoad(ctx, road);
     // Dust, grit and old tire marks are all baked into the ground layer.
     for (let i = 0; i < 7800; i++) {
@@ -1166,31 +1193,44 @@ export class Renderer {
     }
   }
 
-  drawVehicle(ctx, v, time) {
+  drawVehicle(ctx, v, time, simulationTime = time) {
     if (v.kind === 'helicopter' || v.kind === 'crash') { this.drawHelicopter(ctx, v.x, v.y, finite(v.angle), false, time); return; }
     ctx.save(); ctx.translate(v.x, v.y); ctx.rotate(finite(v.angle));
-    const w = finite(v.w, 64), h = finite(v.h, 34), apc = v.kind === 'apc';
+    const w = finite(v.hullLength, finite(v.w, 64)), h = finite(v.hullWidth, finite(v.h, 34)), tank = v.kind === 'tank', apc = v.kind === 'apc' || tank;
+    const hostile = v.team === 'enemy', wrecked = v.destroyed || (v.hp ?? 1) <= 0;
+    const paint = wrecked ? '#4a4d40' : hostile ? '#8c745c' : tank ? '#69785c' : apc ? '#818a70' : '#8e9277';
     ctx.fillStyle = 'rgba(19,26,21,.37)'; ctx.fillRect(-w / 2 + 7, -h / 2 + 8, w, h);
     for (const yy of [-h / 2 - 4, h / 2 - 1]) {
       ctx.fillStyle = '#262d27'; ctx.fillRect(-w / 2 + 7, yy, apc ? w - 14 : 13, 6);
       if (!apc) ctx.fillRect(w / 2 - 17, yy, 11, 6);
     }
-    roundRect(ctx, -w / 2, -h / 2, w, h, apc ? 5 : 2, apc ? '#818a70' : '#8e9277', '#414e3e');
+    roundRect(ctx, -w / 2, -h / 2, w, h, apc ? 5 : 2, paint, '#414e3e');
     ctx.fillStyle = '#a7ac90'; ctx.fillRect(-w / 2 + 4, -h / 2 + 3, w - 8, 3);
     ctx.fillStyle = '#4e6055'; ctx.fillRect(w / 2 - 18, -h / 2 + 4, 8, h - 8);
     if (apc) {
-      circle(ctx, -3, 0, 11, '#6a795e', '#3b4a38', 2);
-      line(ctx, 0, 0, 30, 0, '#334131', 5);
       for (let k = 0; k < 3; k++) { ctx.strokeStyle = '#56664c'; ctx.strokeRect(-w / 2 + 6 + k * 8, -h / 2 + 7, 5, h - 14); }
+      ctx.save(); ctx.rotate(finite(v.turretAngle, v.angle) - finite(v.angle));
+      if (tank) roundRect(ctx, -15, -13, 32, 26, 5, hostile ? '#7c624c' : '#657651', '#354331');
+      else circle(ctx, -3, 0, 11, hostile ? '#80694f' : '#6a795e', '#3b4a38', 2);
+      const barrel = tank ? w * .65 : 30;
+      line(ctx, 0, 0, barrel, 0, '#334131', tank ? 7 : 5);
+      line(ctx, 10, -1, barrel - 3, -1, '#a4aa87', 1.3);
+      if (!wrecked && Number.isFinite(v.shotAt) && simulationTime >= v.shotAt && simulationTime - v.shotAt < (v.lastWeapon === 'tank-cannon' ? .17 : .08)) {
+        circle(ctx, barrel + 8, 0, tank ? 11 : 6, '#e2ad69');
+        circle(ctx, barrel + 5, 0, tank ? 5 : 3, '#fff0bb');
+      }
+      ctx.restore();
     } else {
       ctx.fillStyle = '#71785f'; ctx.fillRect(-w / 2 + 4, -h / 2 + 4, w * .57, h - 8);
       for (let xx = -w / 2 + 8; xx < w * .1; xx += 12) line(ctx, xx, -h / 2 + 5, xx, h / 2 - 5, '#a8a58a', 1.3);
     }
     // Generic UN vehicle identification references the multinational relief, not a specific unit.
-    if (apc) { ctx.save(); ctx.rotate(-Math.PI / 2); ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#e8e5d7'; ctx.textAlign = 'center'; ctx.fillText('UN', 0, -w / 2 + 11); ctx.restore(); }
+    if (apc && !hostile && !tank) { ctx.save(); ctx.rotate(-Math.PI / 2); ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#e8e5d7'; ctx.textAlign = 'center'; ctx.fillText('UN', 0, -w / 2 + 11); ctx.restore(); }
+    if (tank && !hostile) { line(ctx, -w / 2 + 9, -8, -w / 2 + 17, 0, '#d7d4b6', 2); line(ctx, -w / 2 + 17, 0, -w / 2 + 9, 8, '#d7d4b6', 2); }
     ctx.fillStyle = '#d0c696'; ctx.fillRect(w / 2 - 2, -h / 2 + 3, 3, 6); ctx.fillRect(w / 2 - 2, h / 2 - 9, 3, 6);
     if ((v.hp ?? 1) <= 0) { ctx.globalAlpha = .8; circle(ctx, 0, 0, h * .65, '#343b2d'); }
     ctx.restore();
+    if (v.disabled && !wrecked && this.camera.zoom > .55) this.worldLabel(v.x, v.y - h / 2 - 16, hostile ? 'IMMOBILIZED' : 'IMMOBILIZED · AID TO REPAIR', '#e1c798', 10);
     if (v.waiting && this.camera.zoom > .55) this.worldLabel(v.x, v.y - 34, typeof v.waiting === 'string' ? v.waiting : 'CONVOY WAITING', '#e1c798', 11);
   }
 
@@ -1251,9 +1291,11 @@ export class Renderer {
         ctx.fillStyle = gear; ctx.fillRect(-6, -6, actor.kind === 'flanker' ? 4 : 7, 12);
         if (actor.kind === 'gunner') { ctx.fillStyle = '#6c6a4c'; ctx.fillRect(-10, -7, 4, 6); ctx.fillRect(-10, 2, 4, 6); }
         if (profile?.id === 'grenadier') { ctx.fillStyle = '#596445'; ctx.fillRect(-11, -8, 7, 16); line(ctx, -9, -6, -9, 5, '#aaa37a', 2); }
+        if (profile?.id === 'heavy') { roundRect(ctx, -7, -9, 12, 18, 2, '#59614d', '#9da485'); line(ctx, -4, -7, 3, -7, '#303b31', 1.8); line(ctx, -4, 7, 3, 7, '#303b31', 1.8); }
+        if (profile?.id === 'sniper') { line(ctx, -11, -8, -4, -9, '#a2aa8a', 2); line(ctx, -11, 8, -4, 9, '#727f60', 2); }
         ctx.fillStyle = '#b4ad83'; ctx.fillRect(-5, -5, 2, 3); ctx.fillRect(-5, 2, 2, 3);
         line(ctx, -5, -7, 5, 5, '#3f4635', 1.1);
-        if (ally && (profile?.id === 'leader' || alliedPatrol && actor.role === 'leader')) {
+        if (ally && (isSquadCommander(actor) || alliedPatrol && actor.role === 'leader')) {
           ctx.fillStyle = '#384734'; ctx.fillRect(-7, -8, 3, 5); line(ctx, -7, -8, -12, -14, '#28392c', .9);
         }
       }
@@ -1270,8 +1312,9 @@ export class Renderer {
           ctx.fillStyle = '#25362c'; ctx.fillRect(8, -6, 8, 4); ctx.fillRect(8, 2, 8, 4);
           line(ctx, 11, -2, 11, 2, '#8d9d83', 2);
         } else {
-          const beltFed = profile?.id === 'support' || actor.kind === 'gunner';
-          const barrel = beltFed ? 30 : actor.kind === 'sniper' ? 32 : actor.kind === 'flanker' ? 21 : 24;
+          const beltFed = profile?.weapon === 'support' || actor.kind === 'gunner';
+          const sniper = profile?.id === 'sniper' || actor.kind === 'sniper';
+          const barrel = beltFed ? 30 : sniper ? 34 : actor.kind === 'flanker' ? 21 : 24;
           line(ctx, 4, 2, barrel, 2, '#202d25', beltFed ? 3.8 : 3);
           ctx.fillStyle = '#48513c'; ctx.fillRect(10, 0, 5, 5);
           if (beltFed) {
@@ -1279,7 +1322,7 @@ export class Renderer {
             const spread = actor.kind === 'gunner' ? 2 + clamp(finite(actor.braceProgress), 0, 1) * 4 : 5;
             line(ctx, 24, 2, 27, 2 - spread, '#293a2d', 1.5); line(ctx, 24, 2, 27, 2 + spread, '#293a2d', 1.5);
           } else if (profile?.id === 'grenadier') line(ctx, 10, 6, 22, 6, '#556047', 4);
-          else if (actor.kind === 'sniper') { ctx.fillStyle = '#3b493a'; ctx.fillRect(12, -1, 8, 3); }
+          else if (sniper) { ctx.fillStyle = '#657359'; ctx.fillRect(12, -1, 10, 3); circle(ctx, 22, .5, 1.5, '#a0b8a6'); }
           if (view.touch) line(ctx, 15, 1, barrel - 1, 1, '#8b9078', .7);
         }
         ctx.restore();
@@ -1490,7 +1533,7 @@ export class Renderer {
   drawLeaderIndicator(state, view) {
     if (state.role !== 'member' || view.menu || view.showMap) return;
     const player = (state.squad || []).find(a => a.id === state.playerId);
-    const leader = (state.squad || []).find(a => a.role === 'leader' && a.alive !== false && !a.downed && a.id !== state.playerId)
+    const leader = (state.squad || []).find(a => isSquadCommander(a) && a.alive !== false && !a.downed && a.id !== state.playerId)
       || (state.squad || []).find(a => a.alive !== false && !a.downed && a.id !== state.playerId);
     if (!player || !leader) return;
     const p = this.worldToScreen(leader.x, leader.y);
@@ -1694,6 +1737,7 @@ export class Renderer {
       if (e.type === 'blood' && (view.menu || view.bloodEffects === false || view.reducedMotion || !e.seen || !squadCanSeePoint(state, e, { ignoreRange: e.farWitness === true }))) continue;
       if (e.type === 'breach' && (view.menu || view.reducedMotion || !e.seen || !squadCanSeePoint(state, e))) continue;
       if (e.type === 'flashbang' && (view.menu || view.showMap || !squadCanSeePoint(state, e))) continue;
+      if (e.type === 'explosion' && !squadCanSeePoint(state, e)) continue;
       const life = clamp(e.ttl / (e.maxTtl || .3), 0, 1);
       ctx.save(); ctx.globalAlpha = life;
       if (e.type === 'muzzle') {
@@ -1798,16 +1842,17 @@ export class Renderer {
   drawObservation(state, view) {
     if (view.menu || view.showMap) return;
     const player = (state.squad || []).find(actor => actor.id === (view.followActorId || state.playerId));
-    if (!player || player.role !== 'grenadier' || player.downed || player.alive === false || !(player.observing || view.observing)) return;
+    if (!player || !canObserve(player) || player.downed || player.alive === false || !(player.observing || view.observing)) return;
     const ctx = this.ctx, x = this.safeRect.cx, y = view.touch ? this.safeRect.top + (this.height > this.width ? 49 : 17) : 84;
     ctx.save(); ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.font = '600 10px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const label = 'BINOCULARS · SHARED SIGHT', width = ctx.measureText(label).width + 36;
+    const scope = roleProfile(player).observationMode === 'scope';
+    const label = scope ? 'SCOPE · FIRE READY' : 'BINOCULARS · SHARED SIGHT', width = ctx.measureText(label).width + 36;
     roundRect(ctx, x - width / 2, y - 12, width, 24, 4, 'rgba(20,31,24,.72)', 'rgba(158,195,165,.28)');
     ctx.fillStyle = '#bfd1b7'; ctx.fillText(label, x + 9, y);
     const gx = x - width / 2 + 13;
-    circle(ctx, gx - 3, y + 1, 2.7, null, '#bfd1b7', 1); circle(ctx, gx + 3, y + 1, 2.7, null, '#bfd1b7', 1);
-    line(ctx, gx - 1, y - 2, gx + 1, y - 2, '#bfd1b7', 1);
+    if (scope) { circle(ctx, gx, y, 4, null, '#bfd1b7', 1); line(ctx, gx - 6, y, gx + 6, y, '#bfd1b7', 1); line(ctx, gx, y - 6, gx, y + 6, '#bfd1b7', 1); }
+    else { circle(ctx, gx - 3, y + 1, 2.7, null, '#bfd1b7', 1); circle(ctx, gx + 3, y + 1, 2.7, null, '#bfd1b7', 1); line(ctx, gx - 1, y - 2, gx + 1, y - 2, '#bfd1b7', 1); }
     // Open corner marks suggest glass without masking the battlefield in black.
     const reach = Math.min(this.safeRect.width * .24, 160), cy = this.safeRect.cy;
     ctx.strokeStyle = 'rgba(187,213,184,.23)'; ctx.lineWidth = 1;
@@ -1897,6 +1942,11 @@ export class Renderer {
     if (!player) return;
     this.camera.x = player.x - (this.safeRect.cx - this.width / 2) / this.camera.zoom;
     this.camera.y = player.y - (this.safeRect.cy - this.height / 2) / this.camera.zoom;
+    if (roleProfile(player).observationMode === 'scope' && player.alive !== false && !player.downed && (player.observing || view.observing)) {
+      const ahead = Math.min(100, this.safeRect.width * .22 / this.camera.zoom, this.safeRect.height * .22 / this.camera.zoom);
+      this.camera.x += Math.cos(finite(player.angle)) * ahead;
+      this.camera.y += Math.sin(finite(player.angle)) * ahead;
+    }
     this.focusScreen = this.worldToScreen(player.x, player.y);
   }
 
@@ -1914,7 +1964,7 @@ export class Renderer {
     this.safeRect = this.playableRect(view);
     const safe = this.safeRect;
     let zoom = (view.touch ? (this.height > this.width ? 1.1 : 1.04) : this.width < 600 ? 1.02 : this.width < 1000 ? 1.08 : 1.2) * clamp(finite(view.zoom, 1), view.touch ? .6 : .8, view.touch ? 1.25 : 1.4);
-    const observing = player.role === 'grenadier' && !player.downed && player.alive !== false && (player.observing || view.observing) && !view.menu && !view.showMap;
+    const observing = canObserve(player) && !player.downed && player.alive !== false && (player.observing || view.observing) && !view.menu && !view.showMap;
     if (observing) zoom *= .76;
     let tx = player.x, ty = player.y;
     // Keep the soldier in the usable battlefield between the HUD and thumb controls.
@@ -1930,7 +1980,7 @@ export class Renderer {
       }
     }
     if (view.showMap) {
-      zoom = Math.min((safe.width - 36) / world.width, (safe.height - (view.touch ? 30 : 72)) / world.height);
+      zoom = Math.min((safe.width - 36) / world.width, (safe.height - (view.touch ? 64 : 72)) / world.height);
       tx = world.width / 2 - (safe.cx - this.width / 2) / zoom;
       ty = world.height / 2 - (safe.cy - this.height / 2) / zoom;
     } else if (view.menu) {
@@ -1943,8 +1993,8 @@ export class Renderer {
       tx += clamp((view.pointer.x - this.width / 2) / this.width, -.5, .5) * 240 / zoom * amount;
       ty += clamp((view.pointer.y - this.height / 2) / this.height, -.5, .5) * 160 / zoom * amount;
     }
-    if (observing && !view.touch) {
-      const ahead = 190;
+    if (observing && (!view.touch || roleProfile(player).observationMode === 'scope')) {
+      const ahead = view.touch ? 100 : 190;
       tx += Math.cos(finite(player.angle)) * ahead; ty += Math.sin(finite(player.angle)) * ahead;
     }
     const halfW = this.width / zoom / 2, halfH = this.height / zoom / 2;
@@ -2009,13 +2059,14 @@ export class Renderer {
     this.drawAmbientFires(ctx, state, time, view);
     if (!view.menu) {
       this.sharedSight.update(state, time);
+      this.sharedSight.setDensity(view.fogDensity);
       this.sharedSight.draw(ctx, {left, top, right, bottom}, {night:missionLighting(state) === 'night', map:view.showMap});
     }
     if (view.showMap) { ctx.strokeStyle = '#718272'; ctx.lineWidth = 1 / this.camera.zoom; ctx.strokeRect(0, 0, world.width, world.height); }
     for (const prop of world.props || []) if (this.isDynamicProp(prop) && this.inView(prop.x, prop.y, 150)) this.drawProp(ctx, prop, time, true);
     this.drawOperationObjects(ctx, state, view);
     this.drawObjective(state, time, view); this.drawStoryOpportunities(state, view); this.drawOrder(state, time, view);
-    for (const v of state.vehicles || []) if (this.inView(v.x, v.y, 140)) this.drawVehicle(ctx, v, time);
+    for (const v of state.vehicles || []) if ((v.team !== 'enemy' || enemyInSharedSight(state, v)) && this.inView(v.x, v.y, 140)) this.drawVehicle(ctx, v, time, state.time || 0);
     this.visibleEnemies.length = 0;
     for (const actor of state.enemies || []) if (actor.alive !== false && this.inView(actor.x, actor.y, 65) && this.houseVisibility(actor, view) > .01 && this.actorVisible(state, actor)) this.visibleEnemies.push(actor);
     this.visibleAllies.length = 0;
@@ -2089,7 +2140,7 @@ export function renderMinimap(canvas, state, options = {}) {
       else line(ctx, door.x, door.y - half, door.x, door.y + half, '#9baf8c', thickness);
     }
   }
-  for (const v of state.vehicles || []) { ctx.fillStyle = '#b7c5a1'; ctx.fillRect(v.x - 3 / scale, v.y - 1.5 / scale, 6 / scale, 3 / scale); }
+  for (const v of state.vehicles || []) { if (v.team === 'enemy' && !enemyInSharedSight(state, v)) continue; ctx.fillStyle = v.team === 'enemy' ? '#c88b6b' : '#b7c5a1'; ctx.fillRect(v.x - 3 / scale, v.y - 1.5 / scale, 6 / scale, 3 / scale); }
   const o = state.objective;
   if (o && Number.isFinite(o.x)) { circle(ctx, o.x, o.y, 5 / scale, 'rgba(237,191,112,.2)', COLORS.objective, 1.4 / scale); }
   for (const a of state.enemies || []) {

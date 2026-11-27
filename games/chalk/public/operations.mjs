@@ -1,4 +1,6 @@
 // Small, authoritative field tasks shared by the campaign and standalone operations.
+import { canObserve } from './squad-roles.mjs';
+import { findArmoredVehicle, repairVehicle, releaseVehicle } from './armored-vehicles.mjs';
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const standing=a=>a&&a.alive&&!a.downed;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -98,7 +100,7 @@ export function operationWork(s,inputs,dt,hooks){
   if(p.kind==='recon'){
     worker=s.squad.find(a=>standing(a)&&hooks.controlled(s,a)&&reachable(s,a,p.lookAt,p.observeRange||520,hooks)&&hooks.combatLOS(s,a,p.lookAt)&&
       angularDifference(a.angle,Math.atan2(p.lookAt.y-a.y,p.lookAt.x-a.x))<.62&&
-      (hooks.inputFor(s,a,inputs).interact||a.role==='grenadier'&&hooks.inputFor(s,a,inputs).observe));
+      (hooks.inputFor(s,a,inputs).interact||canObserve(a)&&hooks.inputFor(s,a,inputs).observe));
     if(!worker&&aiAllowed&&reachable(s,leader,p.lookAt,p.observeRange||520,hooks)&&hooks.combatLOS(s,leader,p.lookAt)){worker=leader;leader.angle=Math.atan2(p.lookAt.y-leader.y,p.lookAt.x-leader.x);}
   }else if(!worker&&aiAllowed&&reachable(s,leader,target,p.radius||65,hooks)){
     const item=operationItem(s,p.itemId);
@@ -117,6 +119,16 @@ export function operationWork(s,inputs,dt,hooks){
   if(s.phaseTime<duration)return true;
   const item=operationItem(s,p.itemId);
   if(target.recovery){item.status='carried';item.carrierId=worker.id;s.phaseTime=0;hooks.radio(s,worker.name.toUpperCase(),`${item.label} recovered. Moving it to the receiving point.`);return true;}
+  if(p.vehicleAction){
+    const vehicle=findArmoredVehicle(s,p.vehicleId);
+    if(p.requiresVehicle&&(!vehicle||vehicle.wreck)){
+      s.interactionPrompt='The required carrier has been destroyed.';return true;
+    }
+    if(vehicle&&!vehicle.wreck){
+      if(p.vehicleAction==='repair-release')repairVehicle(s,vehicle.id);
+      releaseVehicle(s,vehicle.id);
+    }else hooks.radio(s,'RADIO','The armored guard is no longer available. The chalk must bring the group out on foot.');
+  }
   if(p.action==='pickup'&&item){item.status='carried';item.carrierId=worker.id;hooks.radio(s,worker.name.toUpperCase(),`${item.label} secured. I am carrying it.`);}
   if(p.kind==='deliver'&&item){if(item.kind==='medical')for(const c of s.survivors)if(standing(c)&&distance(c,p)<220)c.hp=Math.min(c.maxHp,c.hp+25);item.status='delivered';item.carrierId=null;item.x=p.x;item.y=p.y;hooks.radio(s,worker.name.toUpperCase(),p.transmission?'Battery connected. The report is transmitting; move toward pickup.':`${item.label} handed over.`);}
   if(p.kind==='recon'){

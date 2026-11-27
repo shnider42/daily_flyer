@@ -9,9 +9,9 @@ const enter=(game,id)=>{game.stageIndex=game.stages.findIndex(stage=>stage.id===
 
 test('four standalone additions have distinct task rhythms and preserve the campaign and previous missions',()=>{
   assert.deepEqual(MISSIONS.slice(0,6).map(m=>m.id),['cordon','first-crash','night-relief','dawn-mile','signal-house','courtyard-evac']);
-  assert.deepEqual(MISSIONS.slice(6).map(m=>[m.id,m.lighting]),[['lantern-search','night'],['dead-engine','late-afternoon'],['crossing-guard','day'],['watchline','dawn']]);
+  assert.deepEqual(MISSIONS.slice(6,10).map(m=>[m.id,m.lighting]),[['lantern-search','night'],['dead-engine','late-afternoon'],['crossing-guard','day'],['watchline','dawn']]);
   const rhythms=[];
-  for(let mission=6;mission<MISSIONS.length;mission++){
+  for(let mission=6;mission<10;mission++){
     const game=quiet(mission);
     assert.equal(game.mission.category,'side');assert.match(game.mission.time,/FICTIONAL/);
     assert.ok(game.mission.briefing.some(line=>/fictional/i.test(line)));
@@ -78,7 +78,7 @@ test('Dead Engine starts with a physical restart and ends along its own two-vehi
   assert.equal(game.vehicles.length,2);assert.equal(game.convoyRoute[1].repair,true);
   assert.deepEqual(game.convoyRoute.at(-1),{x:2120,y:960});
   assert.equal(game.convoyRoute.filter(point=>point.blocked&&!point.repair).length,1);
-  for(const [index,actor] of game.squad.entries())Object.assign(actor,{x:lead.x+index*15,y:lead.y+30});
+  for(const [index,actor] of game.squad.entries())Object.assign(actor,{x:lead.x-index*25,y:lead.y+60});
   step(game,{},1/30);assert.equal(game.objective.kind,'repair');assert.equal(getMissionInteraction(game)?.label,'Restart carrier');
   run(game,7,{interact:true});assert.equal(game.convoyCleared.length,0);assert.equal(lead.x,target.x);
   run(game,1.1,{interact:true});assert.ok(game.convoyCleared.includes(1));assert.ok(lead.x>target.x);

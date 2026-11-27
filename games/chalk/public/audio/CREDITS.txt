@@ -370,3 +370,14 @@ per shot. A global 0.24-second spacing and two-voice late-echo cap prevent
 automatic bursts from reserving the voice budget for pending echoes. Doors,
 breaches and intervening solids still govern the actual path. No randomly
 placed or prerecorded environmental echo is substituted for this geometry.
+
+CHALK 1.20 reuse note:
+fear-1.mp3 and fear-2.mp3 are also used sparingly as fictional hostile
+contact/alarm vocalizations. These remain brief nonverbal performances from
+the CC0 HaelDB source recordings credited above; they do not represent a
+specific language or a newly recorded dialogue performance.
+
+CHALK 1.20 vehicle report:
+The tank-cannon report is an original procedurally generated, cached transient
+created for CHALK; no third-party tank recording is used. Vehicle machine-gun
+reports reuse the credited support weapon bank.

@@ -1,8 +1,8 @@
 {
   "game": "CHALK",
-  "version": "1.19.0",
+  "version": "1.20.0",
   "date": "2026-11-27",
-  "missions": 10,
+  "missions": 14,
   "roles": [
     "leader",
     "member"
@@ -60,7 +60,8 @@
       "nominalDiameterPixels": 100,
       "responsiveFit": "Requested sizes persist; pickup pads, central buttons and safe-area insets constrain effective sizes without overlap",
       "input": "Measured base diameter controls actual travel; default150px right circle requires44.88px drag to start firing at88percent"
-    }
+    },
+    "scope": "Sniper uses the existing Gear > Scope control and right stick. Scope permits deliberate outer-ring firing; binoculars still prevent firing. Bounded lookahead respects usable touch space."
   },
   "desktop": {
     "camera": "stable by default; camera and mouse input share one transform",
@@ -118,21 +119,26 @@
     }
   },
   "squadRoles": [
-    "leader",
+    "rifleman",
     "grenadier",
     "medic",
-    "machine gunner"
+    "machine gunner",
+    "sniper",
+    "armored assault"
   ],
-  "protocol": 11,
+  "protocol": 12,
   "squad": {
     "soloSelection": "HUD cards or rebindable soldier shortcuts, retaining each soldier state",
     "formation": "Wider travel-oriented positions, staggered movement, individual cover, responsive explicit orders and doorway compression",
     "grenadier": "slower; four launcher rounds and directional binoculars",
     "medic": "faster revival and six supplies",
-    "machineGunner": "M249 SAW with 100-round belt; AI fires bounded 12-round strings at weapon cadence with pauses and reloads"
+    "machineGunner": "M249 SAW with 100-round belt; AI fires bounded 12-round strings at weapon cadence with pauses and reloads",
+    "loadouts": "Each of four fixed soldier slots chooses any of six combat roles in the briefing. Command identity is independent of equipment. Host configures co-op loadouts before deployment.",
+    "sniper": "Five-shot scoped rifle, long sightline and precise stationary scoped fire; limited ammunition, slow cycling, reduced movement and health, weak moving/hip accuracy.",
+    "armoredAssault": "60-round automatic weapon, extra health and reduced bullet damage; slower movement, shorter practical range and long reload. Explosions ignore its bullet protection."
   },
-  "worldVariation": "Six distinct seeded mission layouts with district identities, parked sedans/pickups/vans, abandoned stalls, handcarts, work yards, materials and constrained fires; fixed routes, doors, casualty access and usable breach approaches reserved",
-  "visibility": "Clear shared current sight, dim remembered terrain, and much darker unseen terrain on the battlefield and map; walls/smoke occlude contacts; strongly flashed observers stop scouting, recovery scales their vision range",
+  "worldVariation": "Six seeded district identities across the legacy street grid, plus four authored non-grid layouts: L-shaped waterfront, channel crossings, connected courtyards and parallel freight lanes. Route, doorway, rescue and vehicle clearances are reserved.",
+  "visibility": "Shared current squad sight, remembered terrain and configurable unseen-ground density. Walls, smoke and physical vehicle hulls occlude contacts. Flash exposure reduces scouting. Fog preference never changes sight.",
   "enemies": {
     "types": [
       "rifleman",
@@ -141,20 +147,25 @@
       "sniper"
     ],
     "liveLimits": {
-      "story": 10,
-      "standard": 16,
-      "veteran": 20
+      "story": 13,
+      "standard": 19,
+      "veteran": 23
     },
     "weightedAndRoleLimits": true,
     "visibleSpawnExclusion": true,
     "sniperLimit": 1,
-    "encounters": "Finite coherent 3\u20134-person authored groups (one extra on Veteran), placed at nearby approaches before the player reaches them; independent safe-placement retries and expiry; no random around-player reinforcement ring",
+    "encounters": "Finite coherent 3–4-person authored groups (one extra on Veteran), placed at nearby approaches before the player reaches them; independent safe-placement retries and expiry; no random around-player reinforcement ring",
     "deliberateSniperOperations": [
       "First Crash",
       "Dawn Mile",
       "Signal House"
     ],
-    "behavior": "Cover and reload refuges, expiring nearby group contact reports, opportunistic repositioning, sustained bounded gunner bursts; no fire through cover"
+    "behavior": "Cover and reload refuges, expiring nearby group contact reports, opportunistic repositioning, sustained bounded gunner bursts; no fire through cover",
+    "weightedBudgets": {
+      "story": 15,
+      "standard": 23,
+      "veteran": 29
+    }
   },
   "story": {
     "chapters": 4,
@@ -167,7 +178,7 @@
     "soloContinuationSavedLocally": true,
     "coopContinuationHostOnly": true,
     "historicalFraming": "fictional choices and composite encounters within documented raid-to-rescue context",
-    "standaloneOperations": 6
+    "standaloneOperations": 10
   },
   "casualties": {
     "bodies": "persist until new mission or restart",
@@ -252,10 +263,17 @@
       "nearbyPriority": "Nearby player/squad fire bypasses distant sampling",
       "distanceTreatment": "Travel delay, stronger low-pass and reduced detail with distance, geometry occlusion and existing acoustic tails"
     },
-    "fieldSpeech": "Independent allied speech stays physical/local; it never becomes a remote player radio message"
+    "fieldSpeech": "Independent allied speech stays physical/local; it never becomes a remote player radio message",
+    "hostileCalls": "Rare nonverbal contact/advance calls from actual alert enemies, with actor/group/global spacing and existing physical propagation/occlusion. No added radio or reveal marker.",
+    "armorReports": "Cached procedural tank-cannon report and existing support-weapon recording treatment for mounted MG, within the existing voice and arrival limits.",
+    "hostileCallMinimumSpacingSeconds": {
+      "global": 20,
+      "soldier": 60,
+      "group": 45
+    }
   },
   "campaignMissions": 4,
-  "standaloneOperations": 6,
+  "standaloneOperations": 10,
   "missionSelection": {
     "campaign": [
       "Cordon",
@@ -269,7 +287,11 @@
       "Lantern Search",
       "Dead Engine",
       "Crossing Guard",
-      "Watchline"
+      "Watchline",
+      "Breakwater",
+      "Split Channel",
+      "Gatehouse",
+      "Freight Line"
     ],
     "continuation": "Chronological campaign only; Dawn Mile completes the campaign"
   },
@@ -282,13 +304,17 @@
       "casualty escort",
       "radio restoration",
       "convoy obstruction clearance",
-      "authored stalled-carrier restart"
+      "authored stalled-carrier restart",
+      "physical armored escort",
+      "replacement-component repair",
+      "six-second mobility repair",
+      "commander hold/resume armor route"
     ],
     "finiteAuthoredEncounters": true,
-    "generalVehicleDamage": false
+    "generalVehicleDamage": true
   },
   "navigation": {
-    "routes": "Clearance-aware paths through doors and breaches, reachable destinations, and recovery from blocked movement",
+    "routes": "Clearance-aware static paths through doors and breaches plus bounded physical detours around vehicle columns; no map-grid rebuild for moving hulls.",
     "civilians": "Threatened residents seek reachable shelter, remain sheltered through nearby danger, or cower if immobilized; rescued residents follow escort routes"
   },
   "nightEffects": {
@@ -314,7 +340,7 @@
     "ambientFireLimit": 3,
     "firePresentation": "Positioned crackle, bounded flames and smoke; observed visibility and wall-clipped glow",
     "drivableVehicles": false,
-    "generalVehicleDamage": false
+    "generalVehicleDamage": "Active tank/APC/truck actors take weapon-dependent damage; static parked scenery retains its existing cover rules."
   },
   "throwables": {
     "inventoryPerSoldier": {
@@ -326,25 +352,26 @@
     "frag": "Timed thrown blast; walls shield actors; exposed allies/civilians can be harmed; no masonry breach.",
     "flashbang": "Nonlethal LOS and distance exposure; strong shared-room effect; smooth vision/hearing recovery; brief configurable ringing; blinded AI pauses firing and scouting.",
     "flight": "Short arc, wall stop, ground fuse; no bounce/roll simulation.",
-    "coop": "Server-authoritative inventory/exposure, per-action aim latching, explicit pause/cancel, protocol11."
+    "coop": "Server-authoritative inventory/exposure, per-action aim latching and explicit pause/cancel; protocol12 also carries validated loadouts and visible public armor state."
   },
   "independentSquads": {
-    "alliedMaximum": 8,
-    "alliesOutsideCordon": 5,
-    "hostileMaximum": 6,
-    "groupMaximum": 5,
+    "alliedMaximum": 11,
+    "hostileMaximum": 9,
+    "groupMaximum": 7,
     "hostilesShareExistingBudget": true,
-    "spawn": "Finite initial patrol, crossing relief and building garrison; no invisible around-player spawn ring",
+    "spawn": "Finite initial patrols, connected interior garrisons and staged Atlas/Courtyard groups; no repeated casualty refill or around-player spawn ring.",
     "orders": "Own routes, short halts, cohesion/regroup, actual contacts and heard shots, earlier withdrawal to reachable refuge, finite bandaging and recovery, completed patrol return to staging",
     "training": "Group and seed-dependent cohesion; well-organized defenders coexist with looser patrols",
     "buildingGuards": "Interior posts with a real navigable doorway; Story can omit extra guards when the existing threat budget is full",
     "sight": "Only the playable four supply shared sight; unseen NPC positions and private orders excluded from co-op snapshots and local reconstruction",
     "combat": "Real ammunition, reloads, projectiles, cover, suppression, recoverable casualties and at most one safe frag and one casualty-aid smoke per field group",
     "playerResponsibility": "Offscreen NPC kills and collateral do not inflate player kill/civilian-harm statistics; player-caused harm still counts",
-    "missionCompletion": "Independent squads do not join playable roster, require extraction, or add kill-all gates"
+    "missionCompletion": "Independent squads do not join playable roster, require extraction, or add kill-all gates",
+    "baseAllies": 8,
+    "backup": "Atlas includes a medic who can aid other friendly groups. Cordon and the four new operations include the finite Relief detachment when safe staging is available."
   },
   "fieldSupport": {
-    "mission": "Cordon",
+    "mission": "Cordon and four new authored operations, subject to safe reachable staging",
     "detachmentSize": 3,
     "staging": "Real rear-western positions outside opening hostile firing exposure, with free space and an outbound route; ordinary visibility near CHALK and normal vulnerability during play",
     "deploymentsPerOperation": 1,
@@ -363,23 +390,43 @@
   },
   "people": "Stable clothing, skin, headwear, load-bearing kit and small build differences; boots, shoulder seams, packs, radios, hands and readable specialties. Individual gait phases, restrained idle movement, reload gestures and reduced-motion support. Independent friendly squads use a distinct ring and leader callsign.",
   "validation": {
-    "fullTests": 493,
-    "frontendBuildTests": 466,
-    "authoritativeServerTests": 253,
+    "fullTests": 585,
+    "frontendBuildTests": 558,
+    "authoritativeServerTests": 334,
     "suitesOverlap": true,
-    "nativeCanvasChecks": [
-      "2560x1440 desktop",
-      "390x844 portrait",
-      "844x390 night landscape"
-    ],
-    "nativeCanvasNote": "Production renderer exercised with a CPU rasterizer; not a physical device or browser FPS claim",
     "browserLayoutChecks": [
       "375x667 portrait",
       "812x375 landscape",
       "1280x720 desktop"
     ],
     "mobileControls": "Independent size preferences, geometry fitting with safe insets, actual larger-stick travel, separate pointers and cancellation before size changes are covered.",
-    "browserChecks": "375x667 portrait and812x375 landscape checked at defaults and maximum stick settings, with role controls, roster and Gear trays.",
-    "mobileLimit": "Viewport and automated gesture checks; no physical-phone multitouch or mobile Safari validation."
+    "browserChecks": "375 × 667 portrait loadout/gear/settings review,812 × 375 landscape squad/armor commands and map,1280 × 720 desktop roster and nighttime fog settings. Fog extremes and Original restore exercised.",
+    "mobileLimit": "Viewport and automated gesture checks; no physical-phone multitouch or mobile Safari validation.",
+    "audioLimit": "Automated event/propagation/voice-budget checks; new cannon/shout balance still needs speaker/headphone playtesting.",
+    "missionCompletion": "All14 missions complete with an AI leader and a human following, plus solo/two-human objective progression checks. Completion drivers use ordinary movement and interactions with combat disabled; weapon, damage, sight and combat-AI tests run separately."
+  },
+  "fogDensity": {
+    "setting": "Settings > Video > Fog of war density",
+    "default": 0.25,
+    "range": [
+      0,
+      1
+    ],
+    "original": "25% exactly preserves the original light overlay",
+    "visibility": "Only presentation changes; actual squad sight, occlusion, contacts and night lighting remain authoritative. At0%, terrain overlay is clear but unseen actors stay hidden."
+  },
+  "armor": {
+    "control": "AI-operated; no player driving",
+    "maximumIndependent": 2,
+    "physics": "Oriented solid hulls stop people and shots, turn only where they fit and stop for living actors. AI pedestrians clear active lanes. Wrecks retain cover.",
+    "weapons": "Finite cannon and mounted-machine-gun ammunition, physical projectiles, slow turrets, visible preparation, safe firing paths and civilian/friendly blast checks.",
+    "damage": "Tanks resist rifle fire. Explosives damage armor and mobility; disabled vehicles can be repaired but destroyed required convoy vehicles fail the mission.",
+    "repair": "Six seconds of nearby assistance restores mobility only. Authored component/restart objectives remain required.",
+    "routing": "Mission-authored support/hostile routes, objective gates, commander hold/resume, physical infantry detours around columns."
+  },
+  "competitiveMultiplayer": {
+    "implemented": false,
+    "design": "docs/squad-versus-squad-design.md",
+    "proposal": "Two four-soldier squads, one or two humans per side, short objective/extraction rounds, team-specific server sight. Tanks deferred from the first competitive experiment."
   }
 }

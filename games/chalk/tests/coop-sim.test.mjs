@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MISSIONS,createGame,findPath,getObjective,issueCoopOrder,setHumanPlayers,stepCoop} from '../public/sim.mjs';
+import {MISSIONS,createGame,getObjective,issueCoopOrder,setHumanPlayers,stepCoop} from '../public/sim.mjs';
 import {movementSpeed} from '../public/squad-roles.mjs';
+import {navigationInput,quietMission} from './mission-navigation-helper.mjs';
 
 function createCoop(options={}){
   const state=createGame({seed:63,...options});
@@ -140,9 +141,9 @@ test('rally and convoy movement wait for both living humans',()=>{
   run(s,3);assert.equal(s.stageIndex,0);assert.equal(s.phaseTime,0);
   near(mercer,p,0,-35);run(s,3);assert.equal(s.stageIndex,1);
   const c=createCoop({mission:2});c.stageIndex=c.stages.findIndex(p=>p.kind==='convoy');
-  const v=c.vehicles[0];near(c.squad[0],v,-30);near(c.squad[2],v,30);near(c.squad[3],v,0,45);c.squad[1].x=2120;c.squad[1].y=1720;
+  const v=c.vehicles[0];near(c.squad[0],v,-70);near(c.squad[2],v,-70,80);near(c.squad[3],v,70,80);c.squad[1].x=2120;c.squad[1].y=1720;
   stepCoop(c,{},1/30);assert.equal(v.waiting,true);assert.equal(v.x,200);
-  near(c.squad[1],v,0,-40);stepCoop(c,{},1/30);
+  near(c.squad[1],v,0,-80);run(c,2.5);
   assert.equal(v.waiting,false);assert.ok(v.x>200);
 });
 
@@ -159,21 +160,15 @@ test('either human can stabilize crew or clear barriers without doubling progres
   assert.ok(Math.abs(c.convoyClear-2/30)<1e-12);
 });
 
-test('all missions complete with two human inputs and two AI squad mates',()=>{
-  for(let mission=0;mission<MISSIONS.length;mission++){
-    const s=createCoop({mission,difficulty:'story'});
+for(const [mission,definition] of MISSIONS.entries())test(`two humans complete ${definition.title} with two AI squad mates`,()=>{
+    const s=quietMission(createCoop({mission,difficulty:'story'}));
     for(let frame=0;frame<30*720&&s.status==='playing';frame++){
       const objective=getObjective(s),inputs={};
-      for(const [index,a] of s.squad.slice(0,2).entries()){
-        const target={x:objective.x+(index?25:-25),y:objective.y};
-        const d=Math.hypot(a.x-target.x,a.y-target.y);inputs[a.id]={interact:true,...(objective.lookAt?{aimX:objective.lookAt.x,aimY:objective.lookAt.y}:{})};
-        if(d>32){const next=findPath(s,a,target)[0];if(next){const dx=next.x-a.x,dy=next.y-a.y,length=Math.hypot(dx,dy);inputs[a.id].moveX=dx/length;inputs[a.id].moveY=dy/length;}}
-      }
+      for(const a of s.squad.slice(0,2))inputs[a.id]=navigationInput(s,a,objective);
       stepCoop(s,inputs,1/30);
     }
     assert.equal(s.status,'won',`mission ${mission}, stage ${s.stageIndex}, ${s.objective.detail}`);
     assert.equal(s.squad.length,4);assert.equal(s.squad.filter(a=>a.human).length,2);
     if(mission===1)assert.equal(s.stats.rescued,2);
     if(mission===2)assert.equal(s.convoyCleared.length,2);
-  }
 });

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MISSIONS,createGame,step,selectSquadMember,setHumanPlayers,issueOrder,findPath,getSolidWalls,segmentRectEntry} from '../public/sim.mjs';
-import {roleProfile,movementSpeed,visionRange} from '../public/squad-roles.mjs';
+import {MISSIONS,createGame,step,selectSquadMember,setHumanPlayers,issueOrder,issueCoopOrder,setRole,findPath,getSolidWalls,segmentRectEntry} from '../public/sim.mjs';
+import {SQUAD_ROLES,DEFAULT_SQUAD_ROLES,normalizeSquadRoles,validSquadRoles,isSquadCommander,canObserve,observationBlocksFire,roleProfile,movementSpeed,visionRange} from '../public/squad-roles.mjs';
 import {ENCOUNTERS} from '../public/encounters.mjs';
 import {predictMovement} from '../public/coop-client.mjs';
 
@@ -13,8 +13,9 @@ function quietGame(options={}){
 function run(game,seconds,input={}){
   for(let frame=0;frame<Math.ceil(seconds*30)&&game.status==='playing';frame++)step(game,input,1/30);
 }
-function openArena(role='leader'){
-  const game=quietGame(),actor=game.squad.find(a=>a.role===role);
+function openArena(role='rifleman'){
+  role=roleProfile(role).id;
+  const game=quietGame({squadRoles:DEFAULT_SQUAD_ROLES.includes(role)?undefined:[role,...DEFAULT_SQUAD_ROLES.slice(1)]}),actor=game.squad.find(a=>a.role===role);
   selectSquadMember(game,actor.id);
   game.world.walls=[];game.world.buildings=[];game.world.streetSolids=[];game.grid.fill(0);
   Object.assign(actor,{x:300,y:500,angle:0,cooldown:0});
@@ -29,7 +30,7 @@ function enemy(game,x,y,extra={}){
 
 test('four stable soldiers have distinct loadouts and the heavy role moves slower in simulation and prediction',()=>{
   const game=quietGame();
-  assert.deepEqual(game.squad.map(a=>[a.name,a.role]),[['Hale','leader'],['Mercer','grenadier'],['Ames','medic'],['Webb','support']]);
+  assert.deepEqual(game.squad.map(a=>[a.name,a.role]),[['Hale','rifleman'],['Mercer','grenadier'],['Ames','medic'],['Webb','support']]);
   const [hale,mercer,ames,webb]=game.squad;
   assert.equal(mercer.grenades,4);assert.equal(ames.medkits,6);assert.equal(webb.magSize,100);
   assert.equal(roleProfile(webb).weaponLabel,'M249 SAW');assert.equal(roleProfile(webb).weapon,'support');
@@ -186,4 +187,94 @@ test('night visibility follows every operation’s lighting, including standalon
     assert.equal(visionRange(actor,mission,side),night?390:540,definition.title);
     assert.equal(visionRange({...actor,observing:false},mission,front),night?390:540,definition.title);
   }
+});
+
+test('loadout migration is bounded, permits duplicate classes, and leaves defaults independent',()=>{
+  assert.equal(Object.keys(SQUAD_ROLES).length,6);
+  assert.deepEqual(normalizeSquadRoles(null),DEFAULT_SQUAD_ROLES);
+  assert.deepEqual(normalizeSquadRoles(['leader','sniper','constructor',null,'heavy']),['rifleman','sniper','medic','support']);
+  assert.deepEqual(normalizeSquadRoles(['heavy','heavy','heavy','heavy']),Array(4).fill('heavy'));
+  const normalized=normalizeSquadRoles();normalized[0]='sniper';assert.equal(DEFAULT_SQUAD_ROLES[0],'rifleman');
+  for(const invalid of [null,{},[],['sniper'],['leader','grenadier','medic','support'],['rifleman','grenadier','medic','constructor']])assert.equal(validSquadRoles(invalid),false);
+  assert.equal(validSquadRoles(Array(4).fill('sniper')),true);
+  assert.equal(roleProfile('__proto__').id,'rifleman');assert.equal(roleProfile('leader').id,'rifleman');
+});
+
+test('each of the four named slots accepts every loadout while Hale alone keeps command',()=>{
+  for(const role of Object.keys(SQUAD_ROLES)){
+    const game=quietGame({squadRoles:Array(4).fill(role),role:'member'}),loadout=roleProfile(role);
+    assert.deepEqual(game.squad.map(a=>a.name),['Hale','Mercer','Ames','Webb']);
+    assert.deepEqual(game.squad.map(a=>a.slotId),['hale','mercer','ames','webb']);
+    assert.deepEqual(game.squad.map(isSquadCommander),[true,false,false,false]);
+    assert.deepEqual(game.squadRoles,Array(4).fill(role));
+    assert.equal(game.playerId,game.squad[1].id);
+    for(const soldier of game.squad){
+      assert.equal(soldier.role,role);assert.equal(soldier.ammo,loadout.magSize);
+      assert.equal(soldier.maxHp,Math.round(120*loadout.healthScale));
+      assert.ok(soldier.medkits>0,'every loadout can perform ordinary field aid');
+    }
+    assert.equal(setRole(game,'leader'),true);assert.equal(game.playerId,game.squad[0].id);assert.equal(game.role,'leader');
+    assert.equal(issueOrder(game,'hold'),true);
+    assert.equal(setRole(game,'member'),true);assert.equal(game.playerId,game.squad[1].id);assert.equal(game.role,'member');
+    assert.equal(issueOrder(game,'hold'),false);
+    setHumanPlayers(game,[game.squad[0].id,game.squad[1].id]);
+    assert.equal(issueCoopOrder(game,game.squad[0].id,'hold'),true);
+    assert.equal(issueCoopOrder(game,game.squad[1].id,'hold'),false);
+  }
+});
+
+test('a scoped sniper fires powerful finite shots at its own cadence and keeps sight directional',()=>{
+  const {game,actor}=openArena('sniper');
+  for(const other of game.squad)if(other!==actor)other.alive=false;
+  const ahead=enemy(game,1000,500),side=enemy(game,300,1200);
+  step(game,{observe:true,fire:true,aimX:1200,aimY:500},1/30);
+  assert.equal(canObserve(actor),true);assert.equal(observationBlocksFire(actor),false);
+  assert.equal(actor.observing,true);assert.equal(actor.ammo,4);assert.equal(actor.cooldown,1.25);
+  const shot=game.soundEvents.find(event=>event.type==='shot');assert.equal(shot.weapon,'sniper');
+  const bullet=game.bullets.find(b=>b.owner===actor.id);assert.equal(bullet.damage,80);
+  assert.ok(Math.abs(Math.atan2(bullet.vy,bullet.vx))<.005,'stationary scope fire remains precise');
+  assert.equal(ahead.visible,true);assert.equal(side.visible,false);
+  assert.equal(visionRange(actor,0,ahead),900);assert.equal(visionRange(actor,0,side),540);
+  run(game,1,{observe:true,fire:true,aimX:1200,aimY:500});assert.equal(actor.ammo,4);
+  run(game,.35,{observe:true,fire:true,aimX:1200,aimY:500});assert.equal(actor.ammo,3,'human sniper does not inherit hostile sniper recovery');
+  game.world.walls=[{x:650,y:0,w:20,h:1900}];run(game,.2,{observe:true,aimX:1200,aimY:500});assert.equal(ahead.visible,false);
+  assert.ok(visionRange(actor,2,{x:1000,y:500})<visionRange(actor,0,{x:1000,y:500}));
+});
+
+test('an AI sniper engages a clear long approach and uses its scope while stationary',()=>{
+  const {game,actor}=openArena('sniper');
+  const mercer=game.squad[1];selectSquadMember(game,mercer.id);game.waitUntil=10000;
+  enemy(game,1000,500);
+  step(game,{},1/30);
+  assert.ok(game.soundEvents.some(event=>event.type==='shot'&&event.actorId===actor.id&&event.weapon==='sniper'));
+  assert.equal(actor.observing,true);assert.ok(actor.cooldown>=1.6&&actor.cooldown<=2.2);
+});
+
+test('scope and heavy movement match prediction, including sprint and suppression',()=>{
+  for(const role of ['sniper','heavy'])for(const observe of [false,true]){
+    const {game,actor}=openArena(role);actor.suppression=.5;
+    // Authority decays suppression before movement; use that same known instant.
+    const predictionActor={...actor,suppression:.5-1/30*.22},input={moveX:1,moveY:.4,sprint:true,observe};
+    const predicted=predictMovement(predictionActor,input,1/30,game.world);
+    step(game,input,1/30);
+    assert.ok(Math.hypot(actor.x-predicted.x,actor.y-predicted.y)<1e-9,role);
+    assert.equal(actor.observing,role==='sniper'&&observe);
+  }
+  assert.ok(movementSpeed({role:'heavy'})<movementSpeed({role:'rifleman'})*.75);
+});
+
+test('heavy infantry reduces bullet damage and reports actual loss, while blasts bypass armor',()=>{
+  function hit(role,cause){
+    const {game,actor}=openArena(role);
+    if(cause==='bullet')game.bullets.push({id:++game.nextId,x:actor.x-40,y:actor.y,vx:1600,vy:0,team:'enemy',owner:999,weapon:'hostile',damage:100,ttl:1});
+    else game.grenades.push({id:++game.nextId,kind:'hand',weapon:'frag',x:actor.x+55,y:actor.y,owner:999,team:'enemy',landed:true,fuseUntil:0,detonated:false});
+    const before=actor.hp;step(game,{},1/30);
+    const report=game.soundEvents.find(event=>event.type==='victim_hit'&&event.victimId===actor.id);
+    assert.ok(report);assert.equal(report.damage,before-actor.hp);assert.equal(report.cause,cause);
+    return {loss:before-actor.hp,actor};
+  }
+  const ordinary=hit('rifleman','bullet'),heavy=hit('heavy','bullet');
+  assert.equal(ordinary.loss,100);assert.equal(heavy.loss,82);assert.equal(heavy.actor.maxHp,144);
+  assert.ok(heavy.actor.hp<heavy.actor.maxHp/2,'armor is finite protection, not immunity');
+  assert.equal(hit('heavy','blast').loss,hit('rifleman','blast').loss);
 });

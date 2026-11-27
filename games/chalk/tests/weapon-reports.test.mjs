@@ -89,6 +89,19 @@ test('cached fallback report data stays finite, bounded and decaying at low and 
   }
 });
 
+test('the cached cannon report is a finite low-frequency transient with a longer clean decay', () => {
+  for (const rate of [8000, 48000]) {
+    const data = fallbackReportData(rate, 'tank-cannon'), duration = data.length / rate;
+    assert.ok(duration > .8 && duration < .9);
+    assert.deepEqual(data, fallbackReportData(rate, 'tank-cannon'));
+    assert.ok(data.every(value => Number.isFinite(value) && Math.abs(value) < .9));
+    assert.equal(Math.abs(data[0]), 0); assert.equal(Math.abs(data.at(-1)), 0);
+    const attack = rms(window(data, rate, 0, .06)), tail = rms(window(data, rate, duration - .04, duration));
+    assert.ok(attack > .05 && tail < attack * .01, 'a shot decays instead of turning into a vehicle rumble loop');
+    assert.ok(rms(window(data, rate, .1, .2)) > rms(window(fallbackReportData(rate, 'rifle'), rate, .1, .2)) * 3);
+  }
+});
+
 test('surface foley has distinct, deterministic short takes with clean edges at device sample rates', () => {
   for (const rate of [8000, 48000]) {
     const materials = [];

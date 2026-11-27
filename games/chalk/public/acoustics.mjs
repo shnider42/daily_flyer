@@ -37,6 +37,12 @@ export const REPORT_PROFILES = Object.freeze({
     tone: { frequency: 360, gain: 2.5, q: .65 }, burstWindow: .16, burstGain: .92, burstWet: .65 }),
   sniper: profile({ sample: 'hostile', offsets: [.003], rate: .94, duration: .64, gain: .82, highpass: 42, lowpass: 10000, attack: .0005, wet: .62, reflectionDuration: .14,
     tone: { frequency: 240, gain: 2.4, q: .6 }, burstWindow: 0, burstGain: 1, burstWet: 1 }),
+  'vehicle-mg': profile({ sample: 'support', offsets: [0, .6, 1.2], rate: .98, duration: .28, gain: .88, highpass: 48, lowpass: 7800, attack: .0004, wet: .54, reflectionDuration: .105,
+    tone: { frequency: 340, gain: 1.7, q: .6 }, burstWindow: .19, burstGain: .92, burstWet: .65 }),
+  // Original cached sound design, not a claim that a rifle recording is a tank.
+  // The shot event receives the same district-wide propagation as any report.
+  'tank-cannon': profile({ sample: 'tankCannon', offsets: [0], rate: 1, duration: .82, gain: 1.08, highpass: 25, lowpass: 5200, attack: .0012, wet: .78, reflectionDuration: .24,
+    tone: { frequency: 105, gain: 2, q: .65 }, burstWindow: 0, burstGain: 1, burstWet: 1 }),
 });
 export function reportProfile(weapon) { return REPORT_PROFILES[weapon] || REPORT_PROFILES.rifle; }
 
@@ -55,7 +61,8 @@ export function acousticHearingRange(type, world = null) {
     const diagonal = Math.hypot(Number(world?.width) || 0, Number(world?.height) || 0);
     return Math.min(6000, Math.max(type === 'explosion' ? 2400 : 1800, diagonal + 64));
   }
-  return type === 'flashbang' ? 1100 : type === 'near_pass' ? 100 : type === 'grenade_throw' ? 180 : type === 'field_voice' ? 290 : 550;
+  return type === 'flashbang' ? 1100 : type === 'near_pass' ? 100 : type === 'grenade_throw' ? 180 :
+    type === 'field_voice' ? 290 : type === 'hostile_shout' ? 760 : 550;
 }
 
 export function distantCombatMix(type, distance, occluded = false) {

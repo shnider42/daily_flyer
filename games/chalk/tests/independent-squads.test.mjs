@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGame,step,stepCoop,setHumanPlayers,buildingAt,findPath,hasLineOfSight,getSolidWalls,rebuildNavigationGrid} from '../public/sim.mjs';
-import {encounterBudget,enemyProfile} from '../public/combat-profiles.mjs';
-import {FIELD_SQUAD_LIMITS} from '../public/independent-squads.mjs';
+import {encounterBudget,enemyProfile,canAddEnemy,withInitialFieldReserve,INITIAL_FIELD_RESERVE} from '../public/combat-profiles.mjs';
+import {FIELD_SQUAD_LIMITS,initializeIndependentSquads} from '../public/independent-squads.mjs';
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function run(s,seconds,observe=()=>{}){for(let i=0;i<Math.ceil(seconds*30)&&s.status==='playing';i++){step(s,{},1/30);observe(s);}}
@@ -18,11 +18,14 @@ function arena(){
   return{s,ally,enemy};
 }
 
-test('all missions seed finite independent squads and connected real interior guards within the existing hostile budget',()=>{
+test('all original missions seed the finite medic team and street cell within count, weighted and interior safety limits',()=>{
   for(let mission=0;mission<10;mission++)for(const difficulty of ['story','standard','veteran']){
     const s=createGame({mission,difficulty,seed:17}),budget=encounterBudget(difficulty);
     assert.equal(s.squad.length,4,'field allies never join the playable or extraction roster');
     assert.equal(s.allies.length,mission===0?FIELD_SQUAD_LIMITS.allies:FIELD_SQUAD_LIMITS.baseAllies);
+    const atlas=s.allies.filter(a=>a.fieldSquadId==='field-atlas');
+    assert.equal(atlas.length,3);assert.ok(atlas.some(a=>a.role==='medic'&&a.medkits===3));
+    assert.equal(s.enemies.filter(a=>a.fieldSquadId==='field-courtyard').length,3,'the added cell keeps its small reserved allocation on Story too');
     assert.ok(s.enemies.length<=budget.maxAlive);
     assert.ok(s.enemies.reduce((sum,a)=>sum+enemyProfile(a).cost,0)<=budget.weight);
     assert.ok(s.fieldSquads.groups.length<=FIELD_SQUAD_LIMITS.groups);
@@ -36,6 +39,75 @@ test('all missions seed finite independent squads and connected real interior gu
       assert.ok(!getSolidWalls(s.world).some(w=>a.x>w.x&&a.x<w.x+w.w&&a.y>w.y&&a.y<w.y+w.h));
     }
   }
+});
+
+test('the small field reservation lasts only through initial authored seeding, including nested scopes and errors',()=>{
+  for(const difficulty of ['story','standard','veteran']){
+    const budget=encounterBudget(difficulty),s={difficulty,maxEnemies:budget.maxAlive,enemies:[]};
+    withInitialFieldReserve(s,()=>withInitialFieldReserve(s,()=>{
+      while(canAddEnemy(s,'rifleman'))s.enemies.push({alive:true,kind:'rifleman'});
+      assert.equal(s.enemies.length,budget.maxAlive-INITIAL_FIELD_RESERVE);
+    }));
+    assert.equal(canAddEnemy(s,'rifleman'),true,'later authored entries can use a free reserved slot');
+    while(canAddEnemy(s,'rifleman'))s.enemies.push({alive:true,kind:'rifleman'});
+    assert.equal(s.enemies.length,budget.maxAlive);
+    s.enemies.pop();
+    assert.throws(()=>withInitialFieldReserve(s,()=>{throw new Error('interrupted setup');}));
+    assert.equal(canAddEnemy(s,'rifleman'),true,'failed setup cannot strand a hidden reservation');
+  }
+});
+
+test('authored new districts keep the full finite teams and connect every assigned crossing to their real terrain',()=>{
+  for(const mission of [10,11,12,13])for(const difficulty of ['story','standard','veteran']){
+    const s=createGame({mission,difficulty,seed:17}),budget=encounterBudget(difficulty);
+    assert.ok(s.world.missionLayout);
+    assert.equal(s.allies.length,FIELD_SQUAD_LIMITS.allies,`${mission}/${difficulty} includes the finite reserve`);
+    assert.equal(s.allies.filter(a=>a.fieldSquadId==='field-atlas').length,3);
+    assert.equal(s.enemies.filter(a=>a.fieldSquadId==='field-courtyard').length,3);
+    assert.ok(s.enemies.length<=budget.maxAlive);
+    assert.ok(s.enemies.reduce((n,a)=>n+enemyProfile(a).cost,0)<=budget.weight);
+    for(const group of s.fieldSquads.groups){
+      const members=[...s.allies,...s.enemies].filter(a=>a.fieldSquadId===group.id);
+      assert.ok(members.length<=FIELD_SQUAD_LIMITS.membersPerGroup);
+      assert.ok(members.every(a=>findPath(s,a,group.route[0]).length));
+      assert.ok(group.route.every((p,i)=>!i||findPath(s,group.route[i-1],p).length),`${mission}/${group.id} has a connected assignment`);
+    }
+    const reserve=s.allies.filter(a=>a.fieldSquadId==='field-relief');
+    assert.ok(reserve.every(a=>s.squad.every(b=>distance(a,b)>60)));
+    assert.ok(reserve.every(a=>s.enemies.every(e=>distance(a,e)>600||!hasLineOfSight(s,e,a))));
+  }
+});
+
+test('declarative street traffic cannot exceed the finite ally or hostile allocation',()=>{
+  let id=0;
+  const spots=Array.from({length:20},(_,i)=>({x:200+(i%5)*400,y:200+Math.floor(i/5)*300}));
+  const s={seed:17,missionIndex:1,time:0,difficulty:'veteran',maxEnemies:23,squad:[{x:30,y:1880}],civilians:[],survivors:[],enemies:[],
+    world:{width:2400,height:1900,buildings:[],missionLayout:{fieldRoutes:{}},fieldTraffic:{friendly:{posts:spots,route:[spots[0]]},hostile:{posts:spots.map(p=>({x:p.x+80,y:p.y})),route:[{x:240,y:200}]}}}};
+  const hooks={free:()=>true,squadCanSeePoint:()=>false,nearbyFree:(_s,x,y)=>({x,y}),findPath:(_s,_from,to)=>[to],
+    actor:(_s,team,name,role,x,y,extra)=>({id:++id,team,name,role,x,y,alive:true,...extra}),
+    spawnEnemy:(state,p)=>{if(!canAddEnemy(state,'rifleman'))return false;state.enemies.push({id:++id,team:'enemy',kind:'rifleman',x:p.x,y:p.y,alive:true,accuracy:.1});return true;}};
+  initializeIndependentSquads(s,hooks);
+  assert.equal(s.allies.length,3,'an oversized route definition cannot turn the medic team into a crowd');
+  assert.equal(s.enemies.filter(a=>a.fieldSquadId).length,3,'the new cell remains three actual soldiers');
+  assert.ok(s.allies.length<=FIELD_SQUAD_LIMITS.baseAllies);
+  assert.ok(s.enemies.filter(a=>a.fieldSquadId).length<=FIELD_SQUAD_LIMITS.hostiles);
+  assert.ok(s.fieldSquads.groups.length<=FIELD_SQUAD_LIMITS.groups);
+});
+
+test('added groups stage physically before distinct departures, then follow connected assignments without replacement soldiers',()=>{
+  const s=createGame({seed:17});s.enemies=[];closeEncounters(s);
+  const group=s.fieldSquads.groups.find(g=>g.id==='field-atlas'),members=s.allies.filter(a=>a.fieldSquadId===group.id),initial=members.map(a=>({...a}));
+  run(s,group.departAt-.5);
+  assert.ok(members.every(a=>distance(a,initial.find(p=>p.id===a.id))<1));
+  assert.equal(group.phase,'staging');
+  run(s,9);assert.ok(members.some(a=>distance(a,initial.find(p=>p.id===a.id))>60));
+  assert.deepEqual(members.map(a=>a.id),initial.map(a=>a.id));
+  const hostile=createGame({seed:17});hostile.allies=[];closeEncounters(hostile);
+  hostile.enemies=hostile.enemies.filter(a=>a.fieldSquadId==='field-courtyard');
+  const cell=hostile.fieldSquads.groups.find(g=>g.id==='field-courtyard'),posts=hostile.enemies.map(a=>({...a}));
+  assert.ok(cell.departAt>group.departAt);
+  run(hostile,cell.departAt-.5);assert.ok(hostile.enemies.every(a=>distance(a,posts.find(p=>p.id===a.id))<1));
+  run(hostile,9);assert.ok(hostile.enemies.some(a=>distance(a,posts.find(p=>p.id===a.id))>40));
 });
 
 test('distant squads exchange real fire and damage with an idle player, without revealing their fight or awarding player statistics',()=>{
@@ -61,7 +133,7 @@ test('distant squads exchange real fire and damage with an idle player, without 
 test('jobs continue without the player and patrols resume their authored route after contacts vanish',()=>{
   const s=createGame({seed:17});s.enemies=[];closeEncounters(s);
   const start=s.allies.map(a=>({id:a.id,x:a.x,y:a.y}));run(s,16);
-  assert.ok(s.allies.filter(a=>a.fieldSquadId!=='field-relief').every(a=>distance(a,start.find(p=>p.id===a.id))>80));
+  assert.ok(s.allies.filter(a=>!['field-relief','field-atlas'].includes(a.fieldSquadId)).every(a=>distance(a,start.find(p=>p.id===a.id))>80));
   assert.ok(s.allies.filter(a=>a.fieldSquadId==='field-relief').every(a=>distance(a,start.find(p=>p.id===a.id))<1),'reserve holds until committed');
   assert.ok(s.fieldSquads.groups.filter(g=>g.team==='allied').some(g=>g.waypoint>0));
   const hostile=createGame({seed:17});hostile.allies=[];closeEncounters(hostile);

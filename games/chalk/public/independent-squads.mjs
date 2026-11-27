@@ -8,7 +8,7 @@ import { initializeFieldSupport, beginFieldSupport, updateFieldSupport, chooseFi
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const alive=a=>a.alive&&!a.downed;
 const mix=(seed,salt)=>{let n=(seed^Math.imul(salt+1,2654435761))>>>0;n=Math.imul(n^(n>>>16),2246822507);return(n^(n>>>13))>>>0;};
-export const FIELD_SQUAD_LIMITS=Object.freeze({allies:8,baseAllies:5,hostiles:6,groups:5,planningInterval:.4});
+export const FIELD_SQUAD_LIMITS=Object.freeze({allies:11,baseAllies:8,hostiles:9,groups:7,membersPerGroup:3,planningInterval:.4});
 const FIELD_LINES=Object.freeze({
   contact:['Contact on our route. Find a firing position.','Shots ahead. Watch the far corner.','Contact across the street. Cover the others.','Take the wall. Keep that doorway covered.'],
   moving:['Moving to the next junction.','Keep your spacing. We have another crossing.','Route is clear here. Keep moving.','Watch the upper windows as we move.'],
@@ -42,28 +42,41 @@ function reliefStagingPosts(s,hooks){
   }
   return posts;
 }
-function roomPosts(s,anchor,hooks){
+function roomPosts(s,anchor,hooks,routeStart=null,preferredPosts=[]){
+  if(!anchor||!Number.isFinite(anchor.x)||!Number.isFinite(anchor.y))return[];
   const buildings=s.world.buildings.filter(b=>b.enterable&&b.rooms?.length)
     .sort((a,b)=>distance({x:a.x+a.w/2,y:a.y+a.h/2},anchor)-distance({x:b.x+b.w/2,y:b.y+b.h/2},anchor));
   for(const building of buildings){
-    const posts=[];
+    if(routeStart&&!hooks.findPath(s,building.doors[0].outside,routeStart).length)continue;
     // Some guards face through an actual doorway; others occupy a sheltered
-    // side of the next room. All posts must connect to an exterior threshold.
-    const candidates=[...building.doors.map(door=>({...door.inside})),
-      ...building.rooms.flatMap(room=>[{x:room.x+30,y:room.y+room.h/2},{x:room.x+room.w-30,y:room.y+room.h/2}])];
-    for(const point of candidates){
-      if(posts.some(p=>distance(p,point)<65)||!clearPlacement(s,point,hooks,[])||!hooks.findPath(s,point,building.doors[0].outside).length)continue;
-      posts.push({...point,buildingId:building.id});if(posts.length===3)return posts;
+    // side of the next room. Long warehouses must not scatter one cell between
+    // opposite entrances. Prefer authored interior posts, then nearby rooms.
+    const preferred=preferredPosts.filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)&&
+      p.x>building.x&&p.x<building.x+building.w&&p.y>building.y&&p.y<building.y+building.h);
+    const generated=[...building.doors.map(door=>({...door.inside})),
+      ...building.rooms.flatMap(room=>[{x:room.x+30,y:room.y+room.h/2},{x:room.x+room.w-30,y:room.y+room.h/2}])]
+      .sort((a,b)=>distance(a,anchor)-distance(b,anchor));
+    const candidates=[...preferred,...generated].filter(point=>clearPlacement(s,point,hooks,[])&&hooks.findPath(s,point,building.doors[0].outside).length);
+    for(const first of candidates){
+      const posts=[{...first,buildingId:building.id}];
+      for(const point of candidates){
+        if(posts.some(p=>distance(p,point)<65||distance(p,point)>320))continue;
+        posts.push({...point,buildingId:building.id});if(posts.length===3)return posts;
+      }
     }
   }return[];
 }
 function addGroup(s,definition,hooks){
-  const group={...definition,route:definition.route.map(p=>({...p})),waypoint:0,phase:['garrison','reserve'].includes(definition.order)?'hold':'moving',
+  if(!definition?.posts?.length||!definition.route?.length||s.fieldSquads.groups.length>=FIELD_SQUAD_LIMITS.groups)return;
+  if(definition.route.some((point,index)=>index>0&&!hooks.findPath(s,definition.route[index-1],point).length))return;
+  const allied=definition.team==='allied',limit=allied?(definition.order==='reserve'?FIELD_SQUAD_LIMITS.allies:FIELD_SQUAD_LIMITS.baseAllies):FIELD_SQUAD_LIMITS.hostiles;
+  const group={...definition,route:definition.route.map(p=>({...p})),waypoint:0,phase:['garrison','reserve'].includes(definition.order)?'hold':definition.departAt>s.time?'staging':'moving',
     leaderId:null,initialStrength:0,nextPlanAt:0,holdUntil:0,lastContactAt:-100,lastVoiceAt:-100,voiceTurn:0,grenadeUsed:false,
     originalAssignment:definition.assignment,staging:{...definition.posts[0]},reachedStops:[{...definition.posts[0]}],pressureTime:0,smokeUsed:false};
-  const names=group.team==='allied'?(group.callsign==='Raven'?['Ortiz','Bell','Price']:group.callsign==='Relief'?['Vega','Brooks','Shah']:['Dunn','Keller']):['Armed fighter','Armed fighter','Armed fighter'];
-  for(let i=0;i<definition.posts.length;i++){
-    const p=definition.posts[i];if(!clearPlacement(s,p,hooks,[],definition.order==='reserve'))continue;
+  const names=definition.names||(allied?(group.callsign==='Raven'?['Ortiz','Bell','Price']:group.callsign==='Relief'?['Vega','Brooks','Shah']:['Dunn','Keller']):['Armed fighter','Armed fighter','Armed fighter']);
+  for(let i=0;i<Math.min(definition.posts.length,FIELD_SQUAD_LIMITS.membersPerGroup);i++){
+    if((allied?s.allies.length:s.enemies.filter(a=>a.fieldSquadId).length)>=limit)break;
+    const p=definition.posts[i];if(!clearPlacement(s,p,hooks,[],definition.order==='reserve')||!hooks.findPath(s,p,definition.route[0]).length)continue;
     let actor;
     if(group.team==='enemy'){
       if(!hooks.spawnEnemy(s,p,false,'rifleman'))continue;
@@ -73,14 +86,14 @@ function addGroup(s,definition,hooks){
       // modifier. A steadier hostile cell can hold its doors very effectively.
       actor.accuracy*=.95+(1-group.cohesion)*.15;
     }else{
-      const role=i===0?'leader':group.order==='reserve'&&i===2?'medic':i===1&&group.callsign!=='Hammer'?'support':'rifleman',loadout=roleProfile(role);
-      actor=hooks.actor(s,'allied',names[i],role,p.x,p.y,{role,hp:96,maxHp:96,ammo:loadout.magSize,
+      const role=definition.roles?.[i]||(i===0?'leader':group.order==='reserve'&&i===2?'medic':i===1&&group.callsign!=='Hammer'?'support':'rifleman'),loadout=roleProfile(role);
+      actor=hooks.actor(s,'allied',names[i]||group.callsign+' '+(i+1),role,p.x,p.y,{role,hp:96,maxHp:96,ammo:loadout.magSize,
         magSize:loadout.magSize,reserve:loadout.reserve,visible:group.order==='reserve'&&hooks.squadCanSeePoint(s,p),frags:i===0?1:0,medkits:role==='medic'?3:1,smokes:i===0?1:0,
         handThrowCooldown:0,home:{x:p.x,y:p.y},senseTimer:.06*i,perceivedTargetId:null,lastKnown:null,lastSeenAt:-100});
       s.allies.push(actor);
     }
     Object.assign(actor,{fieldSquadId:group.id,fieldSlot:i,callsign:`${group.callsign} ${i+1}`,assignment:group.assignment,
-      fieldGoal:{x:p.x,y:p.y},fieldCohesion:group.cohesion,fieldWaiting:false,fieldHome:{x:p.x,y:p.y},
+      fieldGoal:{x:p.x,y:p.y},fieldCohesion:group.cohesion,fieldWaiting:group.phase==='staging',fieldHome:{x:p.x,y:p.y},
       fieldPost:p.buildingId?{x:p.x,y:p.y,buildingId:p.buildingId}:null,tactic:group.order==='garrison'?'guard':'patrol',
       frags:i===0?1:0,handThrowCooldown:0});
     group.leaderId??=actor.id;group.initialStrength++;
@@ -88,22 +101,43 @@ function addGroup(s,definition,hooks){
   if(group.initialStrength)s.fieldSquads.groups.push(group);
 }
 export function initializeIndependentSquads(s,hooks){
-  s.allies=[];s.fieldSquads={version:2,enabled:true,groups:[],nextPlanAt:0};
+  s.allies=[];s.fieldSquads={version:3,enabled:true,groups:[],nextPlanAt:0};
   const variant=mix(s.seed,s.missionIndex),eastward=(variant&1)===0;
   const at=(x,y)=>hooks.nearbyFree(s,x,y);
-  addGroup(s,{id:'field-raven',team:'allied',callsign:'Raven',assignment:'Checking the north route',order:'patrol',cohesion:.9,
-    route:eastward?[at(200,580),at(680,580),at(680,200),at(1160,200),at(1160,580)]:[at(200,580),at(200,200),at(680,200),at(680,580)],
-    posts:[at(200,500),at(200,420),at(200,340)]},hooks);
-  addGroup(s,{id:'field-hammer',team:'allied',callsign:'Hammer',assignment:'Relieving the east crossing',order:'relieve',cohesion:.83,
-    route:[at(2120,1250),at(2120,960),at(1640,960),at(1640,580)],posts:[at(2120,1450),at(2120,1530)]},hooks);
-  addGroup(s,{id:'field-east-patrol',team:'enemy',callsign:'East patrol',assignment:'Moving between eastern approaches',order:'patrol',
-    cohesion:.48+(variant%4)*.08,route:[at(2120,1200),at(2120,960),at(1640,960),at(1640,580),at(2120,580)],
-    posts:[at(2120,1040),at(2120,960),at(2120,880)]},hooks);
-  const posts=roomPosts(s,{x:eastward?920:1400,y:460},hooks);
-  if(posts.length)addGroup(s,{id:'field-house-guard',team:'enemy',callsign:'House guard',assignment:'Holding a building approach',order:'garrison',
-    cohesion:.68+(variant%3)*.07,route:posts,posts},hooks);
-  if(s.missionIndex===0){
-    const reservePosts=reliefStagingPosts(s,hooks);
+  const layout=s.world.missionLayout,routes=layout?.fieldRoutes;
+  const points=list=>(list||[]).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)).map(p=>({...p,...at(p.x,p.y)}));
+  const definition=(key,fallback)=>{
+    const value=routes?.[key]||(layout?null:fallback);
+    return value?{...value,posts:points(value.spawn||value.posts),route:points(value.route)}:null;
+  };
+  const raven=definition('raven',{route:eastward?[at(200,580),at(680,580),at(680,200),at(1160,200),at(1160,580)]:[at(200,580),at(200,200),at(680,200),at(680,580)],posts:[at(200,500),at(200,420),at(200,340)]});
+  const hammer=definition('hammer',{route:[at(2120,1250),at(2120,960),at(1640,960),at(1640,580)],posts:[at(2120,1450),at(2120,1530)]});
+  const patrol=definition('hostile',{route:[at(2120,1200),at(2120,960),at(1640,960),at(1640,580),at(2120,580)],posts:[at(2120,1040),at(2120,960),at(2120,880)]});
+  if(raven)addGroup(s,{...raven,id:'field-raven',team:'allied',callsign:'Raven',assignment:'Checking the north route',order:'patrol',cohesion:.9},hooks);
+  if(hammer)addGroup(s,{...hammer,id:'field-hammer',team:'allied',callsign:'Hammer',assignment:'Relieving the east crossing',order:'relieve',cohesion:.83},hooks);
+  const traffic=s.world.fieldTraffic||(layout?{}:{
+    friendly:{posts:[at(1400,200),at(1480,200),at(1560,200)],route:[at(1160,200),at(1160,580),at(680,580),at(680,960)]},
+    hostile:{buildingAnchor:{x:1880,y:460},posts:[at(1640,280),at(1640,360),at(1640,440)],route:[at(1640,580),at(1160,580),at(1160,960),at(1640,960)]},
+  });
+  if(traffic.friendly)addGroup(s,{id:'field-atlas',team:'allied',callsign:'Atlas',assignment:'Checking a second crossing and covering casualty aid',order:'patrol',cohesion:.88,
+    names:['Hsu','Reed','Malik'],roles:['leader','rifleman','medic'],aidOthers:true,departAt:18+variant%9,
+    posts:points(traffic.friendly.posts),route:points(traffic.friendly.route)},hooks);
+  // Seed the added finite cell first, using only the three extra slots reserved
+  // during the initial authored encounter pass. Existing patrols then share
+  // the remaining original allowance; no repeat spawns replenish casualties.
+  if(traffic.hostile){
+    const route=points(traffic.hostile.route),interior=traffic.hostile.buildingAnchor&&route.length?roomPosts(s,traffic.hostile.buildingAnchor,hooks,route[0],traffic.hostile.posts||[]):[];
+    addGroup(s,{id:'field-courtyard',team:'enemy',callsign:'Courtyard cell',assignment:'Moving from shelter to a second street position',order:'patrol',cohesion:.52+(variant%3)*.08,
+      departAt:32+variant%13,posts:interior.length===3?interior:points(traffic.hostile.posts),route},hooks);
+  }
+  if(patrol)addGroup(s,{...patrol,id:'field-east-patrol',team:'enemy',callsign:'East patrol',assignment:'Moving between eastern approaches',order:'patrol',cohesion:.48+(variant%4)*.08},hooks);
+  const guard=routes?.houseGuard||(layout?null:{anchor:{x:eastward?920:1400,y:460}});
+  const posts=guard?roomPosts(s,guard.anchor||guard.spawn?.[0]||guard.route?.[0],hooks,null,guard.spawn||[]):[];
+  if(posts.length)addGroup(s,{id:'field-house-guard',team:'enemy',callsign:'House guard',assignment:'Holding a building approach',order:'garrison',cohesion:.68+(variant%3)*.07,route:posts,posts},hooks);
+  if(routes?.reserve||!layout&&s.missionIndex===0){
+    const reservePosts=routes?.reserve?points(routes.reserve.spawn).filter(p=>clearPlacement(s,p,hooks,[],true)&&
+      !s.enemies.some(a=>alive(a)&&(distance(a,p)<520||distance(a,p)<=ballisticProfile(enemyProfile(a).weapon).range&&hooks.hasLineOfSight(s,a,p)))&&
+      routes.reserve.route?.length&&hooks.findPath(s,p,routes.reserve.route[0]).length):reliefStagingPosts(s,hooks);
     if(reservePosts.length===3)addGroup(s,{id:'field-relief',team:'allied',callsign:'Relief',assignment:'Standing by at the western staging area',order:'reserve',cohesion:.92,
       route:[{...reservePosts[0]}],posts:reservePosts},hooks);
   }
@@ -125,7 +159,7 @@ function reportGroup(s,group,text,hooks){
 function planBuddyAid(s,group,members,hooks){
   for(const a of members)a.fieldAidTargetId=null;
   const casualties=(s.allies||[]).filter(a=>a.alive&&a.downed&&
-    (a.fieldSquadId===group.id||group.order==='reserve'&&members.some(m=>distance(m,a)<FIELD_AID.buddyRange&&hooks.hasLineOfSight(s,m,a))));
+    (a.fieldSquadId===group.id||(group.order==='reserve'||group.aidOthers)&&members.some(m=>distance(m,a)<FIELD_AID.buddyRange&&hooks.hasLineOfSight(s,m,a))));
   if(!casualties.length)return;
   const casualty=casualties.sort((a,b)=>b.bleed-a.bleed)[0];
   const helper=members.filter(a=>a.medkits>0&&distance(a,casualty)<FIELD_AID.buddyRange)
@@ -189,13 +223,15 @@ export function updateIndependentOrders(s,dt,hooks){
       }else group.recoverySince=null;
     }
     const request=s.fieldSupport?.request,assigned=group.supportTask&&request?.id===group.supportTask&&['moving','covering'].includes(request.phase);
-    let goal=group.withdrawing?group.withdrawPoint:group.fieldJobDone?group.staging:assigned?request.destination:group.route[group.waypoint];
+    const staging=s.time<(group.departAt||0)&&!contacting&&!regrouping;
+    let goal=group.withdrawing?group.withdrawPoint:group.fieldJobDone?group.staging:assigned?request.destination:staging?group.staging:group.route[group.waypoint];
     if(!group.withdrawing){
       if(group.fieldJobDone){
         group.phase=members.every(a=>distance(a,group.staging)<185)?'complete':'returning';
         group.assignment=group.phase==='complete'?'Assignment complete. Holding the staging area':'Returning to the staging area';
       }else if(assigned){group.phase=request.phase==='covering'?'support_hold':contacting?'contact':'support_move';}
       else if(group.order==='reserve'){group.phase='reserve';}
+      else if(staging){group.phase='staging';}
       else if(!regrouping&&group.order!=='garrison'){
         const gap=group.cohesion>.8?190:330;
         if(members.some(a=>distance(a,leader)>gap))group.phase='regroup';
@@ -224,12 +260,12 @@ export function updateIndependentOrders(s,dt,hooks){
       const a=members[i];a.assignment=group.assignment;a.fieldCohesion=group.cohesion;a.fieldRetreat=!!group.withdrawing;
       a.fieldCovering=allied&&a===covering&&members.length>1&&s.time%2.6<1.6;
       a.fieldContactPoint=contactMember?{x:contactMember.x,y:contactMember.y}:null;
-      a.fieldWaiting=['hold','recover','complete','reserve','support_hold'].includes(group.phase)||group.phase==='regroup'&&a===leader;
+      a.fieldWaiting=['hold','recover','complete','reserve','support_hold','staging'].includes(group.phase)||group.phase==='regroup'&&a===leader;
       a.fieldGoal=group.order==='garrison'?{...a.fieldPost}:group.phase==='reserve'?{...a.fieldHome}:formationGoal(s,leader,goal,i,group.cohesion,hooks);
       if(group.order==='garrison'){a.fieldWaiting=false;a.home={x:a.fieldPost.x,y:a.fieldPost.y};}
     }
     if(allied)planBuddyAid(s,group,members,hooks);
-    if(allied&&s.time-group.lastVoiceAt>28+(group.id==='field-raven'?4:0)&&!['reserve','complete'].includes(group.phase)){
+    if(allied&&s.time-group.lastVoiceAt>28+(group.id==='field-raven'?4:0)&&!['reserve','complete','staging'].includes(group.phase)){
       const situation=group.withdrawing?'withdraw':contacting?'contact':group.phase==='regroup'?'regroup':['hold','support_hold','recover'].includes(group.phase)?'hold':s.time>10?'moving':null;
       if(situation){
         const lines=FIELD_LINES[situation],text=`${group.callsign}, ${lines[(group.voiceTurn+++(mix(s.seed,leader.id)%lines.length))%lines.length]}`;

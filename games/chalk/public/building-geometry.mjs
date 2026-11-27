@@ -10,18 +10,33 @@ const contains = (rect, point, margin = 0) => point.x >= rect.x + margin && poin
   point.x <= rect.x + rect.w - margin && point.y <= rect.y + rect.h - margin;
 
 const solidCache = new WeakMap();
+const NO_SOLIDS = Object.freeze([]);
 /** Shared collision for walls and real street cover. Destruction can replace
  * wall segments in place; revision changes invalidate this stable merged list. */
 export function getSolidWalls(world) {
   const walls = Array.isArray(world?.walls) ? world.walls : Array.isArray(world?.buildings) ? world.buildings : [];
-  const street = world?.streetSolids;
-  if (!Array.isArray(street) || !street.length) return walls;
+  const street = Array.isArray(world?.streetSolids) ? world.streetSolids : NO_SOLIDS;
+  const structure = Array.isArray(world?.structuralSolids) ? world.structuralSolids : NO_SOLIDS;
+  if (!street.length && !structure.length) return walls;
   const old = solidCache.get(world), revision = world.geometryRevision || 0;
   if (old?.walls === walls && old.wallCount === walls.length && old.street === street &&
-    old.streetCount === street.length && old.revision === revision) return old.solids;
-  const solids = [...walls, ...street];
-  solidCache.set(world, { walls, wallCount: walls.length, street, streetCount: street.length, revision, solids });
+    old.streetCount === street.length && old.structure === structure && old.structureCount === structure.length && old.revision === revision) return old.solids;
+  const solids = [...walls, ...street, ...structure];
+  solidCache.set(world, { walls, wallCount: walls.length, street, streetCount: street.length, structure, structureCount: structure.length, revision, solids });
   return solids;
+}
+
+const movementCache = new WeakMap();
+/** Water and open drainage block travel, not sight or bullets. Keep this list
+ * separate from cover geometry and share it with host/client movement. */
+export function getMovementSolids(world) {
+  const solids = getSolidWalls(world), terrain = world?.navigationSolids;
+  if (!Array.isArray(terrain) || !terrain.length) return solids;
+  const old = movementCache.get(world), revision = world.geometryRevision || 0;
+  if (old?.solids === solids && old.terrain === terrain && old.count === terrain.length && old.revision === revision) return old.result;
+  const result = [...solids, ...terrain];
+  movementCache.set(world, { solids, terrain, count: terrain.length, revision, result });
+  return result;
 }
 
 /** The enterable footprint containing a point, including its open threshold. */

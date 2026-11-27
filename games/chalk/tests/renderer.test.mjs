@@ -270,10 +270,10 @@ test('squad labels identify the four loadouts without adding another panel', () 
   state.playerId = 'uncontrolled';
   const labels = [];
   renderer.worldLabel = (_x, _y, text) => labels.push(text);
-  for (const [name, role] of [['Hale', 'leader'], ['Mercer', 'grenadier'], ['Ames', 'medic'], ['Webb', 'support']]) {
-    renderer.drawActor(renderer.ctx, { ...actor, name, role }, state, 1, {});
+  for (const [name, role] of [['Hale', 'rifleman'], ['Mercer', 'grenadier'], ['Ames', 'medic'], ['Webb', 'support']]) {
+    renderer.drawActor(renderer.ctx, { ...actor, name, role, commander: name === 'Hale' }, state, 1, {});
   }
-  assert.deepEqual(labels, ['HALE · LEAD', 'MERCER · GREN', 'AMES · MEDIC', 'WEBB · SAW']);
+  assert.deepEqual(labels, ['HALE · RIFLE', 'MERCER · GREN', 'AMES · MEDIC', 'WEBB · SAW']);
 });
 
 test('quick battlefield orders flash at the supplied point even before the persistent order arrives', () => {
@@ -932,4 +932,48 @@ test('Expert touch hides routine world text while retaining action markers and c
   renderer.worldLabel(actor.x, actor.y + 10, 'SQUAD MATE');
   renderer.worldLabel(actor.x, actor.y + 70, 'CLEAR OF THE SOLDIER');
   assert.deepEqual(labels, ['CLEAR OF THE SOLDIER']);
+});
+
+test('mobile scope lookahead survives camera preparation and rendering while keeping the soldier inside the safe area', () => {
+  for (const [width, height, safeInsets] of [
+    [390, 844, { top: 176, bottom: 196, left: 16, right: 16 }],
+    [844, 390, { top: 86, bottom: 108, left: 14, right: 14 }],
+  ]) {
+    const { renderer, state, actor } = fixture();renderer.resize(width, height, 1);
+    Object.assign(actor, { role: 'sniper', commander: true, observing: true });
+    const view = { touch: true, zoom: .75, safeInsets, observing: true, reducedMotion: true, quality: 'performance' };
+    for (const angle of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+      actor.angle = angle;renderer.updateCamera(state, view);
+      const safe = renderer.safeRect, prepared = renderer.worldToScreen(actor.x, actor.y), zoom = renderer.camera.zoom;
+      const forwardOffset = (safe.cx - prepared.x) * Math.cos(angle) + (safe.cy - prepared.y) * Math.sin(angle);
+      assert.ok(forwardOffset > 10, 'looking through the scope frames more ground ahead');
+      const inBounds = point => point.x > safe.left && point.x < safe.right && point.y > safe.top && point.y < safe.bottom;
+      assert.ok(inBounds(prepared));
+      actor.x += 9;actor.y -= 5;
+      renderer.render(state, { ...view, cameraPrepared: true });
+      const drawn = renderer.worldToScreen(actor.x, actor.y);
+      near(renderer.camera.zoom, zoom);near(drawn.x, prepared.x);near(drawn.y, prepared.y);
+      assert.ok(inBounds(drawn), 'post-step touch centering retains the scoped offset and safe framing');
+    }
+    actor.observing = false;renderer.updateCamera(state, { ...view, observing: false });
+    const ordinary = renderer.worldToScreen(actor.x, actor.y);
+    near(ordinary.x, renderer.safeRect.cx);near(ordinary.y, renderer.safeRect.cy);
+  }
+});
+
+test('a hidden cannon blast draws no explosion circles while its spatial sound report remains intact', () => {
+  const { renderer, state, actor } = fixture(), circles = [];
+  Object.assign(actor, { x: 100, y: 500 });
+  state.world.walls = [{ id: 'opaque-wall', x: 200, y: 0, w: 20, h: 1000 }];
+  state.effects = [{ type: 'explosion', weapon: 'tank-cannon', x: 300, y: 500, radius: 112, ttl: .5, maxTtl: .6 }];
+  state.soundEvents = [{ id: 91, type: 'explosion', weapon: 'tank-cannon', x: 300, y: 500, time: 0, sourceTime: 0, team: 'enemy', actorId: 900 }];
+  const report = structuredClone(state.soundEvents);
+  renderer.updateCamera(state, { reducedMotion: true });
+  renderer.ctx.arc = (...args) => circles.push(args);
+  renderer.drawEffects(renderer.ctx, state, 0, {});
+  assert.equal(circles.length, 0, 'walls hide the blast itself');assert.deepEqual(state.soundEvents, report);
+  state.world.walls = [];state.world.geometryRevision = 1;
+  renderer.drawEffects(renderer.ctx, state, 0, {});
+  assert.ok(circles.length > 0, 'removing the obstruction makes the same active blast visible');
+  assert.deepEqual(state.soundEvents, report, 'rendering never consumes or suppresses the audible event');
 });

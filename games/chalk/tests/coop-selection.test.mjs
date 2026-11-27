@@ -12,10 +12,10 @@ class Peer {
   get session() { return this.messages.find(packet => packet.type === 'joined')?.session; }
   get latest() { return this.states.at(-1); }
 }
-function setup() {
+function setup({ squadRoles } = {}) {
   let now = 100000, commandId = 0;
   const rooms = new CoopRooms({ now: () => now, seed: () => 63 }), host = new Peer(), guest = new Peer();
-  rooms.handle(host, { type: 'create', protocol: PROTOCOL, name: 'Host', mission: 0, difficulty: 'story' });
+  rooms.handle(host, { type: 'create', protocol: PROTOCOL, name: 'Host', mission: 0, difficulty: 'story', squadRoles });
   const room = rooms.rooms.get(host.session.code);
   rooms.handle(guest, { type: 'join', protocol: PROTOCOL, code: room.code, name: 'Guest' });
   const command = (peer, type, fields = {}) => rooms.handle(peer, { type, id: `selection-${++commandId}`, epoch: room.epoch, ...fields });
@@ -28,7 +28,7 @@ test('briefing exposes four real soldiers and either human can choose medic or s
   const { room, host, guest, command, start } = setup();
   const game = room.game, actors = [...game.squad];
   assert.deepEqual(host.latest.room.soldiers.map(actor => actor.id), actors.map(actor => actor.id));
-  assert.deepEqual(host.latest.room.soldiers.map(actor => actor.role), ['leader', 'grenadier', 'medic', 'support']);
+  assert.deepEqual(host.latest.room.soldiers.map(actor => actor.role), ['rifleman', 'grenadier', 'medic', 'support']);
   command(guest, 'select_soldier', { actorId: actors[2].id });
   assert.equal(guest.messages.at(-1).ok, true);
   command(host, 'select_soldier', { actorId: actors[3].id });
@@ -148,4 +148,69 @@ test('repeated selections are idempotent and legacy host exchange works with med
   command(host, 'swap_roles'); assert.equal(host.messages.at(-1).ok, true);
   assert.equal(host.latest.actorId, webb.id); assert.equal(guest.latest.actorId, ames.id);
   assert.equal(room.game.squad.length, 4); assert.equal(room.game.squad.filter(actor => actor.human).length, 2);
+});
+
+test('only the host configures four loadouts in the lobby, without changing soldier ownership or command identity', () => {
+  const { rooms, room, host, guest, command, start } = setup();
+  const roles = ['sniper', 'heavy', 'rifleman', 'medic'], original = [...room.squadRoles], epoch = room.epoch;
+  command(guest, 'configure', { squadRoles: roles });
+  assert.equal(guest.messages.at(-1).ok, false);assert.deepEqual(room.squadRoles, original);
+  for (const invalid of [null, [], ['sniper'], ['sniper','heavy','medic','constructor'], ['sniper','heavy','medic','support','rifleman']]) {
+    command(host, 'configure', { squadRoles: invalid });assert.equal(host.messages.at(-1).ok, false);
+  }
+  assert.equal(room.epoch, epoch);
+  command(host, 'configure', { squadRoles: roles });
+  assert.equal(host.messages.at(-1).ok, true);assert.equal(room.epoch, epoch + 1);
+  assert.deepEqual(room.squadRoles, roles);assert.deepEqual(host.latest.init.squadRoles, roles);
+  assert.deepEqual(host.latest.state.squadRoles, roles);assert.deepEqual(guest.latest.room.squadRoles, roles);
+  assert.deepEqual(host.latest.room.soldiers.map(a => a.role), roles);
+  assert.deepEqual(host.latest.room.soldiers.map(a => a.commander), [true,false,false,false]);
+  assert.equal(host.latest.room.leaderId, host.session.playerId);
+  assert.equal(host.latest.state.role, 'leader');assert.equal(guest.latest.state.role, 'member');
+  const configuredEpoch = room.epoch;
+  const accepted = host.messages.at(-1);
+  rooms.handle(host, { type: 'configure', id: accepted.id, epoch, squadRoles: Array(4).fill('medic') });
+  assert.equal(host.messages.at(-1).ok, true);assert.equal(room.epoch, configuredEpoch,'retransmission is idempotent');
+  command(host, 'configure', { epoch, squadRoles: Array(4).fill('medic') });
+  assert.equal(host.messages.at(-1).ok, false);assert.deepEqual(room.squadRoles, roles);
+  roles[0] = 'rifleman';assert.equal(room.squadRoles[0], 'sniper','configuration owns its array');
+  start();
+  assert.equal(room.game.squad[0].role, 'sniper');assert.equal(room.game.squad[1].role, 'heavy');
+  command(host, 'configure', { squadRoles: Array(4).fill('rifleman') });
+  assert.equal(host.messages.at(-1).ok, false);assert.equal(room.game.squad[0].role, 'sniper');
+  command(host, 'order', { order: 'hold' });assert.equal(host.messages.at(-1).ok, true);
+  command(guest, 'order', { order: 'hold' });assert.equal(guest.messages.at(-1).ok, false);
+});
+
+test('composition survives deployment, soldier selection, restart, continuation and reconnect', () => {
+  const roles = ['heavy','sniper','sniper','heavy'];
+  const { rooms, room, host, guest, command, start } = setup({ squadRoles: roles });
+  start();
+  const assertComposition = () => {
+    assert.deepEqual(room.game.squad.map(a => a.role), roles);
+    assert.deepEqual(host.latest.init.squadRoles, roles);
+    assert.deepEqual(room.game.squad.map(a => a.commander), [true,false,false,false]);
+  };
+  assertComposition();
+  const webb = room.game.squad[3];webb.ammo = 17;webb.hp = 84;
+  command(host, 'select_soldier', { actorId: webb.id });
+  assert.equal(host.messages.at(-1).ok, true);assert.equal(webb.ammo,17);assert.equal(webb.hp,84);
+  assert.equal(host.latest.state.role,'member');assertComposition();
+  command(host, 'restart');assertComposition();assert.equal(room.players[0].slot,3);
+  room.game.status = 'won';
+  command(host, 'continue_operation');assert.equal(host.messages.at(-1).ok,true);
+  assert.equal(room.game.missionIndex,1);assertComposition();
+  const session=guest.session;rooms.disconnect(guest);const resumed=new Peer();
+  rooms.handle(resumed,{type:'resume',protocol:PROTOCOL,code:session.code,playerId:session.playerId,token:session.token});
+  assert.deepEqual(resumed.latest.init.squadRoles,roles);
+  assert.equal(resumed.latest.state.squad[1].role,'sniper');assert.equal(resumed.latest.state.role,'member');
+});
+
+test('room creation rejects forged loadout IDs instead of accepting client combat statistics', () => {
+  const rooms = new CoopRooms({ seed: () => 63 });
+  for (const squadRoles of [['sniper','heavy','medic','unknown'],[{id:'heavy',damage:9999},'medic','rifleman','support']]) {
+    const peer=new Peer();rooms.handle(peer,{type:'create',protocol:PROTOCOL,name:'Host',mission:0,difficulty:'story',squadRoles});
+    assert.equal(peer.session,undefined);assert.equal(peer.messages.at(-1).code,'configuration');
+  }
+  assert.equal(rooms.rooms.size,0);
 });

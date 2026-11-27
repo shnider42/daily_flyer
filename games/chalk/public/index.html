@@ -4,17 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#141715">
-  <meta name="description" content="CHALK: a top-down squad game inspired by the Battle of Mogadishu. Lead four soldiers or follow an AI leader through four campaign chapters and six fictional field operations, solo or with a friend.">
+  <meta name="description" content="CHALK: a top-down squad game inspired by the Battle of Mogadishu. Lead four soldiers or follow an AI leader through four campaign chapters and ten fictional field operations, solo or with a friend.">
   <title>CHALK — Mogadishu, 1993</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=1.19.0">
+  <link rel="stylesheet" href="style.css?v=1.20.0">
 </head>
 <body class="in-menu" data-guidance="simple">
   <main id="game" aria-label="CHALK squad game">
     <div id="battlefield"><canvas id="world" tabindex="0" aria-label="Battlefield. Move with W A S D, aim with the mouse, hold left mouse to fire. E to assist, R to reload. Press Escape for controls."></canvas></div>
     <div class="film-grain" aria-hidden="true"></div>
     <div id="menu" class="menu-screen">
-      <header class="menu-header"><a href="https://dfe-directory.onrender.com/" class="dfe-link">DAILY FLYER <span>GAMES</span></a><div class="menu-header-actions"><span class="edition">SQUAD CAMPAIGN / 1.19.0</span><button id="menuSettings" class="menu-settings-button" data-dialog="settingsDialog"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg>Settings</button></div></header>
+      <header class="menu-header"><a href="https://dfe-directory.onrender.com/" class="dfe-link">DAILY FLYER <span>GAMES</span></a><div class="menu-header-actions"><span class="edition">SQUAD CAMPAIGN / 1.20.0</span><button id="menuSettings" class="menu-settings-button" data-dialog="settingsDialog"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg>Settings</button></div></header>
       <div class="menu-layout">
         <section class="title-block">
           <p class="eyebrow"><span class="small-cross" aria-hidden="true">+</span> MOGADISHU · 3–4 OCTOBER 1993</p>
@@ -28,13 +28,14 @@
           <p class="role-explanation" id="roleExplanation">Control Hale. Move your squad, call a hold, and send help to the wounded.</p>
         </section>
         <section class="operation-panel" aria-label="Mission selection">
-          <div class="section-label"><span>FIELD ORDERS</span><span id="campaignCount">0 / 10 COMPLETE</span></div>
+          <div class="section-label"><span>FIELD ORDERS</span><span id="campaignCount">0 / 14 COMPLETE</span></div>
           <div id="missionList" class="mission-list"></div>
           <div class="briefing"><p class="brief-time" id="briefTime"></p><h2 id="briefTitle">Cordon</h2><p id="briefDescription"></p><p id="briefGoal" class="brief-goal"></p><p id="briefCategory" class="brief-category"></p></div>
           <div id="operationStatus" class="operation-status" hidden><p id="operationDetail"></p><button id="operationResume" class="text-button" type="button">Resume operation</button><button id="operationFresh" class="text-button" type="button">Start this mission fresh</button></div>
           <div class="settings-row"><label>Difficulty<select id="difficulty"><option value="story">Story</option><option value="standard" selected>Standard</option><option value="veteran">Veteran</option></select></label><label>Guidance<select id="guidance" aria-describedby="guidanceSummary"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label></div>
           <p id="guidanceSummary" class="guidance-summary"></p>
           <p class="difficulty-explanation">Story is more forgiving. Standard balances the fighting. Veteran gives you less room for mistakes.</p>
+          <details class="squad-setup" id="squadSetup"><summary>Squad loadouts <span id="loadoutSummary">Four soldiers · six roles</span></summary><p>Choose each soldier’s equipment before deployment. Hale keeps command in any role.</p><div id="soloLoadouts" class="loadout-grid"></div></details>
           <button id="deploy" disabled class="primary-button">DEPLOY TO CORDON</button>
           <div class="coop-entry" aria-label="Play with a friend"><button id="coopCreate" disabled class="coop-entry-button">Create co-op squad</button><button id="coopJoinOpen" disabled class="coop-entry-button">Join squad</button></div>
           <p class="start-hint">Solo or two-player co-op · Choose any of four soldiers</p>
@@ -65,6 +66,7 @@
           <button id="fieldSupportButton" type="button" aria-describedby="fieldSupportStatus"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v5m0 8v5M3 12h5m8 0h5"/><circle cx="12" cy="12" r="5"/></svg><span>Request support here</span></button>
           <p id="fieldSupportStatus">Relief reserve ready.</p>
         </div>
+        <div id="armorSupport" class="armor-support" hidden><p id="armorSupportStatus"></p><div><button id="armorHold" type="button">Hold armor</button><button id="armorAdvance" type="button">Resume route</button></div></div>
       </section><section class="weapon-panel" aria-label="Your equipment"><div><span id="playerName">HALE</span><span id="healthText">100%</span></div><div class="health-track"><span id="healthBar"></span></div><p id="weaponName" class="weapon-name">M4</p><p class="ammo"><strong id="ammo">30</strong><span id="reserve">/ 150</span><span id="reloadLabel"></span></p><p id="ammoExplanation" class="ammo-explanation guidance-copy"></p><p id="smokeCount">Smoke × 2</p><div class="throwable-picker" role="group" aria-label="Selected throwable"><button data-throwable="frag" aria-pressed="true">Frag <span>2</span></button><button data-throwable="flashbang" aria-pressed="false">Flash <span>2</span></button><button data-throwable="smoke" aria-pressed="false">Smoke <span>2</span></button></div><p class="throwable-keys"><kbd data-control="cycleThrowable">Y</kbd> select · <kbd data-control="throwThrowable">N</kbd> throw</p><p id="throwableExplanation" class="throwable-explanation guidance-copy"></p><p id="specialtyText" class="specialty-text"></p><p id="flashStatus" class="flash-status" role="status"></p></section></div>
       <output id="performanceStats" class="performance-stats" aria-label="Frame rate and render resolution" hidden></output>
       <div id="desktopHint" class="desktop-hint">WASD move · Mouse fire · E assist · R reload · G smoke · Right click order · 1–4 switch soldier · C radio decisions</div>
@@ -145,6 +147,7 @@
             <label class="setting-field" for="frameLimit"><span>Frame-rate limit</span><select id="frameLimit" data-setting="frameLimit"><option value="60" selected>60 FPS</option><option value="120">120 FPS</option><option value="0">Uncapped</option></select><small>Choose a limit that suits your display.</small></label>
             <label class="setting-field" for="cameraZoom"><span>Desktop camera zoom <output id="cameraZoomValue" for="cameraZoom">100%</output></span><input id="cameraZoom" data-setting="cameraZoom" type="range" min="0.8" max="1.4" step="0.05" value="1"><small>Farther out ← → Closer to your soldier</small></label>
             <label class="setting-field" for="mobileCameraZoom"><span>Mobile camera zoom <output id="mobileCameraZoomValue" for="mobileCameraZoom">75%</output></span><input id="mobileCameraZoom" data-setting="mobileCameraZoom" type="range" min="0.6" max="1.25" step="0.05" value="0.75"><small>Starts farther out for a wider view when using touch controls.</small></label>
+            <label class="setting-field" for="fogDensity"><span>Fog of war density <output id="fogDensityValue" for="fogDensity">25% · Original</output></span><input id="fogDensity" data-setting="fogDensity" type="range" min="0" max="1" step="0.05" value="0.25"><small>25% restores the original light overlay. Higher values darken unseen ground; 0% removes the overlay. Enemy visibility stays tied to your squad’s sight. Night lighting stays active.</small></label>
             <label class="setting-toggle" for="settingsMotion"><span><strong>Reduce motion</strong><small>Quiet the moving atmosphere and use a darker flashbang recovery veil.</small></span><input id="settingsMotion" data-setting="reducedMotion" type="checkbox"></label>
             <label class="setting-toggle" for="bloodEffects"><span><strong>Blood marks</strong><small>Show hit splashes and stains. Bodies remain visible with this off.</small></span><input id="bloodEffects" data-setting="bloodEffects" type="checkbox" checked></label>
             <label class="setting-toggle" for="showFPS"><span><strong>Performance display</strong><small>Show frame rate and render resolution during play.</small></span><input id="showFPS" data-setting="showFPS" type="checkbox"></label>
@@ -181,7 +184,7 @@
             <label class="setting-field" for="squadVoiceVolume"><span>Squad voices <output id="squadVoiceVolumeValue" for="squadVoiceVolume">85%</output></span><input id="squadVoiceVolume" data-setting="squadVoiceVolume" type="range" min="0" max="1" step="0.05" value="0.85"><small>Nearby speech and radio calls. Orders still work when muted.</small></label>
             <label class="setting-field" for="flashRingingVolume"><span>Flashbang ringing <output id="flashRingingVolumeValue" for="flashRingingVolume">35%</output></span><input id="flashRingingVolume" data-setting="flashRingingVolume" type="range" min="0" max="1" step="0.05" value="0.35"><small>Brief ear-ringing after a flashbang. Vision and gameplay effects stay active.</small></label>
             <label class="setting-field" for="ambienceVolume"><span>Ambience volume <output id="ambienceVolumeValue" for="ambienceVolume">100%</output></span><input id="ambienceVolume" data-setting="ambienceVolume" type="range" min="0" max="1" step="0.05" value="1"><small>Wind, helicopter rotors, radio voices, distant impacts, and convoy engines.</small></label>
-            <label class="setting-field" for="distressVolume"><span>Distress voices <output id="distressVolumeValue" for="distressVolume">65%</output></span><input id="distressVolume" data-setting="distressVolume" type="range" min="0" max="1" step="0.05" value="0.65"><small>Pain reactions and fear cries. Impact sounds and squad commands keep their own level.</small></label>
+            <label class="setting-field" for="distressVolume"><span>Distress voices <output id="distressVolumeValue" for="distressVolume">65%</output></span><input id="distressVolume" data-setting="distressVolume" type="range" min="0" max="1" step="0.05" value="0.65"><small>Pain reactions, fear cries, and rare hostile contact calls. Impact sounds and squad commands keep their own level.</small></label>
             <label class="setting-field" for="reflectionsVolume"><span>Room &amp; street echoes <output id="reflectionsVolumeValue" for="reflectionsVolume">80%</output></span><input id="reflectionsVolume" data-setting="reflectionsVolume" type="range" min="0" max="1" step="0.05" value="0.8"><small>Echoes from rooms and nearby buildings. The original gunshots keep their own volume.</small></label>
           </div>
           <p class="settings-note">Sound starts after your first click or tap. The Sound switch mutes everything without changing this mix. The menu soundscape uses ambient field sounds.</p>
@@ -221,6 +224,7 @@
             <label>Mission<select id="coopMission"></select></label>
             <label>Difficulty<select id="coopDifficulty"><option value="story">Story</option><option value="standard">Standard</option><option value="veteran">Veteran</option></select></label>
           </div>
+          <details class="squad-setup" id="coopSquadSetup"><summary>Squad loadouts <span>Host chooses before deployment</span></summary><div id="coopLoadouts" class="loadout-grid"></div></details>
           <button id="coopSwapLobby" class="secondary-button">Swap our soldiers (host)</button>
           <p id="coopLobbyHint" class="coop-small"></p>
           <button id="coopStart" class="primary-button">DEPLOY SQUAD</button>
@@ -232,6 +236,6 @@
     <div id="toast" class="toast" role="status" hidden></div>
   </main>
   <noscript>This game needs JavaScript enabled.</noscript>
-  <script type="module" src="app.mjs?v=1.19.0"></script>
+  <script type="module" src="app.mjs?v=1.20.0"></script>
 </body>
 </html>

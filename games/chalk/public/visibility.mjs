@@ -1,20 +1,13 @@
 import { getSolidWalls } from './building-geometry.mjs';
-import { OBSERVE_HALF_ANGLE, visionRange } from './squad-roles.mjs';
+import { canObserve, roleProfile, visionRange } from './squad-roles.mjs';
 import { flashIntensity } from './flash-status.mjs';
+import { DEFAULT_FOG_DENSITY, ORIGINAL_FOG_STYLE, fogAppearance, fogDrawStrength } from './fog-appearance.mjs';
+import { vehiclesBlockLine, vehicleHull, segmentVehicleEntry } from './armored-vehicles.mjs';
 
 const TAU = Math.PI * 2;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 
-// A shared charcoal tint makes the three information states easy to read:
-// current sight is clear; explored ground is dim; never-seen ground is darker.
-// These are presentation values, never limits on range, targeting, or scouting.
-export const FOG_STYLE = Object.freeze({
-  color: '11,21,24', rememberedAlpha: .34, unseenAlpha: .70,
-  dayStrength: .9, nightStrength: .78, mapStrength: 1,
-});
-// The remembered tint is composited over this base. Solve source-over alpha so
-// unseen ground reaches its intended opacity rather than becoming double-dark.
-const unseenBaseAlpha = (FOG_STYLE.unseenAlpha - FOG_STYLE.rememberedAlpha) / (1 - FOG_STYLE.rememberedAlpha);
+export const FOG_STYLE = ORIGINAL_FOG_STYLE;
 
 /** Living, seeing eyes only. A casualty or blinded soldier cannot scout. */
 export function sightObservers(state) {
@@ -75,7 +68,7 @@ export function squadCanSeePoint(state, point, { ignoreRange = false } = {}) {
     for (const wall of walls) {
       if (rayWallDistance(observer.x, observer.y, dx / length, dy / length, wall, length + .001) <= length) { blocked = true; break; }
     }
-    if (!blocked && !smokeBlocks(state, observer, point, length)) return true;
+    if (!blocked && !vehiclesBlockLine(state, observer, point, point.id) && !smokeBlocks(state, observer, point, length)) return true;
   }
   return false;
 }
@@ -102,7 +95,8 @@ export function sightPolygon(state, observer) {
   const dazzle = flashIntensity(observer, state.time), recovery = 1 - dazzle * .8;
   if (dazzle >= .8) return { observerId: observer.id, origin: { x: observer.x, y: observer.y }, points: [] };
   const world = state.world, maxRange = visionRange(observer, state.missionIndex) * recovery;
-  const walls = getSolidWalls(world).filter(wall => {
+  const hulls = (state.vehicles || []).filter(v => Number.isFinite(segmentVehicleEntry(v, { x: v.x - 200, y: v.y }, v)) && segmentVehicleEntry(v, observer, observer) !== 0).map(vehicleHull);
+  const walls = [...getSolidWalls(world), ...hulls].filter(wall => {
     const x = clamp(observer.x, wall.x, wall.x + (wall.w ?? wall.width));
     const y = clamp(observer.y, wall.y, wall.y + (wall.h ?? wall.height));
     return (x - observer.x) ** 2 + (y - observer.y) ** 2 <= maxRange * maxRange;
@@ -130,9 +124,9 @@ export function sightPolygon(state, observer) {
     const angle = Math.atan2(dy, dx);
     addAngle(angle - .00012); addAngle(angle); addAngle(angle + .00012);
   }
-  if (observer.role === 'grenadier' && observer.observing) {
+  if (canObserve(observer) && observer.observing) {
     for (const side of [-1, 1]) {
-      const angle = (observer.angle || 0) + side * OBSERVE_HALF_ANGLE;
+      const angle = (observer.angle || 0) + side * roleProfile(observer).observeHalfAngle;
       addAngle(angle - .00012); addAngle(angle); addAngle(angle + .00012);
     }
   }
@@ -178,10 +172,11 @@ function drawPolygons(ctx, polygons, scaleX, scaleY) {
  * never controls hostile visibility or stores actors in explored terrain.
  */
 export class SharedSightLayer {
-  constructor({ createCanvas = canvasFactory, interval = .125, maxSize = 640 } = {}) {
+  constructor({ createCanvas = canvasFactory, interval = .125, maxSize = 640, density = DEFAULT_FOG_DENSITY } = {}) {
     this.createCanvas = createCanvas; this.interval = interval; this.maxSize = maxSize;
     this.polygons = []; this.lastUpdate = -Infinity; this.revision = 0; this.resetCount = 0;
     this.current = null; this.remembered = null; this.overlay = null;
+    this.appearance = fogAppearance(density);
   }
 
   update(state, now = state.time || 0) {
@@ -208,26 +203,43 @@ export class SharedSightLayer {
     this.lastUpdate = now; this.revision++;
     this.polygons = sightObservers(state).map(observer => sightPolygon(state, observer));
     if (!this.current || !this.remembered || !this.overlay) return true;
-    const current = this.current.getContext('2d'), memory = this.remembered.getContext('2d'), overlay = this.overlay.getContext('2d');
+    const current = this.current.getContext('2d'), memory = this.remembered.getContext('2d');
     current.clearRect(0, 0, this.width, this.height);
     drawPolygons(current, this.polygons, this.scaleX, this.scaleY);
     // Mask pixels accumulate explored terrain only, never units or contacts.
     memory.drawImage(this.current, 0, 0);
+    this.compose();
+    return true;
+  }
+
+  setDensity(value) {
+    const density = typeof value === 'number' && Number.isFinite(value) ? clamp(value, 0, 1) : DEFAULT_FOG_DENSITY;
+    if (density === this.appearance.density) return false;
+    const next = fogAppearance(density);
+    this.appearance = next;
+    // Recompose existing masks immediately, including while paused. Never
+    // reset explored terrain or rerun perception for a visual setting change.
+    this.compose();
+    return true;
+  }
+
+  compose() {
+    if (!this.current || !this.remembered || !this.overlay) return;
+    const overlay = this.overlay.getContext('2d'), style = this.appearance;
     overlay.clearRect(0, 0, this.width, this.height);
     overlay.globalCompositeOperation = 'source-over';
-    overlay.fillStyle = `rgba(${FOG_STYLE.color},${unseenBaseAlpha})`; overlay.fillRect(0, 0, this.width, this.height);
+    overlay.fillStyle = `rgba(${style.baseColor},${style.baseAlpha})`; overlay.fillRect(0, 0, this.width, this.height);
     overlay.globalCompositeOperation = 'destination-out'; overlay.drawImage(this.remembered, 0, 0);
     overlay.globalCompositeOperation = 'source-over';
-    overlay.fillStyle = `rgba(${FOG_STYLE.color},${FOG_STYLE.rememberedAlpha})`; overlay.fillRect(0, 0, this.width, this.height);
+    overlay.fillStyle = `rgba(${style.rememberedColor},${style.rememberedAlpha})`; overlay.fillRect(0, 0, this.width, this.height);
     overlay.globalCompositeOperation = 'destination-out'; overlay.drawImage(this.current, 0, 0);
     overlay.globalCompositeOperation = 'source-over';
-    return true;
   }
 
   draw(ctx, bounds, { night = false, map = false } = {}) {
     if (!this.overlay || bounds.right <= bounds.left || bounds.bottom <= bounds.top) return;
     const w = bounds.right - bounds.left, h = bounds.bottom - bounds.top;
-    ctx.save(); ctx.globalAlpha = map ? FOG_STYLE.mapStrength : night ? FOG_STYLE.nightStrength : FOG_STYLE.dayStrength;
+    ctx.save(); ctx.globalAlpha = fogDrawStrength(this.appearance, { night, map });
     // Bilinear upsampling of the quarter-resolution mask gives a quiet, soft
     // sight edge without a full-resolution blur or per-frame ray tracing.
     ctx.imageSmoothingEnabled = true;

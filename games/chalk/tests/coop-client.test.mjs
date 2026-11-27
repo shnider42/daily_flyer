@@ -19,11 +19,11 @@ class FakeSocket {
   close(code=1000,reason='') { this.readyState=3; this.emit('close',{code,reason}); }
 }
 
-function fixture({time=0,epoch=1,role='leader'}={}) {
-  const game=createGame({mission:0,seed:2468,difficulty:'story'});
+function fixture({time=0,epoch=1,role='leader',squadRoles}={}) {
+  const game=createGame({mission:0,seed:2468,difficulty:'story',squadRoles});
   game.time=time; game.coop=true; game.humanIds=[game.squad[0].id,game.squad[1].id];
   const {world,grid,stages,...state}=game;
-  return {type:'snapshot',state,init:{seed:2468,mission:0,difficulty:'story',epoch},worldProps:structuredClone(world.props),
+  return {type:'snapshot',state,init:{seed:2468,mission:0,difficulty:'story',epoch,squadRoles:[...game.squadRoles]},worldProps:structuredClone(world.props),
     room:{code:'ABCDEF',hostId:'peer1',leaderId:role==='leader'?'peer1':'peer2',status:'playing',mission:0,difficulty:'story',epoch,capacity:2,players:[
       {id:'peer1',name:'One',actorId:game.squad[role==='leader'?0:1].id,slot:role==='leader'?0:1,role,connected:true,ready:true},
       {id:'peer2',name:'Two',actorId:game.squad[role==='leader'?1:0].id,slot:role==='leader'?1:0,role:role==='leader'?'member':'leader',connected:true,ready:true}]},
@@ -347,4 +347,40 @@ test('breach snapshots update collision before prediction, retain map identity, 
   const restarted=createGame({seed:17}),{world:newWorld,grid,stages,...freshState}=restarted;
   const fresh={...packet,state:freshState,init:{...packet.init,epoch:2},room:{...packet.room,epoch:2},worldProps:newWorld.props};
   const reset=hydrator.apply(fresh,'peer1');assert.equal(reset.changedEpoch,true);assert.equal(reset.game.destruction.revision,0);assert.equal(reset.game.world.geometryRevision,0);
+});
+
+test('hydration reconstructs configured kits and preserves command identity without a player role hint', () => {
+  const roles=['sniper','heavy','medic','sniper'],packet=fixture({squadRoles:roles});
+  // The epoch initializer must be sufficient before the first actor update.
+  delete packet.state.squad;delete packet.state.squadRoles;
+  for(const peer of packet.room.players)delete peer.role;
+  const hydrator=new CoopStateHydrator(),first=hydrator.apply(packet,'peer1');
+  assert.deepEqual(first.game.squad.map(actor=>actor.role),roles);
+  assert.equal(first.game.squad[0].magSize,5);assert.equal(first.game.squad[1].magSize,60);
+  assert.equal(first.game.role,'leader');assert.equal(first.game.squad[0].commander,true);
+  const member=new CoopStateHydrator().apply(packet,'peer2');assert.equal(member.game.role,'member');
+  const world=first.game.world,next=fixture({time:.2,squadRoles:roles});next.state.squad[0].ammo=2;
+  hydrator.apply(next,'peer1');assert.equal(hydrator.game.world,world);assert.equal(hydrator.game.squad[0].ammo,2);
+  const restarted=hydrator.apply(fixture({epoch:2,squadRoles:roles}),'peer1');
+  assert.equal(restarted.changedEpoch,true);assert.notEqual(restarted.game.world,world);
+  assert.deepEqual(restarted.game.squadRoles,roles);assert.equal(restarted.game.squad[0].ammo,5);
+});
+
+test('creating and configuring a room sends four loadout IDs independently from leader or member control', async () => {
+  const roles=['heavy','sniper','sniper','medic'];
+  const client=new CoopClient({url:'https://squad.example',WebSocketImpl:FakeSocket,storage:null,autoTimers:false,autoReconnect:false});
+  const connecting=client.create({name:'One',role:'member',squadRoles:roles}),socket=FakeSocket.instances.at(-1);
+  try {
+    socket.open();
+    const create=socket.sent.find(packet=>packet.type==='create');
+    assert.equal(create.role,'member');assert.deepEqual(create.squadRoles,roles);
+    const packet=fixture({role:'member',squadRoles:roles});
+    socket.receive({type:'joined',session,room:packet.room});
+    const encoder=new SnapshotDeltaEncoder(),prepared=encoder.prepare(packet);socket.receive(prepared.packet);encoder.commit(prepared);
+    await connecting;
+    const replacement=['rifleman','heavy','medic','support'],pending=client.configure({squadRoles:replacement});
+    const command=socket.sent.at(-1);assert.equal(command.type,'configure');assert.equal(command.epoch,1);
+    assert.deepEqual(command.squadRoles,replacement);assert.equal('role' in command,false);
+    socket.receive({type:'result',id:command.id,ok:true});await pending;
+  } finally { client.leave(); }
 });

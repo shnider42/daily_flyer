@@ -37,6 +37,18 @@ export const ENCOUNTERS = [
     group('watch-east-avenue','watch-east',[{x:2120,y:745},{x:1980,y:960},{x:2260,y:960}],['gunner','rifleman','rifleman']),
     group('watch-north-sightline','watch-north',[{x:1640,y:200},{x:1500,y:200},{x:1780,y:200}],['sniper','rifleman','rifleman']),
     group('watch-west-return','watch-transmit',[{x:680,y:365},{x:545,y:580}],['flanker','rifleman'])],
+  [group('breakwater-warehouse','breakwater-battery',[{x:980,y:1040},{x:1260,y:1040},{x:980,y:1100}],['rifleman','gunner','flanker']),
+    group('breakwater-quay','breakwater-observe',[{x:1880,y:980},{x:1880,y:850},{x:1800,y:1040}],['rifleman','rifleman','flanker']),
+    group('breakwater-north-yard','breakwater-workers',[{x:1480,y:280},{x:1360,y:280},{x:1480,y:580}],['gunner','rifleman','flanker'])],
+  [group('channel-bank','channel-observe',[{x:1400,y:1320},{x:1400,y:1160},{x:1600,y:1360}],['rifleman','rifleman','flanker']),
+    group('channel-eastern-houses','channel-delivery',[{x:2200,y:1120},{x:1980,y:940},{x:1760,y:1140}],['gunner','rifleman','flanker']),
+    group('channel-west-return','channel-return',[{x:820,y:680},{x:660,y:1000},{x:220,y:580}],['rifleman','flanker','rifleman'])],
+  [group('gatehouse-inner-passage','gatehouse-papers',[{x:980,y:1040},{x:980,y:1160},{x:1120,y:1160}],['rifleman','gunner','flanker']),
+    group('gatehouse-northern-entry','gatehouse-liaison',[{x:1360,y:360},{x:1360,y:700},{x:1800,y:360}],['rifleman','rifleman','flanker']),
+    group('gatehouse-eastern-gate','gatehouse-east',[{x:1840,y:840},{x:1840,y:1140},{x:2180,y:980}],['gunner','rifleman','flanker'])],
+  [group('freight-service-lane','freight-observe',[{x:1580,y:1320},{x:1580,y:1120},{x:1580,y:920}],['rifleman','rifleman','flanker']),
+    group('freight-western-road','freight-convoy',[{x:220,y:940},{x:340,y:1420},{x:740,y:1300}],['gunner','rifleman','flanker'],8),
+    group('freight-loading-apron','freight-loading',[{x:2140,y:420},{x:1980,y:160},{x:2300,y:380}],['rifleman','gunner','flanker'])],
 ];
 export function initializeEncounters(s,hooks){
   const definitions=ENCOUNTERS[s.missionIndex]||[];

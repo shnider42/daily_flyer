@@ -413,6 +413,89 @@ function missionState(extra = {}) {
 }
 const distressVoices = audio => [...audio.voices].filter(voice => voice.bus === 'distress');
 
+test('a hidden hostile alarm uses a real spatial event without an actor lookup, friendly words, or a radio route', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ coop: true, enemies: [], time: 10 }), player = state.squad[0];
+  const event = { id: 1, type: 'hostile_shout', time: 10, sourceTime: 10, actorId: 'unseen', team: 'enemy',
+    x: 500, y: 0, alive: true, variant: 1 };
+  audio._event(event, player, state);
+  const voice = [...audio.voices].find(value => value.kind === 'hostile-shout');
+  assert.ok(voice); assert.equal(voice.source.buffer, audio.samples.get('fear2'));
+  assert.equal(voice.bus, 'distress'); assert.equal(voice.priority, 1);
+  assert.ok(voice.nodes.some(node => node?.pan.value > 0));
+  assert.equal(audio.activeSpeech, null); assert.deepEqual(state.enemies, []);
+  audio._event({ ...event, id: 2, actorId: 'other' }, player, state);
+  assert.equal([...audio.voices].filter(value => value.kind === 'hostile-shout').length, 1, 'global spacing prevents a shout loop');
+  h.advance(10); audio._event(event, player, state);
+  assert.equal([...audio.voices].filter(value => value.kind === 'hostile-shout').length, 0, 'the same actor has a longer cooldown');
+});
+
+test('hostile alarms obey occlusion, source death, mute and unavailable recordings without synthetic voices', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState(), player = state.squad[0];
+  const event = { type: 'hostile_shout', time: 1, actorId: 'enemy', team: 'enemy', x: 500, y: 0, alive: true, variant: 0 };
+  state.world.buildings.push({ x: 100, y: -100, w: 200, h: 200, enterable: true });
+  audio._event(event, player, state); assert.equal(audio.voices.size, 0, 'walls shorten the audible voice range');
+  audio._event({ ...event, x: 140 }, player, state);
+  const voice = [...audio.voices].find(value => value.kind === 'hostile-shout');
+  assert.ok(voice.nodes.some(node => node?.type === 'lowpass' && node.frequency.value === 1350));
+  h.advance(43); state.world.buildings = [];
+  state.soundEvents = [{ type: 'victim_hit', actorId: event.actorId, time: 1.1, alive: false }];
+  audio._event(event, player, state); assert.equal(audio.voices.size, 0, 'a later observed death cancels the obsolete source');
+  state.soundEvents = []; audio.setLevels({ distress: 0 });
+  audio._event(event, player, state); assert.equal(audio.voices.size, 0);
+  audio.setLevels({ distress: 1 }); audio.samples.delete('fear1');
+  audio._event(event, player, state); assert.equal(audio.voices.size, 0, 'missing performances remain silent');
+});
+
+test('co-op hostile alarms travel from hidden sources and duplicate snapshots never replay them', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ coop: true, time: 10, enemies: [] });
+  state.soundEvents = [{ id: 1, type: 'hostile_shout', time: 10, sourceTime: 10, actorId: 'unseen', team: 'enemy',
+    x: 700, y: 0, alive: true, variant: 0 }];
+  audio.tick(state, .016);
+  assert.equal(audio.pendingArrivals.length, 1); assert.equal(audio.voices.size, 0);
+  h.advance(.3); state.time += .3; audio.tick(state, .3);
+  assert.equal([...audio.voices].filter(value => value.kind === 'hostile-shout').length, 1);
+  const count = audio.context.sources.length;
+  state.soundEvents = structuredClone(state.soundEvents); audio.tick(state, 0);
+  assert.equal(audio.context.sources.length, count);
+  h.advance(2); audio.setLevels({ effects: 0 }); state.time += 2;
+  state.soundEvents.push({ ...state.soundEvents[0], id: 2, time: state.time, sourceTime: state.time });
+  audio.tick(state, .1); audio.setLevels({ effects: 1 }); audio.tick(state, .1);
+  assert.equal([...audio.voices].filter(value => value.kind === 'hostile-shout').length, 0);
+});
+
+test('actual cannon shots use a deep cached report, propagate across the district and survive busy rifle admission', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ time: 10 }), player = state.squad[0];
+  state.world.width = 2400; state.world.height = 1900;
+  audio.shotBudget = audio.distantShotBudget = audio.threatShotBudget = 0;
+  const event = { id: 1, type: 'shot', sourceTime: 10, time: 10, actorId: 'tank', team: 'allied', weapon: 'tank-cannon', x: 1900, y: 0 };
+  audio._queueEvent(event, player, state, 10);
+  assert.equal(audio.pendingArrivals.length, 1); assert.equal(audio.pendingArrivals[0].priority, 3);
+  assert.ok(audio.pendingArrivals[0].arrival > 10.6);
+  audio._shot(event, player, state);
+  const voice = [...audio.voices].find(value => value.kind === 'report');
+  assert.ok(voice); assert.equal(voice.source.buffer, audio.fallbackReports.get('tank-cannon'));
+  assert.ok(voice.end - voice.start > .75); assert.equal(voice.priority, 3);
+  assert.equal(audio.lastReport.weapon, 'tank-cannon'); assert.equal(audio.lastReport.earlyReflections, 0);
+  audio._shot({ ...event, sourceTime: 10.1 }, player, state);
+  assert.equal([...audio.voices].filter(value => value.kind === 'report').length, 1, 'one source cannot become a rapid cannon loop');
+  assert.ok(audio.voices.size <= 32); assert.ok(audio.pendingArrivals.length <= MAX_PENDING_ARRIVALS);
+});
+
+test('vehicle machine guns reuse bounded support takes and player fallback reports follow the selected role', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ time: 10 }), player = state.squad[0];
+  audio._shot({ type: 'shot', actorId: 'apc', team: 'allied', weapon: 'vehicle-mg', x: 100, y: 0 }, player, state);
+  assert.equal([...audio.voices].find(value => value.kind === 'report').source.buffer, audio.samples.get('support'));
+  player.role = 'sniper'; delete state.soundEvents;
+  audio.tick(state, .016); state.stats.shots++; state.time += .1;
+  audio.tick(state, .1);
+  assert.equal(audio.lastReport.weapon, SQUAD_ROLES.sniper.weapon);
+});
+
 test('hits layer recorded pain and local gear impact once, with per-actor voice spacing', async t => {
   const h = setup(t), { audio } = h;
   audio.setScene('mission'); await h.unlock();

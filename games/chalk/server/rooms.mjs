@@ -1,7 +1,10 @@
 // Small invitation rooms using Farwake's single-authority, authenticated-session model.
 import {randomBytes} from 'node:crypto';
-import {createGame,stepCoop,setHumanPlayers,issueCoopOrder,placePing,requestFieldSupport,getFieldSupportStatus,chooseStoryOption,campaignOutcome,getNextCampaignMission,MISSIONS,DIFFICULTIES} from '../public/sim.mjs';
+import {createGame,stepCoop,setHumanPlayers,issueCoopOrder,placePing,requestFieldSupport,getFieldSupportStatus,requestArmorOrder,chooseStoryOption,campaignOutcome,getNextCampaignMission,MISSIONS,DIFFICULTIES} from '../public/sim.mjs';
+import {publicVehicleView} from '../public/armored-vehicles.mjs';
+import {squadCanSeePoint} from '../public/visibility.mjs';
 import {SnapshotDeltaEncoder} from '../public/snapshot-delta.mjs';
+import {normalizeSquadRoles,validSquadRoles,isSquadCommander} from '../public/squad-roles.mjs';
 import {PROTOCOL,MAX_HUMANS,SIMULATION_HZ,SNAPSHOT_HZ,INPUT_TIMEOUT_MS,DISCONNECT_GRACE_MS,HOST_PROMOTION_MS,
   normalizeRoomCode,validRoomCode,cleanInput,EMPTY_INPUT,THROW_ACTIONS,newRoomCode,newPlayerId,newSecret,secretHash,verifySecret,cleanName} from './protocol.mjs';
 
@@ -13,7 +16,7 @@ const actorView = actor => {
 };
 const stateFields=['missionIndex','mission','difficulty','seed','time','status','endReason','stageIndex','stageCount',
   'progress','radio','stats','order','leaderOrder','phaseTime','objective','convoyIndex','convoyClear','convoyCleared',
-  'waitUntil','helpRequested','helpTargetId','aidTimer','coop','lastShot','interactionPrompt','interactionPrompts','humanIds','story','campaign','destruction','operation','pings'];
+  'waitUntil','helpRequested','helpTargetId','aidTimer','coop','lastShot','interactionPrompt','interactionPrompts','humanIds','story','campaign','destruction','operation','pings','squadRoles','convoyVehicleIds'];
 const statusOf = room => room.status==='lobby'?'lobby':room.game.status;
 const validMission = value => Number.isInteger(value)&&value>=0&&value<MISSIONS.length;
 const validDifficulty = value => Object.hasOwn(DIFFICULTIES,value);
@@ -37,7 +40,7 @@ export class CoopRooms {
     tokenHash:secretHash(token),peer:null,seq:0,input:{...EMPTY_INPUT},actions:emptyActions(),lastInput:this.now(),disconnectedAt:null,commands:new Map()},token};}
   _newGame(room){
     room.seed=this.seed();room.epoch++;room.tick=0;
-    room.game=createGame({mission:room.mission,difficulty:room.difficulty,role:'leader',seed:room.seed,campaign:room.campaign});
+    room.game=createGame({mission:room.mission,difficulty:room.difficulty,role:'leader',seed:room.seed,campaign:room.campaign,squadRoles:room.squadRoles});
     for(const p of room.players){p.input={...EMPTY_INPUT};p.actions=emptyActions();p.lastInput=this.now();}
     this._syncHumans(room);
   }
@@ -50,12 +53,12 @@ export class CoopRooms {
     this._syncHumans(room);
   }
   _publicRoom(room){
-    return {code:room.code,hostId:room.hostId,leaderId:room.players.find(p=>room.game.squad[p.slot].role==='leader')?.id||null,status:statusOf(room),
-      mission:room.mission,difficulty:room.difficulty,epoch:room.epoch,reason:room.reason,capacity:MAX_HUMANS,
+    return {code:room.code,hostId:room.hostId,leaderId:room.players.find(p=>isSquadCommander(room.game.squad[p.slot]))?.id||null,status:statusOf(room),
+      mission:room.mission,difficulty:room.difficulty,squadRoles:[...room.squadRoles],epoch:room.epoch,reason:room.reason,capacity:MAX_HUMANS,
       players:room.players.map(p=>{const actor=room.game.squad[p.slot];return{id:p.id,name:p.name,actorId:actor.id,slot:p.slot,
-        role:actor.role==='leader'?'leader':'member',soldierName:actor.name,specialty:actor.role,connected:!!p.peer,ready:!!p.peer};}),
+        role:isSquadCommander(actor)?'leader':'member',soldierName:actor.name,specialty:actor.role,connected:!!p.peer,ready:!!p.peer};}),
       soldiers:room.game.squad.map((actor,slot)=>{const owner=room.players.find(p=>p.slot===slot);return{
-        id:actor.id,slot,name:actor.name,role:actor.role,alive:actor.alive,downed:actor.downed,
+        id:actor.id,slot,slotId:actor.slotId,name:actor.name,role:actor.role,commander:isSquadCommander(actor),alive:actor.alive,downed:actor.downed,
         claimedBy:owner?.id||null,connected:!!owner?.peer};})};
   }
   _attach(room,p,peer,token){
@@ -71,9 +74,10 @@ export class CoopRooms {
     if(this.rooms.size>=this.maxRooms)return this.reject(peer,'All squad rooms are busy. Try again shortly.','capacity',true);
     const mission=message.mission??0,difficulty=message.difficulty??'standard';
     if(!validMission(mission)||!validDifficulty(difficulty))return this.reject(peer,'Choose an available mission and difficulty.','configuration',true);
+    if(message.squadRoles!==undefined&&!validSquadRoles(message.squadRoles))return this.reject(peer,'Choose an available loadout for each of the four soldiers.','configuration',true);
     let code;do{code=newRoomCode();}while(this.rooms.has(code));
     const {player,token}=this._newPlayer(message.role==='member'?1:0,message.name);
-    const now=this.now(),room={code,hostId:player.id,players:[player],mission,difficulty,epoch:0,seed:0,game:null,tick:0,transportTick:0,
+    const now=this.now(),room={code,hostId:player.id,players:[player],mission,difficulty,squadRoles:normalizeSquadRoles(message.squadRoles),epoch:0,seed:0,game:null,tick:0,transportTick:0,
       status:'lobby',campaign:null,reason:'Share the squad code to invite a friend.',createdAt:now,lastActivity:now,emptySince:null};
     this._newGame(room);this.rooms.set(code,room);this._attach(room,player,peer,token);return true;
   }
@@ -130,9 +134,10 @@ export class CoopRooms {
     if(['start','restart','configure','swap_roles','return_lobby','continue_operation'].includes(type)&&!host)return finish(false,'Only the room host can change this setting.');
     if(type==='configure'){
       if(room.status!=='lobby')return finish(false,'Return to the lobby before changing the mission.');
-      const mission=message.mission??room.mission,difficulty=message.difficulty??room.difficulty;
+      const mission=message.mission??room.mission,difficulty=message.difficulty??room.difficulty,squadRoles=message.squadRoles===undefined?room.squadRoles:message.squadRoles;
       if(!validMission(mission)||!validDifficulty(difficulty))return finish(false,'Choose an available mission and difficulty.');
-      room.mission=mission;room.difficulty=difficulty;room.campaign=null;this._newGame(room);room.reason='Mission updated.';
+      if(!validSquadRoles(squadRoles))return finish(false,'Choose an available loadout for each of the four soldiers.');
+      room.mission=mission;room.difficulty=difficulty;room.squadRoles=[...squadRoles];room.campaign=null;this._newGame(room);room.reason='Squad briefing updated.';
     }else if(type==='start'||type==='restart'){
       if(type==='start'&&room.status!=='lobby')return finish(false,'The mission has already started.');
       this._newGame(room);room.status='playing';room.reason='Stay together. Bring the squad home.';
@@ -177,6 +182,9 @@ export class CoopRooms {
       const owner=room.game.squad[p.slot];
       if(!owner.alive||owner.downed)return finish(false,'Your soldier must be able to act to request support.');
       if(!requestFieldSupport(room.game,point,owner.id))return finish(false,getFieldSupportStatus(room.game).text||'The relief team cannot accept that request.');
+    }else if(type==='armor_order'){
+      if(statusOf(room)!=='playing')return finish(false,'Deploy before giving armor orders.');
+      if(!requestArmorOrder(room.game,message.order,room.game.squad[p.slot].id))return finish(false,'Only the acting squad commander can order available friendly armor.');
     }else if(type==='order'){
       if(statusOf(room)!=='playing')return finish(false,'Deploy before giving squad orders.');
       const order=message.order;
@@ -195,10 +203,11 @@ export class CoopRooms {
     // unseen positions and internal assignments remain on the authority.
     state.allies=(room.game.allies||[]).filter(a=>a.visible).map(actorView);
     state.support=getFieldSupportStatus(room.game);
-    for(const key of ['vehicles','bullets','grenades','effects','soundEvents','smokes','bodies','bloodstains'])state[key]=room.game[key];
-    const actor=room.game.squad[p.slot],actorId=actor.id;state.playerId=actorId;state.role=actor.role==='leader'?'leader':'member';
+    state.vehicles=room.game.vehicles.filter(v=>v.team!=='enemy'||squadCanSeePoint(room.game,v)).map(v=>({...publicVehicleView(v),visible:true}));
+    for(const key of ['bullets','grenades','effects','soundEvents','smokes','bodies','bloodstains'])state[key]=room.game[key];
+    const actor=room.game.squad[p.slot],actorId=actor.id;state.playerId=actorId;state.role=isSquadCommander(actor)?'leader':'member';
     return {type:'snapshot',tick:room.tick,serverTime:this.now(),selfId:p.id,actorId,ack:p.seq,
-      init:{seed:room.seed,mission:room.mission,difficulty:room.difficulty,epoch:room.epoch,campaign:room.game.campaign},
+      init:{seed:room.seed,mission:room.mission,difficulty:room.difficulty,epoch:room.epoch,campaign:room.game.campaign,squadRoles:[...room.squadRoles]},
       room:this._publicRoom(room),state,worldProps:room.game.world.props};
   }
   snapshot(room,{only=null,reset=false}={}){

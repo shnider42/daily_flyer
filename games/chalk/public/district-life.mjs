@@ -27,6 +27,7 @@ export function streetPropBounds(prop) {
 
 /** Run after real doors exist, and before navigation is built. */
 export function populateDistrictLife(world, seed = world?.layoutSeed || 0, mission = world?.layoutMission || 0) {
+  if (world?.missionLayout) return populateAuthoredDistrictLife(world, seed, mission);
   if (!world?.districts?.length || !world.buildings?.length) return world;
   const random = seeded(seed, mission), pick = items => items[Math.floor(random() * items.length)];
   const props = [], solids = [], fires = [], reserved = [], occupied = [];
@@ -162,6 +163,38 @@ export function populateDistrictLife(world, seed = world?.layoutSeed || 0, missi
   world.streetProps = props;
   world.streetSolids = solids;
   world.ambientFires = fires;
+  world.props = [...retained, ...props];
+  return world;
+}
+
+// Non-grid profiles provide small, deliberate scenery sites. Actual bounds and
+// door approaches still decide placement; decorative variation cannot seal a
+// required crossing, a vehicle lane, or an occupied objective.
+function populateAuthoredDistrictLife(world, seed, mission) {
+  const random = seeded(seed, mission), props = [], solids = [];
+  const retained = (world.props || []).filter(prop => !prop.streetDecoration);
+  const forbidden = [...(world.reservedRoutes || []), ...(world.navigationSolids || []), ...(world.structuralSolids || [])];
+  for (const building of world.buildings) {
+    forbidden.push({ x: building.x - 18, y: building.y - 18, w: building.w + 36, h: building.h + 36 });
+    for (const door of building.doors || []) forbidden.push({ x: door.x - door.width / 2 - 20, y: door.y - 85, w: door.width + 40, h: 170 });
+  }
+  for (const anchor of [...Object.values(world.missionLayout.anchors), ...world.missionLayout.insertion,
+    ...world.missionLayout.civilianSpawns, world.missionLayout.resident]) {
+    forbidden.push({ x: anchor.x - 62, y: anchor.y - 62, w: 124, h: 124 });
+  }
+  const types = ['car', 'pickup', 'barrels', 'sacks', 'handcart', 'materials'];
+  for (const [index, site] of (world.scenerySites || []).entries()) {
+    const type = types[Math.floor(random() * types.length)];
+    const vehicle = type === 'car' || type === 'pickup';
+    const prop = { id: `street:${index}`, type, x: site.x, y: site.y, w: vehicle ? 62 : 32, h: vehicle ? 27 : 24,
+      angle: random() < .5 ? 0 : Math.PI / 2, paint: PAINT[Math.floor(random() * PAINT.length)], condition: 'abandoned',
+      streetDecoration: true, variation: random(), cover: type !== 'sacks' };
+    const bounds = streetPropBounds(prop);
+    if (forbidden.some(obstacle => overlaps(bounds, obstacle, 8)) || solids.some(obstacle => overlaps(bounds, obstacle, 20))) continue;
+    prop.bounds = bounds; props.push(prop);
+    if (prop.cover) solids.push({ ...bounds, id: `${prop.id}:cover`, propId: prop.id, kind: 'street-cover', material: vehicle || type === 'barrels' ? 'metal' : type === 'materials' ? 'stone' : 'wood' });
+  }
+  world.streetProps = props; world.streetSolids = solids; world.ambientFires = [];
   world.props = [...retained, ...props];
   return world;
 }

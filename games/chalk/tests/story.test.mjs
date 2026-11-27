@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGame,step,stepCoop,selectSquadMember,setHumanPlayers,chooseStoryOption,getStoryInteraction,
   getStoryLeaderId,campaignOutcome,normalizeCampaignCarry,combatLOS,findPath,getSolidWalls} from '../public/sim.mjs';
+import { SQUAD_ROLES, DEFAULT_SQUAD_ROLES } from '../public/squad-roles.mjs';
 
 function quiet(options={}){const s=createGame({seed:63,...options});s.enemies=[];s.maxEnemies=0;return s;}
 function run(s,seconds,input={}){for(let i=0;i<Math.ceil(seconds*30)&&s.status==='playing';i++)step(s,input,1/30);}
@@ -85,10 +86,11 @@ test('foreign, incapacitated, unknown, expired and already-passed choices cannot
 });
 
 test('every solo role can recommend a decision while the AI leader explains its accepted order',()=>{
-  for(const role of ['leader','grenadier','medic','support']){
-    const s=quiet();selectSquadMember(s,s.squad.find(a=>a.role===role).id);openDecision(s);
+  for(const role of Object.keys(SQUAD_ROLES))for(const slot of [0,1]){
+    const squadRoles=[...DEFAULT_SQUAD_ROLES];squadRoles[slot]=role;
+    const s=quiet({squadRoles});selectSquadMember(s,s.squad[slot].id);openDecision(s);
     assert.equal(choose(s,'reposition'),true);assert.equal(stage(s,s.missionIndex===3?'dawn-route':'cordon-extract').y,960);
-    if(role!=='leader'){
+    if(slot!==0){
       assert.ok(s.story.log.some(entry=>entry.kind==='recommendation'));
       assert.ok(s.story.log.some(entry=>entry.kind==='decision'&&entry.speaker==='HALE'&&entry.text.includes('Agreed')));
     }
@@ -119,8 +121,8 @@ test('the exposed story commander matches fallback authority when Hale is incapa
 });
 
 test('physical field aid works with every solo role and costs one supply before self-bandaging',()=>{
-  for(const role of ['leader','grenadier','medic','support']){
-    const s=quiet(),helper=s.squad.find(a=>a.role===role);selectSquadMember(s,helper.id);
+  for(const role of Object.keys(SQUAD_ROLES)){
+    const s=quiet({squadRoles:['rifleman',role,'medic','support']}),helper=s.squad[1];selectSquadMember(s,helper.id);
     const op=s.story.opportunities[0],resident=s.civilians.find(c=>c.id===op.actorId);
     Object.assign(helper,{x:op.x,y:op.y,hp:helper.maxHp-20});
     const supply=helper.medkits,hp=helper.hp;

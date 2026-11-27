@@ -8,6 +8,8 @@ export const BALLISTIC_PROFILES = freeze({
   hostile: freeze({ speedMps: 700, range: 600 }),
   hostile_support: freeze({ speedMps: 750, range: 600 }),
   sniper: freeze({ speedMps: 850, range: 900 }),
+  'tank-cannon': freeze({ speedMps: 1150 / WORLD_UNITS_PER_METRE, range: 1100 }),
+  'vehicle-mg': freeze({ speedMps: 900 / WORLD_UNITS_PER_METRE, range: 850 }),
 });
 export function ballisticProfile(weapon) {
   return BALLISTIC_PROFILES[weapon] || BALLISTIC_PROFILES.rifle;
@@ -33,19 +35,34 @@ export function enemyProfile(actorOrKind) {
 }
 
 export const ENCOUNTER_BUDGETS = freeze({
-  story: freeze({ maxAlive:10, weight:12, initial:6, reinforcementCount:1, spawnDelay:17, gunners:1, flankers:1, snipers:1 }),
-  standard: freeze({ maxAlive:16, weight:20, initial:8, reinforcementCount:2, spawnDelay:18, gunners:2, flankers:2, snipers:1 }),
-  veteran: freeze({ maxAlive:20, weight:26, initial:9, reinforcementCount:2, spawnDelay:14, gunners:2, flankers:3, snipers:1 }),
+  story: freeze({ maxAlive:13, weight:15, initial:6, reinforcementCount:1, spawnDelay:17, gunners:1, flankers:1, snipers:1 }),
+  standard: freeze({ maxAlive:19, weight:23, initial:8, reinforcementCount:2, spawnDelay:18, gunners:2, flankers:2, snipers:1 }),
+  veteran: freeze({ maxAlive:23, weight:29, initial:9, reinforcementCount:2, spawnDelay:14, gunners:2, flankers:3, snipers:1 }),
 });
 export function encounterBudget(difficulty) {
   return ENCOUNTER_BUDGETS[difficulty] || ENCOUNTER_BUDGETS.standard;
 }
 
+export const INITIAL_FIELD_RESERVE = 3;
+const initialFieldReservations = new WeakSet();
+
+/** Only the synchronous initial encounter pass reserves the three added field
+ * rifles. Later authored entries use every free slot; no hidden cap survives
+ * setup, and this temporary bookkeeping never enters a network snapshot.
+ */
+export function withInitialFieldReserve(state, seedEncounters) {
+  const alreadyReserved = initialFieldReservations.has(state);
+  initialFieldReservations.add(state);
+  try { return seedEncounters(); }
+  finally { if (!alreadyReserved) initialFieldReservations.delete(state); }
+}
+
 /** Count and role budgets apply to living actors; bodies never consume a slot. */
 export function canAddEnemy(state, kind) {
   const profile=enemyProfile(kind),budget=encounterBudget(state.difficulty),living=state.enemies.filter(a=>a.alive);
-  if(living.length>=Math.min(state.maxEnemies,budget.maxAlive))return false;
-  if(living.reduce((total,a)=>total+enemyProfile(a).cost,0)+profile.cost>budget.weight)return false;
+  const reserve=initialFieldReservations.has(state)?INITIAL_FIELD_RESERVE:0;
+  if(living.length>=Math.max(0,Math.min(state.maxEnemies,budget.maxAlive)-reserve))return false;
+  if(living.reduce((total,a)=>total+enemyProfile(a).cost,0)+profile.cost>budget.weight-reserve)return false;
   const cap=kind==='gunner'?budget.gunners:kind==='flanker'?budget.flankers:kind==='sniper'?budget.snipers:Infinity;
   return living.filter(a=>a.kind===kind).length<cap;
 }

@@ -1,3 +1,5 @@
+import { isSquadCommander, roleProfile } from './squad-roles.mjs';
+
 // Plain-language help uses only the current objective and the player's known state.
 // It never reads future stages, hidden enemies, or changes simulation behavior.
 const LEVELS = new Set(['simple', 'moderate', 'expert']);
@@ -43,7 +45,7 @@ export function explainObjective(objective, { guidance = 'simple', bind, role = 
   const explanations = {
     rally: moderate ? 'Bring the squad into the amber area.' : 'Move to the amber area and bring the squad with you. The task finishes when enough of you arrive.',
     hold: moderate ? 'Keep the squad in the amber area while the timer runs.' : 'Stay near the amber marker with your squad while the timer runs. Nearby walls can protect you from gunfire.',
-    recon: moderate ? `Face the marked approach. ${hold} until observation is complete.` : `Look toward the marked approach where you have a clear view. ${hold} until the progress bar fills. Mercer can also observe with his binoculars.`,
+    recon: moderate ? `Face the marked approach. ${hold} until observation is complete.` : `Look toward the marked approach where you have a clear view. ${hold} until the progress bar fills. Grenadier binoculars and sniper scopes can also observe.`,
     rescue: moderate ? `Reach the wounded person. ${hold} until treatment finishes.` : `Move close to the wounded person. ${hold} until treatment finishes, then keep them close while you move.`,
     interact: moderate ? `Reach the marker. ${hold} to ${cleanText(objective.interactionLabel)?.toLowerCase() || 'work'}.` : `Go to the amber marker. ${hold} when you are close, and keep holding until the progress bar fills. Use a doorway to enter a house.`,
     deliver: moderate ? `Bring the carrier to the marker. ${hold} nearby to hand the item over.` : `Bring the soldier carrying the item to the amber marker. ${hold} nearby to hand it over. If your co-op partner carries it, they must do this.`,
@@ -79,6 +81,7 @@ export function contextualGuidance({ game, player, assist, objective, guidance =
   if (player.ammo === 0 && player.reserve === 0) return context('no-ammo', 'No ammunition left', simple ? 'This soldier has no ammunition to reload. Stay with the squad and let others cover you.' : 'No reserve ammunition. Stay with the squad.', 'warning');
   if (player.suppression > .6) return context('suppression', 'Gunfire is affecting your aim', simple ? 'Nearby shots make your aim less steady and slow your movement. Move behind a solid wall or vehicle and let it settle.' : 'Take cover until your aim settles.', 'warning');
   if (assist) return context('assist', assist.label || 'You can help here', `${hold} to ${cleanText(assist.detail).replace(/^Hold to /i, '').replace(/[.]$/, '') || 'work here'}.`);
+  if (observing && roleProfile(player).observationMode === 'scope') return context('observe', 'Using the scope', `Aim and fire through the scope. Stay still for accuracy. ${controlName(bind, 'observe', 'Scope')} lowers it to move normally.`);
   if (observing) return context('observe', 'Using binoculars', simple ? `Move the mouse to look around. ${controlName(bind, 'observe', 'Binoculars')} lowers them so you can fight and move normally.` : `${controlName(bind, 'observe', 'Binoculars')} lowers them to fight and move normally.`);
   if (game.story?.activeDecision) return context('radio', 'A radio decision is waiting', simple ? `${controlName(bind, 'radio', 'Radio')} opens the message and your replies. The mission keeps moving while you read. ${game.role === 'member' ? 'You recommend; the leader decides.' : 'Choose the reply that fits your plan.'}` : `${controlName(bind, 'radio', 'Radio')} opens your replies. The mission keeps moving.`);
   if (simple && inside) return context('cover', 'Inside a building', 'Walls block sight and bullets. Open doorways leave you exposed. The roof lifts so you can see your soldier.');
@@ -142,7 +145,7 @@ export class GuidanceSession {
   observe({ player, showMap = false, canAct = true } = {}) {
     if (!this.active) return false;
     // Solo soldier switching and co-op role swaps can happen mid-introduction.
-    if (typeof player?.role === 'string') this.role = player.role === 'leader' ? 'leader' : 'member';
+    if (typeof player?.role === 'string') this.role = isSquadCommander(player) ? 'leader' : 'member';
     if (this.step === 'map' && standing(player)) {
       if (showMap) this._mapOpened = true;
       else if (this._mapOpened && canAct) return this._advance();

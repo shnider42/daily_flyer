@@ -1,6 +1,60 @@
 # CHALK
 
-Version 1.19.0 adds independently adjustable asymmetric mobile thumbsticks: a smaller movement stick and a much larger aim stick. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. The four-person squad, missions, dialogue, and outcomes are fictionalized; the six standalone operations are explicitly fictional scenarios.
+Version 1.20.0 adds selectable squad loadouts, denser independent street fighting, adjustable fog presentation, physical AI-operated armor, and four new map layouts. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. The four-person squad, missions, dialogue, and outcomes are fictionalized; the ten standalone operations are explicitly fictional scenarios.
+
+## Roles, armor and four new operations: version 1.20
+
+### Build the four-person squad
+
+Open **Squad loadouts** in the briefing to choose any of six roles for Hale, Mercer, Ames and Webb. The co-op host makes the same choices before deployment. Soldier identity and command stay separate: Hale can carry a sniper rifle and still command; changing controlled soldiers never refills their ammunition or supplies. Defaults remain rifleman, grenadier, medic and machine gunner.
+
+| Role | Capability | Cost |
+| --- | --- | --- |
+| Rifleman | Mobile carbine and a flexible general-purpose loadout | No launcher, scope or medical specialization |
+| Grenadier | Four launcher rounds and directional binoculars | Slower movement; binocular observation blocks firing |
+| Medic | Six medical supplies and faster casualty recovery | Gives up a heavy weapon or long-range specialist |
+| Machine gunner | 100-round belt and sustained covering fire | Long reload and reduced mobility |
+| Sniper | Five-shot scoped rifle, long reach and precise stationary scoped fire | Slow cycling, little reserve ammunition, lower health/mobility and poor moving/hip accuracy |
+| Armored assault | 60-round automatic weapon, extra health and reduced bullet damage | Much slower movement, shorter practical range and a long reload; blast damage bypasses its bullet protection |
+
+Armored assault is the infantry “tank” role. Actual tanks are separate AI-operated vehicles. On mobile, **Gear → Scope** uses the existing observation control; the sniper can still fire with the deliberate outer-ring gesture. Binoculars retain their firing block. The independent left/right stick sizes and compact mobile HUD from 1.19 remain.
+
+### More activity with finite forces
+
+The new **Atlas** group adds three independent friendlies, including a medic who can assist other groups. A second hostile cell can leave connected building interiors and move to its own street assignment. Their staggered departures let patrols, defenders and the playable squad meet as their routes intersect. They use real ammunition, cover, movement, projectiles and casualty aid.
+
+The field-system ceiling is eight ordinary friendlies, or eleven including Relief; up to nine hostiles share the normal enemy budget. Total living enemy caps are 13/19/23 for Story/Standard/Veteran, with separate weighted weapon limits. These are limits, not a promise to fill every slot on every seed. Reinforcements are finite authored groups. Cordon and the four new operations can have a safe, reachable three-person Relief reserve. Existing casualty recovery, finite supplies, withdrawal and support requests remain relevant; friendlies do not gain invulnerability.
+
+Enemy contact and advance calls are rare, nonverbal sounds from actual alert soldiers. Individual, group and global cooldowns prevent a constant chorus. Tank cannons have a distinct report and mounted machine guns use the support-weapon sound treatment. These events use the established distance, travel-delay, cover and reflection rules, including fights elsewhere in the district. An unseen blast may be heard without drawing a blast behind a wall. Voice and pending-arrival limits remain bounded. The two reused enemy-call recordings are credited in `public/audio/CREDITS.txt`; no new spoken-language dialogue is claimed.
+
+### Adjustable fog
+
+**Settings → Video → Fog of war density** runs from 0% to 100%. **25% · Original** is the default and exactly restores the original light overlay. Higher values make unseen ground darker. Zero removes the cosmetic terrain overlay while leaving actual shared sight, hidden actors, walls, smoke, vehicle occlusion and night lighting active. The setting applies immediately, including while paused, without clearing explored terrain.
+
+### Four distinct maps
+
+| Operation | Layout | Armor and objectives |
+| --- | --- | --- |
+| Breakwater | L-shaped waterfront, quay and warehouse yards | Restore a beacon route and work with a friendly tank supporting the approach |
+| Split Channel | A channel with three separated crossings | Reconnaissance and a stranded team, with an enemy tank covering the causeway and other approaches available |
+| Gatehouse | Connected courtyards inside a perimeter avenue | Recover isolated people while friendly armor provides cover on the wider outer route |
+| Freight Line | Nighttime freight yard with parallel warehouses and rail lanes | Retrieve a replacement drive assembly, repair and escort a carrier, and avoid a hostile armor patrol |
+
+The four original campaign chapters and six earlier side operations remain available, for 14 missions total. The new scenarios stay outside chronological campaign continuation. They use authored terrain, water boundaries, doorways, navigation, civilian/field routes and objective anchors, rather than another rearrangement of the old street grid.
+
+### Physical armor
+
+Tank, APC and truck hulls stop people and shots, move only where the full vehicle fits, and stop for living people. AI pedestrians clear active lanes, and squad followers route around stopped columns. Turrets turn independently; cannons have visible preparation, bounded cadence, physical shells, finite ammunition and safety checks for exposed friendlies/civilians. Small arms do little or no damage to heavy armor. Explosives can disable mobility; a nearby soldier can perform a six-second mobility repair, while scenario-specific component/restart work remains required. Repairs do not restore hull health. Wrecks remain cover, and destroying a required convoy vehicle fails the mission clearly.
+
+The commander can **Hold armor** or **Resume route** through the existing squad-orders panel once the mission permits movement. These vehicles are not player-driven. Older convoy vehicles share the new collision, damage and repair foundation; independent tanks are placed only in scenarios with authored routes and suitable space.
+
+The role, field-AI, fog, sound, collision and network systems are shared across missions. New mission authors use the same contracts and completion checks described in [Mission authoring](docs/mission-authoring.md). Co-op protocol **12** carries validated compositions, stable command identity and only permitted public armor state; private routes and targeting remain on the authority.
+
+### Competitive multiplayer remains a proposal
+
+[Squad versus squad design](docs/squad-versus-squad-design.md) outlines two four-soldier squads, one or two humans per side, a short contested-case/extraction round, and separate server-authoritative team sight. It identifies loadout balance, finite casualty recovery, touch/mouse fairness, hidden audio information and reconnect behavior as prototype gates. Tanks are deferred from the first competitive experiment. This release does not implement a competitive mode or add network seats.
+
+Version 1.20 validation: **585 full-suite tests**, **558 frontend build tests**, and **334 authoritative server tests** pass (the suites overlap). Objective-completion drivers use ordinary movement and interaction with combat disabled; separate tests cover firing, damage, combat AI and sight. The release record is in `public/release.json`. Browser checks cover 375 × 667 portrait, 812 × 375 landscape and 1280 × 720 desktop, including loadouts, scope controls, armor orders and fog extremes. Automated tests exercise real mission movement, co-op authority, collision, sight and audio-event rules. Physical-phone multitouch, mobile Safari and subjective speaker/headphone balance still require device playtesting.
 
 ## Independent mobile stick sizes: version 1.19
 

@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MISSIONS,createGame,step,issueOrder,setRole,getObjective,hasLineOfSight,findPath,getSolidWalls} from '../public/sim.mjs';
+import {navigationInput,quietMission} from './mission-navigation-helper.mjs';
+import {pointBlockedByVehicle,segmentVehicleEntry} from '../public/armored-vehicles.mjs';
 
 const pl=s=>s.squad.find(a=>a.id===s.playerId);
 function clearThreats(s){s.enemies=[];s.maxEnemies=0;}
@@ -12,8 +14,8 @@ function travel(s,target,maxSeconds=60){
   }return false;
 }
 
-test('all ten missions create isolated, deterministic states and objectives',()=>{
-  assert.equal(MISSIONS.length,10);
+test('all fourteen missions create isolated, deterministic states and objectives',()=>{
+  assert.equal(MISSIONS.length,14);
   for(let m=0;m<MISSIONS.length;m++){const a=createGame({mission:m,seed:42}),b=createGame({mission:m,seed:42});assert.deepEqual(a,b);assert.equal(a.squad.length,4);assert.ok(getObjective(a).title);assert.equal(a.status,'playing');step(a,{moveX:1},1/30);assert.notEqual(pl(a).x,pl(b).x);}
 });
 test('collision and pathfinding keep mission routes reachable',()=>{
@@ -36,28 +38,47 @@ test('AI never selects civilians and player fire records civilian harm',()=>{
   const s=createGame();clearThreats(s);const p=pl(s),c=s.civilians[0];c.x=p.x+75;c.y=p.y;c.shelter={x:c.x,y:c.y};run(s,2);assert.equal(c.hp,c.maxHp);run(s,.5,{fire:true,aimX:c.x,aimY:c.y});assert.equal(s.stats.civilianHarm,1);assert.ok(c.hp<c.maxHp);
 });
 test('leader can finish the expanded cordon without killing every enemy',()=>{
-  const s=createGame({mission:0});clearThreats(s);
+  const s=quietMission(createGame({mission:0}));
   for(let frame=0;frame<30*480&&s.status==='playing';frame++){
-    const o=getObjective(s),p=pl(s),input={interact:true,...(o.lookAt?{aimX:o.lookAt.x,aimY:o.lookAt.y}:{})};
-    if(Math.hypot(p.x-o.x,p.y-o.y)>22){const next=findPath(s,p,o)[0];if(next){const dx=next.x-p.x,dy=next.y-p.y,n=Math.hypot(dx,dy);input.moveX=dx/n;input.moveY=dy/n;}}
-    step(s,input,1/30);
+    step(s,navigationInput(s,pl(s),getObjective(s)),1/30);
   }
   assert.equal(s.status,'won');assert.equal(s.stats.objectives,s.stages.length);assert.equal(s.operation.items[0].status,'delivered');
 });
 
-test('all operations progress with an AI leader and a human keeping up',()=>{
-  for(let mission=0;mission<MISSIONS.length;mission++){
-    const s=createGame({mission,role:'member',seed:17});clearThreats(s);
+test('the human test driver yields through legal input even inside its follow distance',()=>{
+  const s=quietMission(createGame({mission:2,role:'member',seed:17}));s.civilians=[];
+  s.stageIndex=s.stages.findIndex(stage=>stage.kind==='convoy');
+  const [lead,rear,tail]=s.vehicles;
+  Object.assign(lead,{x:534.8,y:1340,angle:0,waiting:true});
+  Object.assign(rear,{x:226.61226,y:1415.4194,angle:-.3734885,routeIndex:0});
+  Object.assign(tail,{x:203.38954,y:1524.75239,angle:-1.3667293,routeIndex:0});
+  const human=pl(s),leader=s.squad.find(actor=>actor.commander);
+  Object.assign(human,{x:271.78676,y:1382.67353});Object.assign(leader,{x:275.62346,y:1450.02786});
+  const before={x:human.x,y:human.y},angle=rear.angle;
+  assert.ok(Number.isFinite(segmentVehicleEntry({...rear,angle:angle+.024},human,human,human.radius)));
+  const input=navigationInput(s,human,leader,{stopDistance:100});
+  assert.ok(Math.hypot(input.moveX||0,input.moveY||0)>.9);
+  assert.deepEqual({x:human.x,y:human.y},before,'the driver must not move the controlled actor directly');
+  for(let frame=0;frame<30&&rear.angle-angle<.08;frame++){
+    const start={x:human.x,y:human.y};step(s,navigationInput(s,human,leader,{stopDistance:100}),1/30);
+    assert.ok(Math.hypot(human.x-start.x,human.y-start.y)<5,'movement must use normal walking speed');
+    assert.equal(pointBlockedByVehicle(s,human.x,human.y,human.radius),false,'the whole human footprint stays clear');
+  }
+  assert.ok(rear.angle-angle>.08,'the carrier can turn once the human walks clear');
+});
+
+for(let mission=0;mission<MISSIONS.length;mission++){
+  test(`${MISSIONS[mission].title} progresses with an AI leader and a human keeping up`,()=>{
+    const s=quietMission(createGame({mission,role:'member',seed:17}));
     for(let frame=0;frame<30*720&&s.status==='playing';frame++){
-      const p=pl(s),leader=s.squad.find(a=>a.role==='leader'),d=Math.hypot(p.x-leader.x,p.y-leader.y);let input={interact:true};
-      if(d>47){const next=findPath(s,p,leader)[0];if(next){const dx=next.x-p.x,dy=next.y-p.y,n=Math.hypot(dx,dy);input={...input,moveX:dx/n,moveY:dy/n};}}
-      step(s,input,1/30);
+      const p=pl(s),leader=s.squad.find(a=>a.commander);
+      step(s,navigationInput(s,p,leader,{stopDistance:47}),1/30);
     }
     assert.equal(s.status,'won',`${MISSIONS[mission].title}: stage ${s.stageIndex}, ${s.objective?.detail}, ${s.leaderOrder}`);
     if(mission===1)assert.equal(s.stats.rescued,2);
     if(mission===2)assert.equal(s.convoyCleared.length,2);
-  }
-});
+  });
+}
 test('a squad wipe fails clearly and stops simulation',()=>{
   const s=createGame();for(const a of s.squad){a.downed=true;a.hp=0;}step(s,{},1/30);assert.equal(s.status,'lost');const time=s.time;step(s,{},1);assert.equal(s.time,time);
 });

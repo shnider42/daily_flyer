@@ -1,4 +1,6 @@
 import { createDefaultBindings, normalizeBindings } from './control-bindings.mjs';
+import { DEFAULT_SQUAD_ROLES, normalizeSquadRoles } from './squad-roles.mjs';
+import { DEFAULT_FOG_DENSITY } from './fog-appearance.mjs';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
@@ -32,6 +34,7 @@ const RANGES = {
   touchFireThreshold: [.72, .96],
   touchMoveSize: [.6, 1.2],
   touchAimSize: [1, 2],
+  fogDensity: [0, 1],
 };
 const BOOLEANS = ['sound', 'reducedMotion', 'aimLine', 'autoReload', 'showFPS', 'bloodEffects'];
 const FRAME_LIMITS = [0, 60, 120];
@@ -39,6 +42,7 @@ const FRAME_LIMITS = [0, 60, 120];
 export function createDefaults({ reducedMotion = false, touchControls } = {}) {
   return {
     role: 'leader', difficulty: 'standard', guidance: 'simple', sound: true,
+    squadRoles: [...DEFAULT_SQUAD_ROLES], fogDensity: DEFAULT_FOG_DENSITY,
     reducedMotion: reducedMotion === true, completed: {},
     graphicsQuality: 'balanced', renderScale: 'auto', frameLimit: 60,
     cameraZoom: 1, cameraLookahead: 0, crosshairStyle: 'cross', crosshairScale: 1,
@@ -92,6 +96,7 @@ function clean(raw, fallback) {
   result.frameLimit = FRAME_LIMITS.includes(limit) ? limit : fallback.frameLimit;
   result.completed = completions(isRecord(own(input, 'completed')) ? input.completed : fallback.completed);
   result.keyBindings = normalizeBindings(own(input, 'keyBindings'), fallback.keyBindings);
+  result.squadRoles = normalizeSquadRoles(own(input, 'squadRoles') ?? fallback.squadRoles);
 
   const touch = own(input, 'touchControls');
   if (typeof touch === 'boolean') result.touchControls = touch;
