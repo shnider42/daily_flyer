@@ -30,11 +30,11 @@ The entire batch is one validated save. **Undo this import** restores the preced
 
 Files and pasted content are processed in the browser. No source content is uploaded, no links are fetched, and no remote AI or third-party scripts are loaded. Preview data stays in page memory. Source attachments are references only. Files must be at most 8 MB for Excel or 5 MB of text for CSV/TSV; a batch may contain up to 500 proposals. Pasted text is limited to 100,000 characters. Excel reading requires a browser with `DecompressionStream('deflate-raw')`; use a current browser or CSV when unavailable. Encrypted/macro-enabled or malformed workbooks are rejected. Formulas are never evaluated; available saved values are read.
 
-## Display (1.5.1)
+## Display (1.5.2)
 
 Use **Display** in the top bar, or open it from Settings & backup. Choices apply immediately and are saved in the current browser:
 
-- **Text size:** Standard (16px), Larger (18px, default), or Largest (20px). Interface text scales together, including task titles, controls, notes, and metadata. Task titles lead each card above its area and urgency cues, with bolder type and a larger scale than notes or labels in every display mode. At the default text size, board titles are 21px, list titles 20px, and Today titles 24px.
+- **Text size:** Standard (16px), Larger (18px, default), or Largest (20px). Interface text scales together, including task titles, controls, notes, and metadata. Task titles lead each card above its area and urgency cues, with bolder type and a larger scale than notes or labels in every display mode. At the default text size, board titles are 21px, list titles 20px, and Today titles 24px. A subtle black outline around task-title letters reinforces their edges across display modes; it is softer in light mode and omitted for printing and forced colors.
 - **Spacing:** Comfortable shows card notes; Compact reduces card padding and gaps and hides card notes. Spacing does not change text size.
 - **Contrast:** Standard, Balanced (the default for new preferences), or Stronger. Balanced combines readable edges with softer area colors; Stronger increases text and boundary contrast. Existing saved contrast choices are retained.
 - **Card tint:** Subtle, Medium (default), or Rich. A card's background tint, left stripe, and labeled area marker identify its area in every layout.
