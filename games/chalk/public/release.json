@@ -1,7 +1,7 @@
 {
   "game": "CHALK",
-  "version": "1.17.1",
-  "date": "2026-11-26",
+  "version": "1.18.0",
+  "date": "2026-11-27",
   "missions": 10,
   "roles": [
     "leader",
@@ -28,8 +28,8 @@
     "camera": "Controlled soldier stays centered in the usable area between HUD and thumb controls, including world edges and zoom transitions",
     "guidance": "Healthy world names and roles appear in Simple only; Expert removes routine world labels and coaching while preserving target markers and critical casualty cues",
     "throwables": "Gear opens grenade types and drag-to-aim throw; tray clears during aiming and closes after a completed throw",
-    "dock": "Compact Squad / Gear dock; reload always reachable, Assist contextual; full-size thumb targets",
-    "pings": "Squad > Ping a place or tap overview map; both roles, no changed movement order",
+    "dock": "Dedicated Regroup / Ready beside Reload; Squad / Radio and Gear stay compact; Assist contextual; both full-size thumb targets retained",
+    "pings": "Squad / Radio > Ping a place, or tap overview map; both roles, no changed movement order",
     "aimPickup": "Both sticks start neutral at the actual thumb pickup; bounded visual centers keep the rings inside their touch pads",
     "objective": "Compact title and progress, full explanation expands on demand",
     "closedControlBandPixels": {
@@ -37,7 +37,20 @@
       "shortLandscape": 124,
       "plusSafeBottomInset": true
     },
-    "thumbstickGeometry": "One centering rule in portrait and landscape keeps drawn rings and knobs aligned with the touch pads; no doubled portrait translation"
+    "thumbstickGeometry": "One centering rule in portrait and landscape keeps drawn rings and knobs aligned with the touch pads; no doubled portrait translation",
+    "roster": "Squad / Radio opens soldier status and selection on demand; remains available while the current soldier is down. Desktop retains its permanent roster.",
+    "health": "Controlled soldier health and ammunition remain visible in a compact equipment panel",
+    "aimFire": {
+      "aimDeadZone": 0.12,
+      "fireStartDefault": 0.88,
+      "fireReleaseDefault": 0.78,
+      "adjustableStartRange": [
+        0.72,
+        0.96
+      ],
+      "setting": "Settings > Aim & controls > Distance to fire",
+      "feedback": "Visible firing boundary and AIM / FIRE states; immediate release/cancel and fresh-gesture reset"
+    }
   },
   "desktop": {
     "camera": "stable by default; camera and mouse input share one transform",
@@ -336,19 +349,27 @@
     "reducedMotion": "Quieter muzzle and impact cues without added weapon/body kick, casing motion or powder",
     "audio": "Existing credited recordings with distinct broad playback EQ, restrained continuation-round gain/reflection feed, priority for own and close incoming fire, cached procedural surface contacts and clearer real near passes",
     "mechanics": "Presentation changes retain projectile physics and aim coordinates; no added ricochet physics",
-    "mobileAim": "Existing neutral pickup and aim/fire thresholds are unchanged in this release"
+    "mobileAim": "Version 1.18 keeps neutral actual-thumb pickup and widens the aim-only range; default fire start .88, release .78, adjustable distance with shared visual feedback."
   },
   "people": "Stable clothing, skin, headwear, load-bearing kit and small build differences; boots, shoulder seams, packs, radios, hands and readable specialties. Individual gait phases, restrained idle movement, reload gestures and reduced-motion support. Independent friendly squads use a distinct ring and leader callsign.",
   "validation": {
-    "fullTests": 475,
-    "frontendBuildTests": 448,
-    "authoritativeServerTests": 250,
+    "fullTests": 485,
+    "frontendBuildTests": 458,
+    "authoritativeServerTests": 253,
     "suitesOverlap": true,
     "nativeCanvasChecks": [
       "2560x1440 desktop",
       "390x844 portrait",
       "844x390 night landscape"
     ],
-    "nativeCanvasNote": "Production renderer exercised with a CPU rasterizer; not a physical device or browser FPS claim"
+    "nativeCanvasNote": "Production renderer exercised with a CPU rasterizer; not a physical device or browser FPS claim",
+    "browserLayoutChecks": [
+      "375x667 portrait",
+      "812x375 landscape",
+      "1280x720 desktop"
+    ],
+    "mobileControls": "Shipped gesture listeners verified with independent pointers, firing hysteresis, cancel/release, resize, setting persistence, roster placement, and role-aware Regroup / Ready.",
+    "browserChecks": "Portrait drawer clears direct controls; soldier selection changes member labels; firing-distance preference survives reload; desktop roster restores.",
+    "mobileLimit": "Viewport and automated gesture checks; no physical-phone multitouch or mobile Safari validation."
   }
 }

@@ -1,7 +1,7 @@
 import { MISSIONS, createGame, step, issueOrder, placePing, requestFieldSupport, getFieldSupportStatus, selectSquadMember, getObjective, hasLineOfSight, chooseStoryOption, getStoryInteraction, getStoryLeaderId, getMissionInteraction, getNextCampaignMission, campaignOutcome, normalizeCampaignCarry } from './sim.mjs';
 import { Renderer } from './renderer.mjs';
 import { GameAudio } from './audio.mjs';
-import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, touchGroundAction, thumbOrigin, thumbDisplayOrigin } from './touch-input.mjs?v=1.17.1';
+import { stickVector, touchIntent, touchFireThresholds, TOUCH_AIM_DEAD_ZONE, GroundOrderTap, ThrowableDrag, touchGroundAction, thumbOrigin, thumbDisplayOrigin } from './touch-input.mjs?v=1.18.0';
 import { CoopClient } from './coop-client.mjs';
 import { coopServerURL } from './network-config.mjs';
 import { clientToCanvasPoint } from './desktop-input.mjs';
@@ -36,6 +36,7 @@ const frameMeter = new FrameMeter();
 
 const touchQuery = matchMedia('(pointer: coarse)');
 let touch = preferences.touchControls ?? (touchQuery.matches || navigator.maxTouchPoints > 0);
+const squadRosterHome = $('squadRoster').parentElement;
 let selectedMission = 0;
 let operationPlan = null;
 let missionCarry = null;
@@ -100,7 +101,7 @@ const online = () => !!coop?.active || !!game?.coop;
 const keys = new Set();
 const pointer = { x: 0, y: 0, valid: false, fire: false };
 let desktopPointerId = null;
-const touchInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, aimStrength: 0, interact: false };
+const touchInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, aimStrength: 0, wasFiring: false, interact: false };
 const actions = { reload: false, smoke: false, grenade: false, frag: false, flashbang: false };
 const activeSticks = new Map();
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -118,8 +119,13 @@ function attr(node, name, value) { value = String(value); if (node.getAttribute(
 function style(node, name, value) { if (node.style[name] !== value) node.style[name] = value; }
 function flag(node, name, enabled) { if (node.classList.contains(name) !== !!enabled) node.classList.toggle(name, !!enabled); }
 function toast(text) { $('toast').textContent = text; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 3400); }
+function syncSquadRoster() {
+  const host = touch ? $('touchSquadRosterHost') : squadRosterHome;
+  if ($('squadRoster').parentElement !== host) host.appendChild($('squadRoster'));
+}
 function fit() {
   document.body.classList.toggle('touch', touch && mode !== 'menu');
+  syncSquadRoster();
   const rect = $('battlefield').getBoundingClientRect();
   const size = `${Math.round(rect.width)}:${Math.round(rect.height)}:${touch}`;
   if (viewportSize && size !== viewportSize) clearInput();
@@ -170,7 +176,7 @@ function measureSafeInsets() {
   style($('contextHint'), 'left', ''); style($('contextHint'), 'maxWidth', '');
   const rect = canvas.getBoundingClientRect();
   const controlsRect = $('touchControls').getBoundingClientRect();
-  const topElements = showMap ? [document.querySelector('.topbar'), ...(placingOrder || placingPing ? [$('orderHint'), $('cancelOrder')] : [])] : [document.querySelector('.topbar'), document.querySelector('.objective-panel'), $('squad'), $('storyRadio'), $('radio')];
+  const topElements = showMap ? [document.querySelector('.topbar'), ...(placingOrder || placingPing ? [$('orderHint'), $('cancelOrder')] : [])] : [document.querySelector('.topbar'), document.querySelector('.objective-panel'), $('storyRadio'), $('radio')];
   const top = Math.max(...topElements.map(el => el?.getBoundingClientRect().bottom || rect.top)) - rect.top + 10;
   const hintRect = $('contextHint').getBoundingClientRect();
   const controlsTop = hintRect.width && hintRect.height ? Math.min(controlsRect.top, hintRect.top) : controlsRect.top;
@@ -222,6 +228,9 @@ function applySettings(key) {
   syncControlHints();
   document.documentElement.style.setProperty('--hud-scale', String(preferences.hudScale));
   document.documentElement.style.setProperty('--mobile-hud-scale', String(preferences.mobileHudScale));
+  const { start: fireThreshold } = touchFireThresholds(preferences.touchFireThreshold);
+  $('aimStick').style.setProperty('--fire-threshold', String(fireThreshold));
+  $('aimStick').style.setProperty('--fire-boundary-size', `${68 * (fireThreshold - TOUCH_AIM_DEAD_ZONE) / (1 - TOUCH_AIM_DEAD_ZONE)}%`);
   $('performanceStats').hidden = !preferences.showFPS;
   soundUI(); syncSettings();
   if (!key || ['graphicsQuality','renderScale','hudScale','hudDetail','mobileHudScale','mobileHudDetail','touchControls','guidance'].includes(key)) fit();
@@ -233,7 +242,7 @@ function applySettings(key) {
   }
 }
 function changeSetting(key, value) {
-  if (key === 'keyBindings') { clearInput(); storyRenderKey = ''; }
+  if (key === 'keyBindings' || key === 'touchFireThreshold') { clearInput(); storyRenderKey = ''; }
   if (key === 'guidance') tutorialManual = false;
   preferences = normalizePreferences({ ...preferences, [key]: value }, defaults);
   applySettings(key); save();
@@ -246,7 +255,7 @@ function syncControlHints() {
   attr($('mapToggle'), 'title', `Map (${actionLabel('map', preferences.keyBindings)})`);
   attr($('pauseButton'), 'title', `Mission menu (${actionLabel('pause', preferences.keyBindings)})`);
   syncMapControlHints();
-  text('soloSwitchHint', touch ? 'Tap an available soldier below or in the squad row to take control.' : 'Click a soldier below or on the battlefield HUD to take control. Each soldier also has a shortcut in Settings → Aim & controls.');
+  text('soloSwitchHint', touch ? 'Tap an available soldier below, or open Squad / Radio during play to switch.' : 'Click a soldier below or on the battlefield HUD to take control. Each soldier also has a shortcut in Settings → Aim & controls.');
   controlsEditor?.sync();
 }
 function persistGuidance() {
@@ -358,7 +367,7 @@ function clearInput() {
   desktopPointerId = null;
   if (capturedDesktop !== null) { try { canvas.releasePointerCapture(capturedDesktop); } catch {} }
   document.body.classList.remove('desktop-aim');
-  touchInput.moveX = 0; touchInput.moveY = 0; touchInput.aimX = 0; touchInput.aimY = 0; touchInput.aimStrength = 0; touchInput.interact = false; touchAim = null;
+  touchInput.moveX = 0; touchInput.moveY = 0; touchInput.aimX = 0; touchInput.aimY = 0; touchInput.aimStrength = 0; touchInput.wasFiring = false; touchInput.interact = false; touchAim = null;
   actions.reload = false; actions.smoke = false; actions.grenade = false; actions.frag = false; actions.flashbang = false; throwAim = null; observing = false;
   const throwPointer = throwableDrag.pending?.id;
   throwableDrag.cancel();
@@ -371,7 +380,8 @@ function clearInput() {
   activeSticks.clear();
   if (interactionPointer !== null) { try { $('touchInteract').releasePointerCapture(interactionPointer); } catch {} interactionPointer = null; }
   document.querySelectorAll('.stick-knob').forEach(knob => knob.style.transform = 'translate(0, 0)');
-  document.querySelectorAll('.joystick').forEach(el => { el.classList.remove('active', 'firing', 'sprinting'); el.style.removeProperty('--stick-origin-x'); el.style.removeProperty('--stick-origin-y'); });
+  document.querySelectorAll('.joystick').forEach(el => { el.classList.remove('active', 'aiming', 'firing', 'sprinting'); el.style.removeProperty('--stick-origin-x'); el.style.removeProperty('--stick-origin-y'); });
+  text('aimStickLabel', 'AIM / FIRE');
   $('touchInteract').classList.remove('working');
   if (online()) coop.clearInput();
 }
@@ -394,7 +404,7 @@ function startMission(index = selectedMission, { restart = false, fresh = false 
   syncMapUI(); closeOrders();
   clearTimeout(toastTimer); $('toast').hidden = true;
   startGuidance();
-  if (touch && preferences.guidance === 'simple') toast(`Gear: grenades · ${game.role === 'leader' ? 'Squad: orders' : 'Radio: requests'} and ping · Objective arrow: details`);
+  if (touch && preferences.guidance === 'simple') toast(`${game.role === 'leader' ? 'Tap ground to move the squad.' : 'Stay near Hale.'} Light drag: aim. Outer ring: fire.`);
 }
 function returnToMenu() {
   if (online()) coop.leave();
@@ -421,8 +431,10 @@ function updateOrders() {
   const items = leader ? [['move', 'moveOrder', 'Move', 'Send the squad to a point'], ['follow', 'regroup', 'Regroup', 'Bring the squad back to you'], ['hold', 'hold', 'Hold', 'Keep the squad here'], ['assist', 'assist', 'Assist', 'Help the wounded']] : [['ready', 'regroup', 'Ready', 'Tell Hale you can move'], ['wait', 'hold', 'Wait', 'Ask Hale to wait'], ['help', 'assist', 'Need help', 'Ask for help']];
   $('orderButtons').innerHTML = items.map(([type, action, label, detail]) => `<button data-order="${type}" title="${escape(detail)} (${escape(actionLabel(action, preferences.keyBindings))})"><span><kbd>${escape(bind(action))}</kbd>${label}</span><small class="order-explanation">${detail}</small></button>`).join('');
   ($('touchOrderLabel') || $('touchOrder')).textContent = leader ? 'Squad' : 'Radio';
-  $('touchOrder').setAttribute('aria-label', leader ? 'Squad orders, support, and ping' : 'Radio requests, support, and ping');
-  $('touchOrder').setAttribute('aria-controls', 'orderButtons');
+  $('touchOrder').setAttribute('aria-label', leader ? 'Squad: soldiers, orders, support, and ping' : 'Radio: soldiers, requests, support, and ping');
+  $('touchOrder').setAttribute('aria-controls', 'squadOrders');
+  text('touchRegroupLabel', leader ? 'Regroup' : 'Ready');
+  attr($('touchRegroup'), 'aria-label', leader ? 'Regroup: bring the squad back to you' : 'Ready: tell the leader you can move');
   syncControlHints();
 }
 function doOrder(type, point) {
@@ -567,8 +579,7 @@ function toggleObservation() {
   if (!canAct() || player()?.role !== 'grenadier') return;
   observing = !observing; pointer.fire = false;
   if (observing) actions.grenade = false;
-  flag($('aimStick'), 'firing', !observing && touchInput.aimStrength >= .56);
-  flag($('moveStick'), 'sprinting', !observing && Math.hypot(touchInput.moveX,touchInput.moveY) >= .92 && touchInput.aimStrength <= .12);
+  touchInput.wasFiring = false; updateTouchIntent();
   audio.click(); updateHUD();
 }
 function launchGrenade() {
@@ -728,6 +739,11 @@ $('mapToggle').addEventListener('click', toggleMap);
 $('touchOrder').addEventListener('click', () => {
   if (mode !== 'playing' || paused || showMap || placingOrder || placingPing) return;
   clearInput(); closeGear(); if (storyCardOpen) { storyCardOpen = false; updateStoryUI(); } const open = document.body.classList.toggle('orders-open'); $('touchOrder').setAttribute('aria-expanded', String(open));
+  updateHUD();
+});
+$('touchRegroup').addEventListener('click', () => {
+  if (mode !== 'playing' || paused || showMap || placingOrder || placingPing || document.querySelector('dialog[open]')) return;
+  clearInput(); closeOrders(); doOrder(game.role === 'leader' ? 'follow' : 'ready');
 });
 $('orderClose')?.addEventListener('click', closeOrders);
 $('touchGear').addEventListener('click', () => {
@@ -780,6 +796,17 @@ for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) $('touc
   event.preventDefault(); interactionPointer = null; touchInput.interact = false; $('touchInteract').classList.remove('working');
 });
 
+function updateTouchIntent() {
+  const intent = touchIntent({ ...touchInput, fireThreshold: preferences.touchFireThreshold, blocked: !canAct() });
+  const suppressFire = observing || !!throwableDrag.pending || actions.frag || actions.flashbang || actions.smoke || touchInput.interact || held('interact');
+  if (suppressFire) intent.firing = false;
+  touchInput.wasFiring = intent.firing;
+  flag($('aimStick'), 'aiming', intent.aiming && !intent.firing);
+  flag($('aimStick'), 'firing', intent.firing);
+  flag($('moveStick'), 'sprinting', intent.sprint && !suppressFire);
+  text('aimStickLabel', observing ? 'SCAN' : intent.firing ? 'FIRE' : intent.aiming ? 'AIM' : 'AIM / FIRE');
+  return intent;
+}
 function bindStick(element, kind) {
   const update = event => {
     const record = activeSticks.get(event.pointerId); if (!record || record.element !== element) return;
@@ -791,8 +818,7 @@ function bindStick(element, kind) {
     element.querySelector('.stick-knob').style.transform = `translate(${x*record.radius}px,${y*record.radius}px)`;
     touchInput[`${kind}X`] = x; touchInput[`${kind}Y`] = y;
     if (kind === 'aim') touchInput.aimStrength = strength;
-    element.classList.toggle('firing', kind === 'aim' && strength >= .56 && !observing);
-    element.classList.toggle('sprinting', kind === 'move' && Math.hypot(x,y) >= .92 && touchInput.aimStrength <= .12);
+    updateTouchIntent();
   };
   element.addEventListener('pointerdown', event => {
     if (!canAct() || event.button > 0 || [...activeSticks.values()].some(record => record.kind === kind)) return;
@@ -816,9 +842,10 @@ function bindStick(element, kind) {
   const release = event => {
     const record = activeSticks.get(event.pointerId); if (!record || record.element !== element) return;
     activeSticks.delete(event.pointerId); touchInput[`${kind}X`] = 0; touchInput[`${kind}Y`] = 0;
-    if (kind === 'aim') { touchInput.aimStrength = 0; touchAim = null; }
-    element.querySelector('.stick-knob').style.transform = 'translate(0,0)'; element.classList.remove('active','firing','sprinting');
+    if (kind === 'aim') { touchInput.aimStrength = 0; touchInput.wasFiring = false; touchAim = null; }
+    element.querySelector('.stick-knob').style.transform = 'translate(0,0)'; element.classList.remove('active','aiming','firing','sprinting');
     element.style.removeProperty('--stick-origin-x'); element.style.removeProperty('--stick-origin-y');
+    updateTouchIntent();
   };
   element.addEventListener('pointerup', release); element.addEventListener('pointercancel', release); element.addEventListener('lostpointercapture', release);
 }
@@ -959,9 +986,10 @@ document.addEventListener('visibilitychange', () => { framePacer.reset(); frameM
 
 function controls() {
   const p = player();
+  if (!canAct() && (activeSticks.size || touchInput.wasFiring || touchInput.interact)) clearInput();
+  const intent = updateTouchIntent();
   if (!canAct()) { touchAim = null; return neutralInput(); }
   const observe = observing && p?.role === 'grenadier';
-  const intent = touchIntent(touchInput);
   let moveX = (held('moveRight') ? 1 : 0) - (held('moveLeft') ? 1 : 0) + intent.moveX;
   let moveY = (held('moveDown') ? 1 : 0) - (held('moveUp') ? 1 : 0) + intent.moveY;
   let aim = pointer.valid && !showMap ? renderer.screenToWorld(pointer.x, pointer.y) : null;
@@ -1024,7 +1052,7 @@ function updateHUD() {
     flag(row.root, 'active', mine); flag(row.root, 'downed', soldier.downed || !soldier.alive);
     row.root.disabled = !soldier.alive || soldier.downed || shared && (!coop.connected || soldierSelectionPending || !!peer && !mine);
     attr(row.root, 'data-soldier', soldier.id); attr(row.root, 'aria-pressed', mine);
-    const ownership = mine ? 'You' : peer ? `${peer.name}${peer.connected ? ' · Taken' : ' · Reconnecting'}` : `Select (${bind('soldier'+(i+1))})`;
+    const ownership = mine ? 'You' : peer ? `${peer.name}${peer.connected ? ' · Taken' : ' · Reconnecting'}` : touch ? 'Tap to switch' : `Select (${bind('soldier'+(i+1))})`;
     attr(row.root, 'data-human', !!peer?.connected); attr(row.root, 'title', `${soldier.name} · ${profile.label} · ${ownership}`);
     attr(row.root, 'aria-label', `${soldier.name}, ${profile.label}, ${ownership}${!soldier.alive ? ', lost' : soldier.downed ? ', down' : ''}`);
     text(row.name, soldier.name); text(row.owner, !soldier.alive ? 'Lost' : soldier.downed ? 'Needs help' : ownership);
@@ -1068,17 +1096,20 @@ function updateHUD() {
     attr($('touchGrenade'), 'aria-label', `Launch 40 mm grenade toward your aim, ${p.grenades ?? 0} remaining${p.grenadeCooldown > 0 ? ', reloading' : ''}`);
     $('touchObserve').disabled = !p.alive || p.downed;
     attr($('touchObserve'), 'aria-pressed', usingBinos); attr($('touchObserve'), 'aria-label', usingBinos ? 'Lower binoculars' : 'Use binoculars'); text('touchObserveLabel', usingBinos ? 'Lower' : 'Binos');
-    text($('aimStick').querySelector('.stick-label'), usingBinos ? 'SCAN' : 'AIM / FIRE');
-    attr($('aimStick'), 'aria-label', usingBinos ? 'Scan with binoculars thumbstick' : 'Aim and fire thumbstick');
+    updateTouchIntent();
+    attr($('aimStick'), 'aria-label', usingBinos ? 'Scan with binoculars thumbstick' : 'Aim thumbstick. Drag lightly to aim; cross the outer ring to fire.');
     flag(document.body, 'observing', usingBinos);
-    for (const id of ['touchGear','touchOrder','touchPing']) $(id).disabled = !p.alive || p.downed;
+    for (const id of ['touchGear','touchPing','touchRegroup']) $(id).disabled = !p.alive || p.downed || soldierSelectionPending || shared && !coop.connected;
+    // Soldier selection remains reachable when the current soldier is wounded.
+    $('touchOrder').disabled = false;
+    for (const button of $('orderButtons').querySelectorAll('button')) button.disabled = !p.alive || p.downed || soldierSelectionPending || shared && !coop.connected;
     text('touchReloadLabel', reloading ? 'Loading' : 'Reload');
     attr($('touchReload'), 'aria-label', reloading ? 'Reloading' : 'Reload weapon'); flag($('touchReload'), 'reloading', reloading);
     $('downedBanner').hidden = !p.downed && p.alive;
     text('downedTitle', p.alive ? 'YOU ARE DOWN' : 'SOLDIER LOST');
     const freeStandingSoldier = game.squad.some(s => s.id !== p.id && s.alive && !s.downed && (!shared || !peers.some(peer => peer.actorId === s.id)));
-    text('downedDetail', freeStandingSoldier ? touch ? 'Tap a free standing soldier above to take control.' : 'Click a free standing soldier above to take control.' : p.alive ? 'Your squad is coming to help. Stay with them.' : shared ? 'Your partner is still in the mission. Stay with the squad.' : 'Your squad could not recover you.');
-    $('touchReload').disabled = reloading || !p.reserve || p.ammo === p.magSize; $('touchSmoke').disabled = !p.alive || p.downed || !!throwableDrag.pending;
+    text('downedDetail', freeStandingSoldier ? touch ? `Open ${game.role === 'leader' ? 'Squad' : 'Radio'} to choose a standing soldier.` : 'Click a free standing soldier above to take control.' : p.alive ? 'Your squad is coming to help. Stay with them.' : shared ? 'Your partner is still in the mission. Stay with the squad.' : 'Your squad could not recover you.');
+    $('touchReload').disabled = !p.alive || p.downed || reloading || !p.reserve || p.ammo === p.magSize; $('touchSmoke').disabled = !p.alive || p.downed || !!throwableDrag.pending;
   }
   const assist = assistAction();
   $('touchInteract').disabled = !assist; flag($('touchInteract'), 'available', !!assist);
@@ -1096,7 +1127,7 @@ function updateHUD() {
   let hint = interactText || assistHint;
   if (!hint && p && objective?.interaction && Math.hypot(p.x - objective.x, p.y - objective.y) < (objective.radius || 60) + 20 && hasLineOfSight(game, p, objective)) hint = touch ? 'Hold ASSIST to work on the objective.' : `Hold ${bind('interact')} to work on the objective.`;
   if (!hint && !touch && preferences.guidance === 'simple' && game.time < 13) hint = game.role === 'leader' ? `Follow the amber marker. ${bind('moveOrder')} sends the squad there.` : 'Stay near Hale. He will lead you to the objective.';
-  if (touch) hint = minimalGuidance ? '' : assist ? assist.detail : preferences.guidance === 'simple' && game.role === 'leader' && game.time < 8 ? 'Squad: choose Move, then tap a destination' : '';
+  if (touch) hint = minimalGuidance ? '' : assist ? assist.detail : preferences.guidance === 'simple' && game.role === 'leader' && game.time < 8 ? 'Tap ground to move the squad · Regroup brings them back' : '';
   if (!hint && observing && !(touch && minimalGuidance)) hint = touch ? 'Binoculars · Aim stick scans · Tap Lower to fight' : `Binoculars · Mouse to scan · ${bind('observe')} to lower`;
   const house = p ? buildingAt(game.world, p) : null;
   const scene = `${game.seed}:${game.missionIndex}:${game.playerId}`;
@@ -1111,7 +1142,7 @@ function updateHUD() {
   if (showMap || placingOrder || placingPing || gearOpen || document.body.classList.contains('orders-open')) hint = '';
   attr($('contextHint'), 'data-tone', coaching?.tone || 'info');
   text('objectiveExplanation', preferences.guidance === 'expert' ? '' : explainObjective(objective, { guidance: preferences.guidance, bind, role: game.role, touch }));
-  text('squadExplanation', shared ? 'Click any free soldier to take control. Your partner’s soldier is labelled with their name.' : 'Highlighted name: you. Click another standing soldier to control them.');
+  text('squadExplanation', touch ? (shared ? 'Tap a free soldier to switch. Your partner’s soldier shows their name.' : 'Highlighted soldier: you. Tap another standing soldier to switch.') : shared ? 'Click any free soldier to take control. Your partner’s soldier is labelled with their name.' : 'Highlighted name: you. Click another standing soldier to control them.');
   updateGuidance();
   text('contextHint', hint); style($('desktopHint'), 'visibility', preferences.guidance === 'expert' ? 'hidden' : 'visible');
   updateStoryUI();

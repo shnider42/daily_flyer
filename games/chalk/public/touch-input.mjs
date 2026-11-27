@@ -1,8 +1,22 @@
 const finite = value => Number.isFinite(value) ? value : 0;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
+export const TOUCH_AIM_DEAD_ZONE = .12;
+export const DEFAULT_TOUCH_FIRE_THRESHOLD = .88;
+export const MIN_TOUCH_FIRE_THRESHOLD = .72;
+export const MAX_TOUCH_FIRE_THRESHOLD = .96;
+
+/** Start firing near the outer edge; ease back farther to stop. Keeping the
+ * release point inside the start point avoids chatter from small thumb jitter. */
+export function touchFireThresholds(value = DEFAULT_TOUCH_FIRE_THRESHOLD) {
+  const start = Number.isFinite(value)
+    ? clamp(value, MIN_TOUCH_FIRE_THRESHOLD, MAX_TOUCH_FIRE_THRESHOLD)
+    : DEFAULT_TOUCH_FIRE_THRESHOLD;
+  return { start, release: start - .10 };
+}
+
 /** Convert a thumb displacement in CSS pixels to an analog input vector. */
-export function stickVector(dx, dy, radius, deadZone = .12) {
+export function stickVector(dx, dy, radius, deadZone = TOUCH_AIM_DEAD_ZONE) {
   if (![dx, dy, radius, deadZone].every(Number.isFinite) || radius <= 0 || deadZone < 0 || deadZone >= 1) {
     return { x: 0, y: 0, magnitude: 0 };
   }
@@ -13,8 +27,9 @@ export function stickVector(dx, dy, radius, deadZone = .12) {
   return { x: dx / length * strength, y: dy / length * strength, magnitude };
 }
 
-/** Separate precise aiming from firing and keep sprinting out of aimed movement. */
-export function touchIntent({ moveX = 0, moveY = 0, aimX = 0, aimY = 0, aimStrength = 0, blocked = false } = {}) {
+/** Separate precise aiming from firing and keep sprinting out of aimed movement.
+ * The caller keeps firing state only for the current captured aim gesture. */
+export function touchIntent({ moveX = 0, moveY = 0, aimX = 0, aimY = 0, aimStrength = 0, wasFiring = false, fireThreshold = DEFAULT_TOUCH_FIRE_THRESHOLD, blocked = false } = {}) {
   const neutral = { moveX: 0, moveY: 0, aiming: false, firing: false, sprint: false };
   if (blocked) return neutral;
   moveX = finite(moveX); moveY = finite(moveY);
@@ -22,12 +37,13 @@ export function touchIntent({ moveX = 0, moveY = 0, aimX = 0, aimY = 0, aimStren
   if (length > 1) { moveX /= length; moveY /= length; }
   const strength = clamp(finite(aimStrength), 0, 1);
   const hasAim = Number.isFinite(aimX) && Number.isFinite(aimY) && Math.hypot(aimX, aimY) > 0;
-  const aiming = hasAim && strength > .12;
+  const aiming = hasAim && strength > TOUCH_AIM_DEAD_ZONE;
+  const thresholds = touchFireThresholds(fireThreshold);
   return {
     moveX,
     moveY,
     aiming,
-    firing: aiming && strength >= .56,
+    firing: aiming && strength >= (wasFiring === true ? thresholds.release : thresholds.start),
     sprint: Math.hypot(moveX, moveY) >= .92 && !aiming
   };
 }

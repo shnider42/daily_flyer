@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, thumbOrigin, thumbDisplayOrigin, touchGroundAction } from '../public/touch-input.mjs';
+import { stickVector, touchIntent, touchFireThresholds, GroundOrderTap, ThrowableDrag, thumbOrigin, thumbDisplayOrigin, touchGroundAction } from '../public/touch-input.mjs';
 
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} is not close to ${expected}`);
 
@@ -42,13 +42,62 @@ test('invalid thumb geometry becomes neutral input', () => {
   }
 });
 
-test('light aim drag turns without firing, and outer drag fires at the threshold', () => {
+test('the wide inner aiming range turns without firing, and the outer edge starts fire', () => {
   const base = { aimX: 1, aimY: 0 };
   assert.equal(touchIntent({ ...base, aimStrength: .12 }).aiming, false);
-  const aiming = touchIntent({ ...base, aimStrength: .13 });
-  assert.equal(aiming.aiming, true); assert.equal(aiming.firing, false);
-  assert.equal(touchIntent({ ...base, aimStrength: .559 }).firing, false);
-  assert.equal(touchIntent({ ...base, aimStrength: .56 }).firing, true);
+  for (const aimStrength of [.13, .3, .56, .75, .879]) {
+    const aiming = touchIntent({ ...base, aimStrength });
+    assert.equal(aiming.aiming, true); assert.equal(aiming.firing, false);
+  }
+  assert.equal(touchIntent({ ...base, aimStrength: .88 }).firing, true);
+  assert.equal(touchIntent({ ...base, aimStrength: 1 }).firing, true);
+});
+
+test('an aim gesture keeps fire steady across edge jitter, then returns to aiming', () => {
+  let wasFiring = false;
+  const path = [
+    [.8, false], [.88, true], [.87, true], [.89, true], [.80, true],
+    [.78, true], [.779, false], [.82, false], [.879, false], [.9, true],
+    [.3, false], [0, false],
+  ];
+  for (const [aimStrength, expected] of path) {
+    const intent = touchIntent({ aimX: 1, aimStrength, wasFiring });
+    assert.equal(intent.firing, expected, `unexpected firing at ${aimStrength}`);
+    wasFiring = intent.firing;
+  }
+});
+
+test('firing distance preferences are bounded and preserve an aiming band', () => {
+  for (const [fireThreshold, start] of [[.72, .72], [.8, .8], [.96, .96], [-10, .72], [10, .96]]) {
+    const thresholds = touchFireThresholds(fireThreshold);
+    near(thresholds.start, start); near(thresholds.release, start - .1);
+    assert.equal(touchIntent({ aimX: 1, aimStrength: start - .001, fireThreshold }).firing, false);
+    assert.equal(touchIntent({ aimX: 1, aimStrength: start, fireThreshold }).firing, true);
+    assert.equal(touchIntent({ aimX: 1, aimStrength: start - .05, fireThreshold, wasFiring: true }).firing, true);
+    assert.equal(touchIntent({ aimX: 1, aimStrength: start - .101, fireThreshold, wasFiring: true }).firing, false);
+  }
+  for (const invalid of [undefined, null, NaN, Infinity, -Infinity, '.4']) {
+    near(touchFireThresholds(invalid).start, .88);
+    assert.equal(touchIntent({ aimX: 1, aimStrength: .8, fireThreshold: invalid }).firing, false);
+  }
+});
+
+test('cancelled, blocked, released and malformed aim cannot retain a firing latch', () => {
+  for (const input of [
+    { aimX: 1, aimStrength: 1, blocked: true },
+    { aimX: 1, aimStrength: 0 },
+    { aimX: 1, aimStrength: .12 },
+    { aimX: 0, aimY: 0, aimStrength: 1 },
+    { aimX: NaN, aimY: 1, aimStrength: 1 },
+    { aimX: 1, aimStrength: NaN },
+    { aimX: 1, aimStrength: Infinity },
+  ]) {
+    const intent = touchIntent({ ...input, wasFiring: true });
+    assert.equal(intent.firing, false); assert.equal(intent.aiming, false);
+  }
+  for (const wasFiring of [undefined, false, 1, 'true']) {
+    assert.equal(touchIntent({ aimX: 1, aimStrength: .8, wasFiring }).firing, false);
+  }
 });
 
 test('sprint needs a deliberate movement drag and stops when aiming', () => {

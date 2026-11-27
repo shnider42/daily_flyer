@@ -806,3 +806,67 @@ body:not(.touch).map-open .map-legend{bottom:22px;width:max-content;max-width:ca
 .touch.throwing .touch-gear-tray{background:transparent;border-color:transparent;box-shadow:none;overflow:visible}
 .touch.throwing .touch-gear-tray>header,.touch.throwing .touch-grenade-types,.touch.throwing .touch-gear-hint,.touch.throwing .touch-gear-tray .specialty-actions,.touch.throwing #touchSmoke{visibility:hidden;pointer-events:none}
 .touch.throwing #touchThrow{opacity:.55}
+
+/* Mobile essentials: the roster is available on demand, without a permanent
+   row over the battlefield. Its desktop placement remains unchanged. */
+.squad-roster{display:contents}
+.touch-squad-roster-host{display:none}
+.touch .squad-status-stack>.squad-roster{display:none}
+.touch .hud{grid-template-rows:var(--mobile-topbar-height) auto auto auto 1fr}
+.touch .story-radio{grid-row:3}
+.touch .radio-feed{grid-row:4}
+.touch .leader-intent{display:none}
+.touch .touch-squad-roster-host{display:block;margin:0 0 12px;padding:0 0 12px;border-bottom:1px solid #91ac8a35}
+.touch .touch-roster-hint{margin:0 0 7px;color:#b9c8b1;font:11px/1.35 Arial,sans-serif}
+.touch .touch-squad-roster-host .squad-roster{display:block}
+.touch .touch-squad-roster-host .squad-panel{position:static;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-row:auto;grid-column:auto;width:100%;padding:0;gap:5px;transform:none}
+.touch .touch-squad-roster-host .squad-member{width:auto;min-height:58px;min-width:0;padding:7px 5px;border:1px solid #a9bda442;border-radius:6px;background:#0f1d17a8}
+.touch .touch-squad-roster-host .squad-member.active{border-color:#d6c18bc4;background:#d6c18b1a}
+.touch .touch-squad-roster-host .squad-member strong{font:600 12px/1.2 Arial,sans-serif}
+.touch .touch-squad-roster-host .squad-member small{position:static;right:auto;top:auto;display:block;font:10px/1.25 Arial,sans-serif;white-space:normal;overflow:visible;min-height:13px}
+.touch .touch-squad-roster-host .squad-member.downed{border-color:#d59073b0}
+.touch .touch-squad-roster-host .squad-owner{font:10px/1.25 Arial,sans-serif}
+.touch .touch-squad-roster-host .squad-health{height:3px;margin-top:6px}
+.touch.orders-open #squadOrders{--mobile-orders-top:max(calc(env(safe-area-inset-top) + 108px),var(--story-top,108px));bottom:calc(var(--touch-bottom) + 214px);width:min(352px,calc(100vw - 24px));max-height:max(88px,calc(100dvh - var(--touch-bottom) - 214px - var(--mobile-orders-top)));touch-action:pan-y;overscroll-behavior:contain;scrollbar-width:thin;scroll-padding:10px}
+.touch.orders-open:has(#storyRadio:not([hidden])) #squadOrders{--mobile-orders-top:calc(max(calc(env(safe-area-inset-top) + 108px),var(--story-top,108px)) + 44px)}
+.touch #squadOrders #orderButtons{grid-template-columns:repeat(auto-fit,minmax(60px,1fr));gap:5px}
+.touch #squadOrders #orderButtons button{min-height:44px;padding:8px 4px;font:12px/1.25 Arial,sans-serif}
+.touch #squadOrders .order-explanation{display:none}
+
+/* A small direct command beside Reload leaves the two thumb pads and the
+   centered Squad/Gear dock at their established sizes and positions. */
+.touch .touch-actions #touchRegroup{position:absolute;left:calc(max(16px,env(safe-area-inset-left)) + 87px);right:auto;top:auto;bottom:calc(var(--touch-bottom) + 139px);width:68px;min-width:68px;height:44px;min-height:44px;padding:4px;flex-direction:column;gap:2px;border-radius:8px;background:#11221bb8;font:11px/1.2 Arial,sans-serif}
+.touch .touch-actions #touchRegroup svg{width:16px;height:16px}
+.touch .touch-actions #touchRegroup.active{border-color:#d6c18b91;color:#ead8ab}
+
+/* Keep personal health visible even when the roster is closed. */
+.touch .weapon-panel{display:grid;grid-template-columns:1fr auto;gap:3px 6px}
+.touch .weapon-panel>div:first-child{display:block;grid-column:2;grid-row:1;font:10px/1.2 Arial,sans-serif;white-space:nowrap;text-align:right;color:#dae1cc}
+.touch .weapon-panel #playerName{display:none}
+.touch .weapon-panel .weapon-name{grid-column:1;grid-row:1;margin:0;align-self:center}
+.touch .weapon-panel .ammo{grid-column:1/-1;grid-row:2}
+.touch .weapon-panel .health-track{display:block;grid-column:1/-1;grid-row:3;height:2px;margin:1px 0 0;border-radius:2px;overflow:hidden}
+.touch .weapon-panel .flash-status{grid-column:1/-1;margin-top:2px}
+
+/* The dashed ring follows the knob's displayed travel, including its aim
+   dead zone. App code supplies the diameter when Distance to fire changes. */
+.touch .aim-stick{--fire-boundary-size:58.73%}
+.touch .aim-stick .stick-base{background:radial-gradient(circle closest-side,#11291e35 0 var(--fire-boundary-size),#a984341c var(--fire-boundary-size) 100%)}
+.touch .aim-stick .stick-base:after{display:none}
+.touch .stick-fire-boundary{position:absolute;left:50%;top:50%;width:var(--fire-boundary-size);height:var(--fire-boundary-size);transform:translate(-50%,-50%);border:1px dashed #e0bf7b9c;border-radius:50%;pointer-events:none}
+.touch .aim-stick.aiming .stick-base{border-color:#b3d6bf80}
+.touch .aim-stick.aiming .stick-knob{background:#b7d7c65e;color:#e8f1dc;border-color:#d2ead8a8}
+.touch .aim-stick.aiming .stick-label{color:#e0ecd7}
+.touch .aim-stick.firing .stick-base{border-color:#eac47dc9;background:#72522335;box-shadow:0 0 0 4px #e3ba6420,inset 0 0 18px #e3ba6418}
+.touch .aim-stick.firing .stick-fire-boundary{border-style:solid;border-color:#efd294b8}
+.touch .aim-stick.firing .stick-knob{background:#d3ab5d85;color:#fff0bd;border-color:#f3dea5}
+.touch .aim-stick.firing .stick-label{color:#f0d595}
+.touch #aimStickLabel{left:0;width:100%;font-size:10px;letter-spacing:.04em;white-space:nowrap}
+
+@media(orientation:landscape) and (max-height:600px){
+  .touch .hud{grid-template-rows:var(--mobile-topbar-height) auto auto 1fr}
+  .touch .story-radio{grid-column:1;grid-row:3}
+  .touch .radio-feed{grid-column:2;grid-row:2;align-self:start}
+  .touch .touch-actions #touchRegroup{left:calc(max(24px,env(safe-area-inset-left)) + 87px);bottom:calc(var(--touch-bottom) + 121px)}
+  .touch.orders-open #squadOrders{bottom:calc(var(--touch-bottom) + 57px);width:min(400px,calc(100vw - 288px));max-height:calc(100dvh - var(--touch-bottom) - 110px)}
+}

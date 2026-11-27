@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import {stickVector,touchIntent,GroundOrderTap,ThrowableDrag,thumbOrigin,thumbDisplayOrigin} from '../public/touch-input.mjs';
-import {renderDensity} from '../public/settings.mjs';
+import {renderDensity,normalizePreferences} from '../public/settings.mjs';
 
 // Execute the shipped app listeners and resize cleanup with two separate
 // captured pointers. The fixture supplies geometry, not a second controller.
@@ -13,13 +13,15 @@ const section=(start,end)=>{
   assert.ok(from>=0&&to>from,`production section ${start} exists`);
   return app.slice(from,to);
 };
-const listeners=section('function bindStick(element, kind)','function screenPoint(event)');
+const listeners=section('function updateTouchIntent()','function screenPoint(event)');
 const clear=section('function clearInput()','function startMission(');
-const resize=section('function fit()','function measureSafeInsets()');
+const resize=section('function syncSquadRoster()','function measureSafeInsets()');
+const closeMenus=section('function closeGear()','function syncObjectiveDetails()');
+const menuListeners=section("$('touchOrder').addEventListener('click'","$('touchGear').addEventListener('click'");
 const rect=(left,top,width,height)=>({left,top,width,height,right:left+width,bottom:top+height});
 class Surface{
   handlers=new Map();captured=new Set();released=[];
-  classes=new Set();properties=new Map();
+  classes=new Set();properties=new Map();attributes=new Map();children=[];parentElement=null;textContent='';
   constructor(bounds=rect(0,0,1,1)){
     this.bounds=bounds;
     this.style={setProperty:(key,value)=>this.properties.set(key,value),removeProperty:key=>this.properties.delete(key)};
@@ -28,6 +30,9 @@ class Surface{
   }
   getBoundingClientRect(){return this.bounds;}
   querySelector(selector){return selector==='.stick-base'?this.base:selector==='.stick-knob'?this.knob:null;}
+  appendChild(child){if(child.parentElement)child.parentElement.children=child.parentElement.children.filter(node=>node!==child);child.parentElement=this;this.children.push(child);return child;}
+  setAttribute(key,value){this.attributes.set(key,String(value));}
+  getAttribute(key){return this.attributes.get(key)??null;}
   addEventListener(type,handler){this.handlers.set(type,[...this.handlers.get(type)||[],handler]);}
   setPointerCapture(id){this.captured.add(id);}
   releasePointerCapture(id){if(this.captured.delete(id)){this.released.push(id);this.emit('lostpointercapture',{pointerId:id});}}
@@ -36,27 +41,34 @@ class Surface{
     for(const handler of this.handlers.get(type)||[])handler(event);return event;
   }
 }
-function fixture(){
+function fixture(settings={}){
   const viewport=new Surface(rect(0,0,390,844)),move=new Surface(rect(4,690,128.7,140)),aim=new Surface(rect(257.3,690,128.7,140));
   for(const pad of [move,aim]){pad.base=new Surface(rect(0,0,100,100));pad.knob=new Surface(rect(0,0,42,42));}
-  const nodes={battlefield:viewport,moveStick:move,aimStick:aim,touchThrow:new Surface(),touchInteract:new Surface()};
+  const nodes={battlefield:viewport,moveStick:move,aimStick:aim,touchThrow:new Surface(),touchInteract:new Surface(),aimStickLabel:new Surface(),
+    squadRoster:new Surface(),touchSquadRosterHost:new Surface(),touchOrder:new Surface(),touchRegroup:new Surface(),orderClose:new Surface(),touchGear:new Surface(),touchGearTray:new Surface()};
+  const squadRosterHome=new Surface();squadRosterHome.appendChild(nodes.squadRoster);
+  const heldActions=new Set(),orders=[];
   const state={
-    $:id=>nodes[id],canvas:viewport,activeSticks:new Map(),stickVector,thumbOrigin,thumbDisplayOrigin,renderDensity,
-    touchInput:{moveX:0,moveY:0,aimX:0,aimY:0,aimStrength:0,interact:false},
+    $:id=>nodes[id],canvas:viewport,activeSticks:new Map(),stickVector,touchIntent,thumbOrigin,thumbDisplayOrigin,renderDensity,squadRosterHome,
+    touchInput:{moveX:0,moveY:0,aimX:0,aimY:0,aimStrength:0,wasFiring:false,interact:false},
     pointer:{fire:false,valid:false},keys:new Set(),desktopPointerId:null,interactionPointer:null,
     touchAim:null,throwAim:null,observing:false,touch:true,mode:'playing',viewportSize:'',canvasRect:viewport.bounds,
-    devicePixelRatio:3,preferences:{renderScale:'auto',graphicsQuality:'balanced'},
+    devicePixelRatio:3,preferences:normalizePreferences(settings),
     actions:{reload:false,smoke:false,grenade:false,frag:false,flashbang:false},
     throwableDrag:new ThrowableDrag(),groundOrderTap:new GroundOrderTap(),
-    document:{body:new Surface(),querySelectorAll:selector=>selector==='.stick-knob'?[move.knob,aim.knob]:selector==='.joystick'?[move,aim]:[]},
+    document:{body:new Surface(),querySelector:selector=>selector==='dialog[open]'&&state.dialogOpen?{}:null,querySelectorAll:selector=>selector==='.stick-knob'?[move.knob,aim.knob]:selector==='.joystick'?[move,aim]:[]},
     renderer:{width:390,height:844,resize(width,height){this.width=width;this.height=height;}},
-    online:()=>false,audio:{unlock(){}},text(){},measureSafeInsets(){},enabled:true,
+    online:()=>false,audio:{unlock(){}},text(id,value){const node=typeof id==='string'?nodes[id]:id;if(node)node.textContent=String(value);},
+    flag(node,name,value){node.classList.toggle(name,!!value);},attr(node,name,value){node.setAttribute(name,value);},held:action=>heldActions.has(action),measureSafeInsets(){},enabled:true,
+    game:{role:'leader'},paused:false,showMap:false,placingOrder:false,placingPing:false,storyCardOpen:false,gearOpen:false,dialogOpen:false,
+    updateHUD(){},updateStoryUI(){},doOrder:type=>orders.push(type),
   };
   state.canAct=()=>state.enabled;
-  vm.runInNewContext(clear+'\n'+resize+'\n'+listeners,state);
-  state.fit();return{state,move,aim,viewport};
+  vm.runInNewContext(clear+'\n'+resize+'\n'+listeners+'\n'+closeMenus+'\n'+menuListeners,state);
+  state.fit();return{state,move,aim,viewport,nodes,heldActions,orders};
 }
-function neutral(state){assert.equal(state.touchInput.moveX,0);assert.equal(state.touchInput.moveY,0);assert.equal(state.touchInput.aimX,0);assert.equal(state.touchInput.aimY,0);assert.equal(state.touchInput.aimStrength,0);}
+function neutral(state){assert.equal(state.touchInput.moveX,0);assert.equal(state.touchInput.moveY,0);assert.equal(state.touchInput.aimX,0);assert.equal(state.touchInput.aimY,0);assert.equal(state.touchInput.aimStrength,0);assert.equal(state.touchInput.wasFiring,false);}
+function aimAt(aim,strength,pointerId=2){aim.emit('pointermove',{pointerId,clientX:320+34*strength,clientY:760});}
 
 test('actual move and aim handlers start neutral at pad edges and follow deliberate drag from touchdown',()=>{
   const {state,move,aim}=fixture();
@@ -69,7 +81,8 @@ test('actual move and aim handlers start neutral at pad edges and follow deliber
   assert.equal(state.touchInput.moveX,0);assert.ok(state.touchInput.moveY<0,'upward drag does not inherit an edge-induced sideways vector');
   aim.emit('pointermove',{pointerId:2,clientX:383,clientY:815});
   assert.equal(state.touchInput.aimX,0);assert.ok(state.touchInput.aimY<0);assert.equal(touchIntent(state.touchInput).firing,false);
-  aim.emit('pointermove',{pointerId:2,clientX:383,clientY:800});assert.equal(touchIntent(state.touchInput).firing,true);
+  aim.emit('pointermove',{pointerId:2,clientX:383,clientY:800});assert.equal(touchIntent(state.touchInput).firing,false,'old fire distance is now inside the aim-only range');
+  aim.emit('pointermove',{pointerId:2,clientX:383,clientY:792});assert.equal(touchIntent(state.touchInput).firing,true);
 });
 
 test('simultaneous captured sticks ignore another pointer and release independently without stale fire',()=>{
@@ -100,4 +113,84 @@ test('blocked gameplay and malformed pointer coordinates do not capture a stick'
   const {state,move}=fixture();state.enabled=false;
   move.emit('pointerdown',{pointerId:1,clientX:60,clientY:750});assert.equal(state.activeSticks.size,0);
   state.enabled=true;move.emit('pointerdown',{pointerId:2,clientX:NaN,clientY:750});assert.equal(state.activeSticks.size,0);neutral(state);
+});
+
+test('shipped aim listeners keep the visual state and firing latch together across the outer boundary',()=>{
+  const {state,aim,nodes}=fixture();
+  aim.emit('pointerdown',{pointerId:2,clientX:320,clientY:760});
+  for(const [strength,firing,label] of [[.82,false,'AIM'],[.9,true,'FIRE'],[.82,true,'FIRE'],[.75,false,'AIM'],[.82,false,'AIM']]){
+    aimAt(aim,strength);
+    assert.equal(state.touchInput.wasFiring,firing,`latch at ${strength}`);
+    assert.equal(aim.classes.has('firing'),firing,`firing feedback at ${strength}`);
+    assert.equal(aim.classes.has('aiming'),!firing,`aiming feedback at ${strength}`);
+    assert.equal(nodes.aimStickLabel.textContent,label);
+  }
+});
+
+test('every aim release path clears fire immediately and a fresh inner-ring drag cannot inherit it',()=>{
+  for(const event of ['pointerup','pointercancel','lostpointercapture']){
+    const {state,aim,nodes}=fixture();
+    aim.emit('pointerdown',{pointerId:2,clientX:320,clientY:760});aimAt(aim,.95);aimAt(aim,.82);
+    assert.equal(state.touchInput.wasFiring,true);
+    aim.emit(event,{pointerId:2});neutral(state);
+    assert.equal(aim.classes.has('firing'),false,event);assert.equal(aim.classes.has('aiming'),false,event);
+    assert.equal(nodes.aimStickLabel.textContent,'AIM / FIRE');
+    aim.emit('pointermove',{pointerId:2,clientX:370,clientY:760});neutral(state);
+    aim.emit('pointerdown',{pointerId:3,clientX:320,clientY:760});aimAt(aim,.82,3);
+    assert.equal(state.touchInput.wasFiring,false,`${event} clears the latch for the next gesture`);
+  }
+});
+
+test('blocking play or using another action releases the fire latch without discarding aim direction',()=>{
+  const suppressors=[
+    [f=>{f.state.enabled=false;},f=>{f.state.enabled=true;}],
+    [f=>{f.state.observing=true;},f=>{f.state.observing=false;}],
+    [f=>{f.state.touchInput.interact=true;},f=>{f.state.touchInput.interact=false;}],
+    [f=>f.heldActions.add('interact'),f=>f.heldActions.delete('interact')],
+    [f=>f.state.throwableDrag.begin(9,0,0),f=>f.state.throwableDrag.cancel()],
+    ...['frag','flashbang','smoke'].map(action=>[f=>{f.state.actions[action]=true;},f=>{f.state.actions[action]=false;}]),
+  ];
+  for(const [suppress,restore] of suppressors){
+    const f=fixture();f.aim.emit('pointerdown',{pointerId:2,clientX:320,clientY:760});aimAt(f.aim,.95);aimAt(f.aim,.82);
+    suppress(f);assert.equal(f.state.updateTouchIntent().firing,false);assert.equal(f.state.touchInput.wasFiring,false);assert.equal(f.aim.classes.has('firing'),false);
+    restore(f);const resumed=f.state.updateTouchIntent();
+    assert.equal(resumed.aiming,true);assert.equal(resumed.firing,false,'returning to an inner-ring aim does not restart a suppressed burst');
+    aimAt(f.aim,.95);assert.equal(f.state.touchInput.wasFiring,true,'a new outward push can fire');
+  }
+});
+
+test('the saved firing distance reaches the actual pointer controller and survives control-layout changes',()=>{
+  for(const threshold of [.72,.96]){
+    const {state,aim}=fixture({touchFireThreshold:threshold});
+    aim.emit('pointerdown',{pointerId:2,clientX:320,clientY:760});aimAt(aim,threshold-.02);
+    assert.equal(state.touchInput.wasFiring,false);
+    aimAt(aim,threshold+.02);assert.equal(state.touchInput.wasFiring,true);
+    state.touch=false;state.fit();neutral(state);assert.equal(state.preferences.touchFireThreshold,threshold);
+    state.touch=true;state.fit();assert.equal(state.preferences.touchFireThreshold,threshold);
+    aim.emit('pointerdown',{pointerId:3,clientX:320,clientY:760});aimAt(aim,threshold-.02,3);
+    assert.equal(state.touchInput.wasFiring,false);
+  }
+});
+
+test('layout switching moves the same squad roster between the mobile tray and desktop home',()=>{
+  const {state,nodes}=fixture();const roster=nodes.squadRoster,card=new Surface();roster.appendChild(card);
+  assert.equal(roster.parentElement,nodes.touchSquadRosterHost);
+  state.touch=false;state.fit();assert.equal(roster.parentElement,state.squadRosterHome);assert.equal(nodes.touchSquadRosterHost.children.length,0);
+  state.touch=true;state.fit();state.fit();
+  assert.equal(roster.parentElement,nodes.touchSquadRosterHost);assert.deepEqual(nodes.touchSquadRosterHost.children,[roster]);
+  assert.equal(roster.children[0],card,'reparenting preserves the existing soldier cards');
+});
+
+test('opening Squad clears both held thumbs and the dedicated button dispatches role-appropriate regroup',()=>{
+  const {state,move,aim,nodes,orders}=fixture();
+  move.emit('pointerdown',{pointerId:1,clientX:70,clientY:760});move.emit('pointermove',{pointerId:1,clientX:70,clientY:710});
+  aim.emit('pointerdown',{pointerId:2,clientX:320,clientY:760});aimAt(aim,.95);
+  nodes.touchOrder.emit('click');neutral(state);assert.equal(state.activeSticks.size,0);assert.equal(state.document.body.classList.contains('orders-open'),true);
+  assert.equal(nodes.touchOrder.getAttribute('aria-expanded'),'true');
+  nodes.touchRegroup.emit('click');assert.deepEqual(orders,['follow']);assert.equal(state.document.body.classList.contains('orders-open'),false);
+  state.game.role='member';nodes.touchRegroup.emit('click');assert.deepEqual(orders,['follow','ready']);
+  for(const blockedBy of ['paused','showMap','placingOrder','placingPing','dialogOpen']){
+    state[blockedBy]=true;nodes.touchRegroup.emit('click');state[blockedBy]=false;
+  }
+  assert.deepEqual(orders,['follow','ready'],'targeting and modal screens cannot issue an unintended regroup');
 });

@@ -70,6 +70,19 @@ test('existing desktop preferences gain independent mobile defaults without over
   assert.equal(bounded.mobileCameraZoom, .6); assert.equal(bounded.mobileHudScale, 1.15); assert.equal(bounded.mobileHudDetail, 'compact');
 });
 
+test('touch firing distance migrates independently and survives saved slider values', () => {
+  const older = normalizePreferences({ mobileHudScale: 1.1, cameraZoom: 1.2 });
+  assert.equal(older.touchFireThreshold, .88);
+  const saved = normalizePreferences(JSON.parse(JSON.stringify({ ...older, touchFireThreshold: '0.94' })));
+  assert.equal(saved.touchFireThreshold, .94);
+  assert.equal(saved.mobileHudScale, 1.1); assert.equal(saved.cameraZoom, 1.2);
+  assert.equal(normalizePreferences({ touchFireThreshold: -1 }).touchFireThreshold, .72);
+  assert.equal(normalizePreferences({ touchFireThreshold: 2 }).touchFireThreshold, .96);
+  for (const value of [null, '', {}, NaN, Infinity]) {
+    assert.equal(normalizePreferences({ touchFireThreshold: value }).touchFireThreshold, .88);
+  }
+});
+
 test('automatic rendering observes pixel budgets and quality DPR caps at desktop and mobile sizes', () => {
   for (const [quality, pixels, maxDpr] of [['performance',1_600_000,1],['balanced',2_073_600,1.5],['high',5_300_000,2]]) {
     const density = renderDensity(2560, 1440, 2, 'auto', quality);
