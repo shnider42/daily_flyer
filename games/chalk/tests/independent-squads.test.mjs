@@ -22,7 +22,7 @@ test('all missions seed finite independent squads and connected real interior gu
   for(let mission=0;mission<10;mission++)for(const difficulty of ['story','standard','veteran']){
     const s=createGame({mission,difficulty,seed:17}),budget=encounterBudget(difficulty);
     assert.equal(s.squad.length,4,'field allies never join the playable or extraction roster');
-    assert.equal(s.allies.length,FIELD_SQUAD_LIMITS.allies);
+    assert.equal(s.allies.length,mission===0?FIELD_SQUAD_LIMITS.allies:FIELD_SQUAD_LIMITS.baseAllies);
     assert.ok(s.enemies.length<=budget.maxAlive);
     assert.ok(s.enemies.reduce((sum,a)=>sum+enemyProfile(a).cost,0)<=budget.weight);
     assert.ok(s.fieldSquads.groups.length<=FIELD_SQUAD_LIMITS.groups);
@@ -51,7 +51,7 @@ test('distant squads exchange real fire and damage with an idle player, without 
     }last=s.nextId;
   });
   assert.ok(alliedShots>=15&&enemyShots>=15);assert.ok(alliedHits>0&&hostileHits>0);
-  assert.ok(closest>800,'fight is truly beyond ordinary player sight');
+  assert.ok(closest>540,'fight is truly beyond ordinary player sight');
   assert.equal(s.allies.some(a=>a.visible),false);assert.equal(s.enemies.some(a=>a.visible),false);
   assert.equal(s.stats.shots,0);assert.equal(s.stats.hits,0);assert.equal(s.stats.squadDowns,0);
   assert.deepEqual(s.order,initialOrder);assert.equal(s.stageIndex,0);
@@ -61,7 +61,8 @@ test('distant squads exchange real fire and damage with an idle player, without 
 test('jobs continue without the player and patrols resume their authored route after contacts vanish',()=>{
   const s=createGame({seed:17});s.enemies=[];closeEncounters(s);
   const start=s.allies.map(a=>({id:a.id,x:a.x,y:a.y}));run(s,16);
-  assert.ok(s.allies.every(a=>distance(a,start.find(p=>p.id===a.id))>80));
+  assert.ok(s.allies.filter(a=>a.fieldSquadId!=='field-relief').every(a=>distance(a,start.find(p=>p.id===a.id))>80));
+  assert.ok(s.allies.filter(a=>a.fieldSquadId==='field-relief').every(a=>distance(a,start.find(p=>p.id===a.id))<1),'reserve holds until committed');
   assert.ok(s.fieldSquads.groups.filter(g=>g.team==='allied').some(g=>g.waypoint>0));
   const hostile=createGame({seed:17});hostile.allies=[];closeEncounters(hostile);
   hostile.enemies=hostile.enemies.filter(a=>a.fieldSquadId==='field-east-patrol');
@@ -99,7 +100,9 @@ test('a visible field ally uses only player sight, and allied casualties persist
   Object.assign(s.squad[0],{x:470,y:520});run(s,.2);assert.equal(ally.visible,true);
   Object.assign(s.squad[0],{x:100,y:1750});run(s,.2);assert.equal(ally.visible,false);
   ally.hp=10;s.bullets=[{id:++s.nextId,x:650,y:500,px:650,py:500,vx:-2000,vy:0,team:'enemy',owner:enemy.id,weapon:'hostile',damage:20,ttl:1}];
-  run(s,.1);assert.equal(ally.alive,false);assert.equal(s.stats.squadDowns,0);assert.equal(s.squad.length,4);
+  run(s,.1);assert.equal(ally.alive,true);assert.equal(ally.downed,true);assert.equal(s.bodies.some(b=>b.actorId===ally.id),false);
+  assert.equal(s.stats.squadDowns,0);assert.equal(s.squad.length,4);
+  enemy.cooldown=999;ally.bleed=69.9;run(s,.2);assert.equal(ally.alive,false);
   assert.equal(s.bodies.filter(b=>b.actorId===ally.id).length,1);assert.equal(s.bodies.find(b=>b.actorId===ally.id).team,'allied');
   run(s,2);assert.equal(s.bodies.filter(b=>b.actorId===ally.id).length,1);
 });

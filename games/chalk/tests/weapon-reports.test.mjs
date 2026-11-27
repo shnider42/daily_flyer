@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { reportProfile } from '../public/acoustics.mjs';
-import { fallbackReportData } from '../public/weapon-reports.mjs';
+import { fallbackReportData, IMPACT_PROFILES, impactReportData } from '../public/weapon-reports.mjs';
 import { SQUAD_ROLES } from '../public/squad-roles.mjs';
 
 // Inspect the shipped PCM, including its slot boundaries; a mocked decoder
@@ -86,5 +86,28 @@ test('cached fallback report data stays finite, bounded and decaying at low and 
     assert.ok(data.findIndex(value => Math.abs(value) > loudest * .02) / rate < .005);
     const attack = rms(window(data, rate, 0, .025)), tail = rms(window(data, rate, duration - .025, duration));
     assert.ok(tail < attack * .1, `${weapon}/${rate} fades instead of sustaining a noise bed`);
+  }
+});
+
+test('surface foley has distinct, deterministic short takes with clean edges at device sample rates', () => {
+  for (const rate of [8000, 48000]) {
+    const materials = [];
+    for (const material of Object.keys(IMPACT_PROFILES)) {
+      const takes = [0, 1, 2].map(variant => impactReportData(rate, material, variant));
+      assert.deepEqual(takes[0], impactReportData(rate, material, 0), 'audio unlock can reproduce the cache without random frame work');
+      for (const take of takes) {
+        assert.ok(take.length <= rate * .18);
+        assert.ok(take.every(value => Number.isFinite(value) && Math.abs(value) < .8));
+        assert.equal(take[0], 0); assert.equal(take.at(-1), 0);
+        assert.ok(peak(take) > .4);
+        assert.ok(rms(take.subarray(-Math.round(rate * .01))) < rms(take.subarray(0, Math.round(rate * .02))) * .06,
+          'debris and resonances decay rather than sustaining a hiss or a tone');
+      }
+      assert.ok(Math.abs(correlation(takes[0], takes[1])) < .96, 'different contacts vary the underlying waveform');
+      materials.push(takes[0]);
+    }
+    for (let first = 0; first < materials.length; first++) for (let second = first + 1; second < materials.length; second++) {
+      assert.ok(Math.abs(correlation(materials[first], materials[second])) < .96, 'materials do not simply change the gain of one generic click');
+    }
   }
 });

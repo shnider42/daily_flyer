@@ -1,7 +1,7 @@
-import { MISSIONS, createGame, step, issueOrder, placePing, selectSquadMember, getObjective, hasLineOfSight, chooseStoryOption, getStoryInteraction, getStoryLeaderId, getMissionInteraction, getNextCampaignMission, campaignOutcome, normalizeCampaignCarry } from './sim.mjs';
+import { MISSIONS, createGame, step, issueOrder, placePing, requestFieldSupport, getFieldSupportStatus, selectSquadMember, getObjective, hasLineOfSight, chooseStoryOption, getStoryInteraction, getStoryLeaderId, getMissionInteraction, getNextCampaignMission, campaignOutcome, normalizeCampaignCarry } from './sim.mjs';
 import { Renderer } from './renderer.mjs';
 import { GameAudio } from './audio.mjs';
-import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, touchGroundAction, thumbOrigin, thumbDisplayOrigin } from './touch-input.mjs?v=1.16.1';
+import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, touchGroundAction, thumbOrigin, thumbDisplayOrigin } from './touch-input.mjs?v=1.17.0';
 import { CoopClient } from './coop-client.mjs';
 import { coopServerURL } from './network-config.mjs';
 import { clientToCanvasPoint } from './desktop-input.mjs';
@@ -53,6 +53,7 @@ let paused = false;
 let showMap = false;
 let placingOrder = false;
 let placingPing = false;
+let supportRequest = null;
 let accumulator = 0;
 let hudTimer = 0;
 let lastRadio = '';
@@ -420,7 +421,7 @@ function updateOrders() {
   const items = leader ? [['move', 'moveOrder', 'Move', 'Send the squad to a point'], ['follow', 'regroup', 'Regroup', 'Bring the squad back to you'], ['hold', 'hold', 'Hold', 'Keep the squad here'], ['assist', 'assist', 'Assist', 'Help the wounded']] : [['ready', 'regroup', 'Ready', 'Tell Hale you can move'], ['wait', 'hold', 'Wait', 'Ask Hale to wait'], ['help', 'assist', 'Need help', 'Ask for help']];
   $('orderButtons').innerHTML = items.map(([type, action, label, detail]) => `<button data-order="${type}" title="${escape(detail)} (${escape(actionLabel(action, preferences.keyBindings))})"><span><kbd>${escape(bind(action))}</kbd>${label}</span><small class="order-explanation">${detail}</small></button>`).join('');
   ($('touchOrderLabel') || $('touchOrder')).textContent = leader ? 'Squad' : 'Radio';
-  $('touchOrder').setAttribute('aria-label', leader ? 'Squad orders and ping' : 'Radio requests and ping');
+  $('touchOrder').setAttribute('aria-label', leader ? 'Squad orders, support, and ping' : 'Radio requests, support, and ping');
   $('touchOrder').setAttribute('aria-controls', 'orderButtons');
   syncControlHints();
 }
@@ -459,9 +460,34 @@ function beginTouchPing() {
   if (mode !== 'playing' || paused || !player()?.alive || player()?.downed || soldierSelectionPending || online() && !coop.connected) return;
   clearInput(); closeOrders(); placingOrder = false; placingPing = true; syncMapUI();
 }
+function fieldSupportState() { return online() ? game?.support : getFieldSupportStatus(game); }
+function beginFieldSupport() {
+  if (mode !== 'playing' || paused || supportRequest || !player()?.alive || player()?.downed || soldierSelectionPending || online() && !coop.connected) return;
+  const support = fieldSupportState();
+  if (!support?.available) { toast(support?.text || 'No relief team is available in this mission.'); return; }
+  clearInput(); closeOrders(); placingPing = false; placingOrder = 'support'; showMap = true;
+  syncMapUI(); canvas.focus({ preventScroll: true });
+}
+function requestSupportLocation(point) {
+  if (mode !== 'playing' || paused || supportRequest || soldierSelectionPending || document.querySelector('dialog[open]') || !player()?.alive || player()?.downed || online() && !coop.connected || !point) return;
+  const request = { scene: game, epoch: onlineEpoch, actor: game.playerId, online: online() };
+  const current = () => mode === 'playing' && game?.playerId === request.actor && (request.online ? online() && onlineEpoch === request.epoch : game === request.scene);
+  const accepted = () => {
+    if (!current()) return;
+    clearInput(); placingOrder = false; placingPing = false; closeOrders(); showMap = false;
+    syncMapUI(); audio.click(); updateHUD(); toast('Support request accepted. Watch the radio for the relief report.');
+  };
+  if (request.online) {
+    supportRequest = request;
+    coop.requestSupport(point).then(accepted).catch(error => { if (current()) toast(error.message || 'Support could not reach that location.'); })
+      .finally(() => { if (supportRequest === request) supportRequest = null; });
+  } else if (requestFieldSupport(game, point, request.actor)) accepted();
+  else toast(fieldSupportState()?.text || 'Support could not reach that location.');
+}
 function syncMapControlHints() {
-  text('orderHint', touch ? (placingPing ? 'Tap a place to ping. Orders stay the same.' : 'Tap a destination for the squad.') : `${bindingLabel(`Mouse${orderConfirmButton()}`)}: choose a destination for the squad. ${bind('ping')} only pings. Escape cancels.`);
-  text('mapInstructions', touch ? (placingOrder ? 'Tap a destination · Map: close' : 'Tap to ping · Map: close') : `${bind('ping')}: ping · ${bind('map')}: close map`);
+  const support = placingOrder === 'support';
+  text('orderHint', support ? (touch ? 'Tap a place for the relief team to cover.' : `${bindingLabel(`Mouse${orderConfirmButton()}`)}: choose a support location. Escape cancels.`) : touch ? (placingPing ? 'Tap a place to ping. Orders stay the same.' : 'Tap a destination for the squad.') : `${bindingLabel(`Mouse${orderConfirmButton()}`)}: choose a destination for the squad. ${bind('ping')} only pings. Escape cancels.`);
+  text('mapInstructions', support ? (touch ? 'Tap to request support · Cancel: keep reserve' : 'Choose a support location · Escape: cancel') : touch ? (placingOrder ? 'Tap a destination · Map: close' : 'Tap to ping · Map: close') : `${bind('ping')}: ping · ${bind('map')}: close map`);
 }
 function syncMapUI() {
   document.body.classList.toggle('map-open', showMap);
@@ -573,8 +599,8 @@ function throwSelected(type = selectedThrowable, aim = null) {
 
 function assistAction() {
   const p = player(); if (!p || !p.alive || p.downed || !game) return null;
-  const down = [...game.squad, ...(game.survivors || []).filter(s => s.stabilized)].filter(s => s.alive && s.downed && s.id !== p.id && Math.hypot(s.x - p.x, s.y - p.y) < 70 && hasLineOfSight(game, p, s)).sort((a,b) => Math.hypot(a.x-p.x,a.y-p.y) - Math.hypot(b.x-p.x,b.y-p.y))[0];
-  if (down) return { label: 'Revive', detail: `Hold to help ${down.name}`, progress: (down.reviveProgress || 0) / 4 };
+  const down = [...game.squad, ...(game.survivors || []).filter(s => s.stabilized), ...(game.allies || []).filter(s => s.visible && p.medkits > 0)].filter(s => s.alive && s.downed && s.id !== p.id && Math.hypot(s.x - p.x, s.y - p.y) < 70 && hasLineOfSight(game, p, s)).sort((a,b) => Math.hypot(a.x-p.x,a.y-p.y) - Math.hypot(b.x-p.x,b.y-p.y))[0];
+  if (down) return { label: down.team === 'allied' ? 'Aid ally' : 'Revive', detail: `Hold to help ${down.name}`, progress: (down.reviveProgress || 0) / 4 };
   const objective = getObjective(game), distance = objective ? Math.hypot(p.x-objective.x,p.y-objective.y) : Infinity;
   if (objective?.kind === 'rescue' && distance < objective.radius && hasLineOfSight(game, p, objective)) return { label: 'Rescue', detail: 'Hold to stabilize the wounded', progress: objective.progress || 0 };
   if (objective?.kind === 'barricade' && distance < 85 && hasLineOfSight(game, p, objective)) return { label: 'Clear', detail: 'Hold to clear the route', progress: objective.progress || 0 };
@@ -586,6 +612,7 @@ function assistAction() {
   return null;
 }
 function resetStoryUI() {
+  supportRequest = null;
   storyDecisionId = ''; storyCardOpen = false; storyRenderKey = '';
   $('storyRadio').hidden = true; $('storyCard').hidden = true;
   attr($('storyToggle'), 'aria-expanded', false);
@@ -711,6 +738,7 @@ $('touchGear').addEventListener('click', () => {
 });
 $('touchGearClose').addEventListener('click', () => { clearInput(); closeGear(); updateHUD(); });
 $('touchPing').addEventListener('click', beginTouchPing);
+$('fieldSupportButton').addEventListener('click', beginFieldSupport);
 $('objectiveToggle').addEventListener('click', () => { objectiveExpanded = !objectiveExpanded; syncObjectiveDetails(); measureSafeInsets(); });
 $('cancelOrder')?.addEventListener('click', cancelOrder);
 $('touchReload').addEventListener('click', () => { if (canAct()) actions.reload = true; });
@@ -870,7 +898,11 @@ canvas.addEventListener('mousedown', event => {
   const token = eventToken(event), mapped = actionsForToken(token, preferences.keyBindings);
   // A ping always wins over destination placement; it never becomes a move order.
   if (mapped.includes('ping')) { dispatchControl('ping'); return; }
-  if (placingOrder && event.button === orderConfirmButton()) { doOrder('move', renderer.screenToWorld(point.x, point.y)); return; }
+  if (placingOrder && event.button === orderConfirmButton()) {
+    const target = renderer.screenToWorld(point.x, point.y);
+    if (placingOrder === 'support') requestSupportLocation(target); else doOrder('move', target);
+    return;
+  }
   if (!token) return;
   keys.add(token);
   pointer.fire = held('fire');
@@ -884,6 +916,7 @@ canvas.addEventListener('pointerup', event => {
   if (!point?.inside || !action) return;
   const target = renderer.screenToWorld(point.x, point.y);
   if (action === 'ping') { placingPing = false; syncMapUI(); pingLocation(target); }
+  else if (action === 'support') requestSupportLocation(target);
   else doOrder('move', target);
 });
 // Mouse events describe every button transition. Pointer events only describe
@@ -964,6 +997,11 @@ function controls() {
 function updateHUD() {
   if (!game) return;
   const p = player(), objective = getObjective(game), shared = online();
+  const support = fieldSupportState();
+  $('fieldSupport').hidden = !support?.enabled;
+  $('fieldSupportButton').disabled = !support?.available || !!supportRequest || !p?.alive || p?.downed || shared && !coop.connected;
+  text('fieldSupportStatus', support?.text || 'Relief reserve ready.');
+  attr($('fieldSupportButton'), 'aria-label', `Request support here. ${support?.text || ''}`);
   text('objectiveTitle', objective?.title || 'Stay with the squad');
   const objectiveDetail = objective?.detail || objective?.description || '';
   text('objectiveDetail', preferences.guidance === 'simple' ? objectiveDetail.replace(/the chalk/gi, 'the squad').replace(/Account for the squad/gi, 'Bring the squad together') : objectiveDetail);
@@ -1322,7 +1360,8 @@ function renderView(now) {
     throwableAim: canAct() && throwableDrag.pending ? { ...targetForThrow(throwableDrag.vector(), dragThrowable), type: dragThrowable } : null,
     effectEpoch: online() ? `${coop.room?.code || ''}:${coop.room?.epoch ?? ''}` : null,
     observing: observing && player()?.role === 'grenadier' && canAct(), quickOrder: quickOrder?.until > now ? { point: quickOrder.point, active: true } : null,
-    mapHint: touch ? (placingOrder ? 'Tap a destination · Map: close' : 'Tap map to ping · Map: close') : `${bind('map')}: close map  ·  ${bind('ping')}: ping a location`,
+    // The accessible map legend already presents the current bindings and action.
+    mapHint: false,
     mapLegend: 'Bright: visible now · Dim: explored · Dark: unseen · Blue: ping',
     guidance: preferences.guidance, reducedMotion: preferences.reducedMotion, bloodEffects: preferences.bloodEffects, touch: touch && mode !== 'menu', safeInsets, desktopObstacles, aim: touchAim, followActorId,
     quality: preferences.graphicsQuality, zoom: touch ? preferences.mobileCameraZoom : preferences.cameraZoom, lookahead: preferences.cameraLookahead,

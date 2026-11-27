@@ -2,11 +2,12 @@
 // doors, ammunition and projectiles as the playable chalk. No offscreen dice
 // damage, reinforcements behind the player, or omniscient destination tracking.
 import { roleProfile } from './squad-roles.mjs';
+import { initializeFieldSupport, beginFieldSupport, updateFieldSupport, chooseFieldRefuge, knownFieldThreats, fieldAidSafe, FIELD_AID } from './field-support.mjs';
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const alive=a=>a.alive&&!a.downed;
 const mix=(seed,salt)=>{let n=(seed^Math.imul(salt+1,2654435761))>>>0;n=Math.imul(n^(n>>>16),2246822507);return(n^(n>>>13))>>>0;};
-export const FIELD_SQUAD_LIMITS=Object.freeze({allies:5,hostiles:6,groups:4,planningInterval:.4});
+export const FIELD_SQUAD_LIMITS=Object.freeze({allies:8,baseAllies:5,hostiles:6,groups:5,planningInterval:.4});
 const FIELD_LINES=Object.freeze({
   contact:['Contact on our route. Find a firing position.','Shots ahead. Watch the far corner.','Contact across the street. Cover the others.','Take the wall. Keep that doorway covered.'],
   moving:['Moving to the next junction.','Keep your spacing. We have another crossing.','Route is clear here. Keep moving.','Watch the upper windows as we move.'],
@@ -41,9 +42,10 @@ function roomPosts(s,anchor,hooks){
   }return[];
 }
 function addGroup(s,definition,hooks){
-  const group={...definition,route:definition.route.map(p=>({...p})),waypoint:0,phase:definition.order==='garrison'?'hold':'moving',
-    leaderId:null,initialStrength:0,nextPlanAt:0,holdUntil:0,lastContactAt:-100,lastVoiceAt:-100,voiceTurn:0,grenadeUsed:false};
-  const names=group.team==='allied'?(group.callsign==='Raven'?['Ortiz','Bell','Price']:['Dunn','Keller']):['Armed fighter','Armed fighter','Armed fighter'];
+  const group={...definition,route:definition.route.map(p=>({...p})),waypoint:0,phase:['garrison','reserve'].includes(definition.order)?'hold':'moving',
+    leaderId:null,initialStrength:0,nextPlanAt:0,holdUntil:0,lastContactAt:-100,lastVoiceAt:-100,voiceTurn:0,grenadeUsed:false,
+    originalAssignment:definition.assignment,staging:{...definition.posts[0]},reachedStops:[{...definition.posts[0]}],pressureTime:0,smokeUsed:false};
+  const names=group.team==='allied'?(group.callsign==='Raven'?['Ortiz','Bell','Price']:group.callsign==='Relief'?['Vega','Brooks','Shah']:['Dunn','Keller']):['Armed fighter','Armed fighter','Armed fighter'];
   for(let i=0;i<definition.posts.length;i++){
     const p=definition.posts[i];if(!clearPlacement(s,p,hooks,[]))continue;
     let actor;
@@ -55,9 +57,9 @@ function addGroup(s,definition,hooks){
       // modifier. A steadier hostile cell can hold its doors very effectively.
       actor.accuracy*=.95+(1-group.cohesion)*.15;
     }else{
-      const role=i===0?'leader':i===1&&group.callsign==='Raven'?'support':'rifleman',loadout=roleProfile(role);
+      const role=i===0?'leader':group.order==='reserve'&&i===2?'medic':i===1&&group.callsign!=='Hammer'?'support':'rifleman',loadout=roleProfile(role);
       actor=hooks.actor(s,'allied',names[i],role,p.x,p.y,{role,hp:96,maxHp:96,ammo:loadout.magSize,
-        magSize:loadout.magSize,reserve:loadout.reserve,visible:false,frags:i===0?1:0,
+        magSize:loadout.magSize,reserve:loadout.reserve,visible:false,frags:i===0?1:0,medkits:role==='medic'?3:1,smokes:i===0?1:0,
         handThrowCooldown:0,home:{x:p.x,y:p.y},senseTimer:.06*i,perceivedTargetId:null,lastKnown:null,lastSeenAt:-100});
       s.allies.push(actor);
     }
@@ -70,7 +72,7 @@ function addGroup(s,definition,hooks){
   if(group.initialStrength)s.fieldSquads.groups.push(group);
 }
 export function initializeIndependentSquads(s,hooks){
-  s.allies=[];s.fieldSquads={version:1,enabled:true,groups:[],nextPlanAt:0};
+  s.allies=[];s.fieldSquads={version:2,enabled:true,groups:[],nextPlanAt:0};
   const variant=mix(s.seed,s.missionIndex),eastward=(variant&1)===0;
   const at=(x,y)=>hooks.nearbyFree(s,x,y);
   addGroup(s,{id:'field-raven',team:'allied',callsign:'Raven',assignment:'Checking the north route',order:'patrol',cohesion:.9,
@@ -84,6 +86,9 @@ export function initializeIndependentSquads(s,hooks){
   const posts=roomPosts(s,{x:eastward?920:1400,y:460},hooks);
   if(posts.length)addGroup(s,{id:'field-house-guard',team:'enemy',callsign:'House guard',assignment:'Holding a building approach',order:'garrison',
     cohesion:.68+(variant%3)*.07,route:posts,posts},hooks);
+  if(s.missionIndex===0)addGroup(s,{id:'field-relief',team:'allied',callsign:'Relief',assignment:'Standing by at the western staging area',order:'reserve',cohesion:.92,
+    route:[at(200,1120)],posts:[at(200,1120),at(200,1040),at(200,960)]},hooks);
+  initializeFieldSupport(s);
 }
 
 function formationGoal(s,leader,goal,slot,cohesion,hooks){
@@ -94,46 +99,119 @@ function formationGoal(s,leader,goal,slot,cohesion,hooks){
     {x:leader.x-Math.cos(angle)*depth,y:leader.y-Math.sin(angle)*depth},leader];
   return candidates.find(p=>hooks.free(s,p.x,p.y,15)&&hooks.walkLine(s,leader,p,13))||leader;
 }
+function reportGroup(s,group,text,hooks){
+  if(s.time-(group.lastReportAt??-100)<8)return;
+  hooks.radio(s,group.callsign.toUpperCase(),text);group.lastReportAt=s.time;
+}
+function planBuddyAid(s,group,members,hooks){
+  for(const a of members)a.fieldAidTargetId=null;
+  const casualties=(s.allies||[]).filter(a=>a.alive&&a.downed&&
+    (a.fieldSquadId===group.id||group.order==='reserve'&&members.some(m=>distance(m,a)<FIELD_AID.buddyRange&&hooks.hasLineOfSight(s,m,a))));
+  if(!casualties.length)return;
+  const casualty=casualties.sort((a,b)=>b.bleed-a.bleed)[0];
+  const helper=members.filter(a=>a.medkits>0&&distance(a,casualty)<FIELD_AID.buddyRange)
+    .sort((a,b)=>(a.role==='medic'?-100:0)+distance(a,casualty)-(b.role==='medic'?-100:0)-distance(b,casualty))
+    .find(a=>fieldAidSafe(s,a,casualty,members,hooks)&&hooks.findPath(s,a,casualty).length);
+  if(helper){helper.fieldAidTargetId=casualty.id;group.phase='aid';}
+  else if(!group.smokeUsed&&knownFieldThreats(s,members).length){
+    const thrower=members.find(a=>a.smokes>0&&distance(a,casualty)<220&&hooks.hasLineOfSight(s,a,casualty));
+    if(thrower&&hooks.throwFieldSmoke(s,thrower,casualty)){group.smokeUsed=true;
+      reportGroup(s,group,'Smoke on the casualty. Cover the aid attempt.',hooks);
+    }
+  }
+}
 export function updateIndependentOrders(s,dt,hooks){
   if(!s.fieldSquads?.enabled||s.maxEnemies<=0)return;
   s.fieldSquads.nextPlanAt-=dt;if(s.fieldSquads.nextPlanAt>0)return;
   s.fieldSquads.nextPlanAt=FIELD_SQUAD_LIMITS.planningInterval;
+  updateFieldSupport(s,hooks);
   for(const group of s.fieldSquads.groups){
-    const members=membersOf(s,group);if(!members.length){group.phase='lost';continue;}
+    const members=membersOf(s,group);
+    if(!members.length){group.phase=(s.allies||[]).some(a=>a.fieldSquadId===group.id&&a.alive&&a.downed)?'casualties':'lost';continue;}
     let leader=members.find(a=>a.id===group.leaderId);
     if(!leader){leader=members[0];group.leaderId=leader.id;group.cohesion=Math.max(.4,group.cohesion-.08);}
     const contacting=members.some(a=>a.target!=null&&a.lastSeenAt!=null&&s.time-a.lastSeenAt<1);
     if(contacting){group.lastContactAt=s.time;group.phase='contact';}
-    const regrouping=s.time-group.lastContactAt<5;
+    const regrouping=s.time-group.lastContactAt<5,allied=group.team==='allied';
+    const casualty=allied&&(s.allies||[]).some(a=>a.fieldSquadId===group.id&&a.alive&&a.downed);
     const depleted=group.initialStrength>1&&members.length<=group.initialStrength*.5;
-    if(depleted&&group.order!=='garrison'&&!group.withdrawing){
-      group.withdrawing=true;group.withdrawPoint={...group.route[Math.max(0,group.waypoint-1)]};
+    const injured=allied&&members.some(a=>a.hp<=a.maxHp*.4||a.fieldRecovered);
+    group.pressureTime=members.some(a=>a.suppression>.7)?(group.pressureTime||0)+FIELD_SQUAD_LIMITS.planningInterval:Math.max(0,(group.pressureTime||0)-.8);
+    const underPressure=allied&&group.pressureTime>=2.4;
+    if((depleted||injured||casualty||underPressure)&&!['garrison'].includes(group.order)&&!group.withdrawing&&!group.fieldJobDone){
+      group.withdrawing=true;group.withdrawAt=s.time;group.withdrawPoint=chooseFieldRefuge(s,group,members,hooks);group.recoverySince=null;
+      group.pressureTime=0;
+      if(allied)reportGroup(s,group,casualty?'One down. Taking cover to recover our wounded.':injured?'Wounded on the route. Breaking contact to recover.':'Too exposed. Breaking contact toward shelter.',hooks);
+    }
+    const needsRelief=casualty||depleted||members.some(a=>a.hp<a.maxHp*.25&&a.medkits<=0);
+    if(allied&&group.withdrawing&&group.id!=='field-relief'&&!group.supportAsked&&s.time>=25&&
+      needsRelief&&s.fieldSupport?.remaining>0&&!s.fieldSupport.request){
+      const aidPosition=(s.allies||[]).find(a=>a.fieldSquadId===group.id&&a.alive&&a.downed)||group.withdrawPoint||leader;
+      group.supportAsked=beginFieldSupport(s,aidPosition,hooks,{groupId:group.id});
     }
     if(group.withdrawing){
-      group.phase='withdraw';group.assignment='Falling back to the last covered stop';
-    }
-    let goal=group.withdrawing?group.withdrawPoint:group.route[group.waypoint];
-    if(!regrouping&&!group.withdrawing&&group.order!=='garrison'){
-      const gap=group.cohesion>.8?190:330;
-      if(members.some(a=>distance(a,leader)>gap))group.phase='regroup';
-      else if(distance(leader,goal)<42){
-        group.holdUntil||=s.time+2+(1-group.cohesion)*5;group.phase='hold';
-        if(s.time>=group.holdUntil){
-          if(group.waypoint<group.route.length-1)group.waypoint++;
-          else if(group.order==='patrol')group.waypoint=0;
-          else group.phase='hold';
-          group.holdUntil=0;goal=group.route[group.waypoint];
+      group.phase='withdraw';group.assignment='Breaking contact toward shelter';
+      // Reevaluate if a breach opens this refuge to a current observed threat.
+      if(contacting&&s.time-(group.refugeCheckedAt||group.withdrawAt)>6){
+        group.refugeCheckedAt=s.time;
+        if(knownFieldThreats(s,members).some(t=>hooks.hasLineOfSight(s,group.withdrawPoint,t)))group.withdrawPoint=chooseFieldRefuge(s,group,members,hooks);
+      }
+      if(!contacting&&!regrouping&&members.every(a=>distance(a,group.withdrawPoint)<175)){
+        group.recoverySince??=s.time;group.phase='recover';group.assignment='Recovering at a sheltered stop';
+        if(!casualty&&s.time-group.recoverySince>9){
+          if(depleted||members.some(a=>a.fieldRecovered)||members.some(a=>a.hp<a.maxHp*.52)){
+            group.fieldJobDone=true;group.withdrawing=false;group.assignment='Withdrawing to the staging area';
+            if(allied)reportGroup(s,group,'We are leaving the route to recover. Assignment handed back.',hooks);
+          }else if(members.every(a=>a.suppression<.3)){
+            group.withdrawing=false;group.assignment=group.originalAssignment;group.pressureTime=0;
+            if(allied)reportGroup(s,group,'Regrouped. Resuming our assignment.',hooks);
+          }
         }
-      }else group.phase='moving';
-    }else if(group.order==='garrison'&&!regrouping)group.phase='hold';
+      }else group.recoverySince=null;
+    }
+    const request=s.fieldSupport?.request,assigned=group.supportTask&&request?.id===group.supportTask&&['moving','covering'].includes(request.phase);
+    let goal=group.withdrawing?group.withdrawPoint:group.fieldJobDone?group.staging:assigned?request.destination:group.route[group.waypoint];
+    if(!group.withdrawing){
+      if(group.fieldJobDone){
+        group.phase=members.every(a=>distance(a,group.staging)<185)?'complete':'returning';
+        group.assignment=group.phase==='complete'?'Assignment complete. Holding the staging area':'Returning to the staging area';
+      }else if(assigned){group.phase=request.phase==='covering'?'support_hold':contacting?'contact':'support_move';}
+      else if(group.order==='reserve'){group.phase='reserve';}
+      else if(!regrouping&&group.order!=='garrison'){
+        const gap=group.cohesion>.8?190:330;
+        if(members.some(a=>distance(a,leader)>gap))group.phase='regroup';
+        else if(distance(leader,goal)<42){
+          if(!group.reachedStops?.some(p=>distance(p,leader)<65)){
+            (group.reachedStops||=[]).push({x:leader.x,y:leader.y});if(group.reachedStops.length>6)group.reachedStops.shift();
+          }
+          group.holdUntil||=s.time+2+(1-group.cohesion)*5;group.phase='hold';
+          if(s.time>=group.holdUntil){
+            if(group.waypoint<group.route.length-1)group.waypoint++;
+            else if(group.order==='patrol'){
+              if(allied){group.fieldJobDone=true;group.assignment='Route check complete. Returning to staging';reportGroup(s,group,'Route check complete. Returning to staging.',hooks);}
+              else group.waypoint=0;
+            }else group.phase='hold';
+            group.holdUntil=0;goal=group.fieldJobDone?group.staging:group.route[group.waypoint];
+          }
+        }else group.phase='moving';
+      }else if(group.order==='garrison'&&!regrouping)group.phase='hold';
+    }
+    const coverers=members.filter(a=>a.target!=null&&a.reloadTimer<=0&&a.ammo>0&&a.suppression<.75);
+    // Alternate a short covering interval. It prevents every member from moving
+    // together while remaining bounded and independent of render frame rate.
+    const covering=coverers.length?coverers[Math.floor(s.time/2.6)%coverers.length]:null;
+    const contactMember=members.find(a=>a.target!=null);
     for(let i=0;i<members.length;i++){
       const a=members[i];a.assignment=group.assignment;a.fieldCohesion=group.cohesion;a.fieldRetreat=!!group.withdrawing;
-      a.fieldWaiting=group.phase==='hold'||group.phase==='regroup'&&a===leader;
-      a.fieldGoal=group.order==='garrison'?{...a.fieldPost}:formationGoal(s,leader,goal,i,group.cohesion,hooks);
+      a.fieldCovering=allied&&a===covering&&members.length>1&&s.time%2.6<1.6;
+      a.fieldContactPoint=contactMember?{x:contactMember.x,y:contactMember.y}:null;
+      a.fieldWaiting=['hold','recover','complete','reserve','support_hold'].includes(group.phase)||group.phase==='regroup'&&a===leader;
+      a.fieldGoal=group.order==='garrison'?{...a.fieldPost}:group.phase==='reserve'?{...a.fieldHome}:formationGoal(s,leader,goal,i,group.cohesion,hooks);
       if(group.order==='garrison'){a.fieldWaiting=false;a.home={x:a.fieldPost.x,y:a.fieldPost.y};}
     }
-    if(group.team==='allied'&&s.time-group.lastVoiceAt>28+(group.id==='field-raven'?4:0)){
-      const situation=group.withdrawing?'withdraw':contacting?'contact':group.phase==='regroup'?'regroup':group.phase==='hold'?'hold':s.time>10?'moving':null;
+    if(allied)planBuddyAid(s,group,members,hooks);
+    if(allied&&s.time-group.lastVoiceAt>28+(group.id==='field-raven'?4:0)&&!['reserve','complete'].includes(group.phase)){
+      const situation=group.withdrawing?'withdraw':contacting?'contact':group.phase==='regroup'?'regroup':['hold','support_hold','recover'].includes(group.phase)?'hold':s.time>10?'moving':null;
       if(situation){
         const lines=FIELD_LINES[situation],text=`${group.callsign}, ${lines[(group.voiceTurn+++(mix(s.seed,leader.id)%lines.length))%lines.length]}`;
         const category=situation==='withdraw'?'backup':['moving','regroup'].includes(situation)?'move':situation;

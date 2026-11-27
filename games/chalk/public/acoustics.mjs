@@ -25,15 +25,28 @@ export function acousticArrivalTime(event, listener, fallback = 0) {
 // Onset-aligned, independently shaped recorded reports. Each bank holds three
 // real takes in .6s slots; duration must stop before the next slot even after
 // playback-rate variation. Credits describe the source and processing honestly.
-const profile = value => Object.freeze({ ...value, offsets: Object.freeze(value.offsets) });
+const profile = value => Object.freeze({ ...value, offsets: Object.freeze(value.offsets), tone: Object.freeze(value.tone) });
 export const REPORT_PROFILES = Object.freeze({
-  rifle: profile({ sample: 'rifle', offsets: [0, .6, 1.2], rate: 1, duration: .42, gain: 1.05, highpass: 65, attack: .00035, wet: .58, reflectionDuration: .115 }),
-  support: profile({ sample: 'support', offsets: [0, .6, 1.2], rate: 1, duration: .28, gain: 1.1, highpass: 55, attack: .00035, wet: .5, reflectionDuration: .095 }),
-  hostile: profile({ sample: 'hostile', offsets: [.003], rate: 1, duration: .5, gain: .7, highpass: 48, attack: .0005, wet: .58, reflectionDuration: .12 }),
-  hostile_support: profile({ sample: 'hostile', offsets: [.003], rate: .985, duration: .3, gain: .68, highpass: 58, attack: .0005, wet: .5, reflectionDuration: .1 }),
-  sniper: profile({ sample: 'hostile', offsets: [.003], rate: .94, duration: .64, gain: .82, highpass: 42, attack: .0005, wet: .62, reflectionDuration: .14 }),
+  rifle: profile({ sample: 'rifle', offsets: [0, .6, 1.2], rate: 1, duration: .42, gain: 1.05, highpass: 65, lowpass: 11000, attack: .00035, wet: .58, reflectionDuration: .115,
+    tone: { frequency: 1800, gain: 1.6, q: .65 }, burstWindow: .23, burstGain: .95, burstWet: .8 }),
+  support: profile({ sample: 'support', offsets: [0, .6, 1.2], rate: 1, duration: .28, gain: 1.04, highpass: 55, lowpass: 8800, attack: .00035, wet: .5, reflectionDuration: .095,
+    tone: { frequency: 460, gain: 3, q: .65 }, burstWindow: .16, burstGain: .92, burstWet: .65 }),
+  hostile: profile({ sample: 'hostile', offsets: [.003], rate: 1, duration: .5, gain: .7, highpass: 48, lowpass: 9500, attack: .0005, wet: .58, reflectionDuration: .12,
+    tone: { frequency: 780, gain: 2, q: .7 }, burstWindow: .2, burstGain: .94, burstWet: .76 }),
+  hostile_support: profile({ sample: 'hostile', offsets: [.003], rate: .985, duration: .3, gain: .68, highpass: 58, lowpass: 8200, attack: .0005, wet: .5, reflectionDuration: .1,
+    tone: { frequency: 360, gain: 2.5, q: .65 }, burstWindow: .16, burstGain: .92, burstWet: .65 }),
+  sniper: profile({ sample: 'hostile', offsets: [.003], rate: .94, duration: .64, gain: .82, highpass: 42, lowpass: 10000, attack: .0005, wet: .62, reflectionDuration: .14,
+    tone: { frequency: 240, gain: 2.4, q: .6 }, burstWindow: 0, burstGain: 1, burstWet: 1 }),
 });
 export function reportProfile(weapon) { return REPORT_PROFILES[weapon] || REPORT_PROFILES.rifle; }
+
+// Modest broad EQ uses the body already present in each credited recording.
+// Continuing rounds keep their complete attack; a little less accumulating
+// tail leaves the cadence readable. Nothing creates extra shots or new echoes.
+export function reportBurstMix(weapon, continuation = 0) {
+  const p = reportProfile(weapon), amount = Math.max(0, Math.min(1, continuation / 3));
+  return { gain: 1 + (p.burstGain - 1) * amount, wet: 1 + (p.burstWet - 1) * amount };
+}
 
 export function acousticHearingRange(type, world = null) {
   if (type === 'shot' || type === 'explosion') {

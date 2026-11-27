@@ -8,6 +8,7 @@
  *   swap_roles/return_lobby/continue_operation {id,epoch}; configure {id,epoch,mission,difficulty};
  *   story_choice {id,epoch,decisionId,optionId}; members recommend, leaders decide.
  *   tactical_ping {id,epoch,point}; any live assigned soldier may mark a location.
+ *   field_support {id,epoch,point}; request the one finite relief commitment.
  *   select_soldier {id,epoch,actorId}; either player chooses any unclaimed soldier.
  * Room soldiers=[{id,slot,name,role,alive,downed,claimedBy,connected}] includes all
  * four actors even in the briefing. Disconnected players reserve their selection
@@ -17,9 +18,9 @@
  * Shared play has no global pause: opening a local menu sends neutral input.
  * Explicit neutral frames carry cancelActions:true to discard pending one-shots.
  */
-// Version 10 adds independently simulated allied squads and their sound events.
-// Both ends refresh together so a prior server cannot leave locally seeded NPCs.
-export const PROTOCOL = 10;
+// Version 11 adds finite allied support and recoverable field casualties.
+// Both ends refresh together; private reserve routes stay on the authority.
+export const PROTOCOL = 11;
 export const SIMULATION_HZ = 30;
 export const INPUT_HZ = 30;
 export const SNAPSHOT_HZ = 10;

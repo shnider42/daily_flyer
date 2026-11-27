@@ -1,6 +1,6 @@
 // Small invitation rooms using Farwake's single-authority, authenticated-session model.
 import {randomBytes} from 'node:crypto';
-import {createGame,stepCoop,setHumanPlayers,issueCoopOrder,placePing,chooseStoryOption,campaignOutcome,getNextCampaignMission,MISSIONS,DIFFICULTIES} from '../public/sim.mjs';
+import {createGame,stepCoop,setHumanPlayers,issueCoopOrder,placePing,requestFieldSupport,getFieldSupportStatus,chooseStoryOption,campaignOutcome,getNextCampaignMission,MISSIONS,DIFFICULTIES} from '../public/sim.mjs';
 import {SnapshotDeltaEncoder} from '../public/snapshot-delta.mjs';
 import {PROTOCOL,MAX_HUMANS,SIMULATION_HZ,SNAPSHOT_HZ,INPUT_TIMEOUT_MS,DISCONNECT_GRACE_MS,HOST_PROMOTION_MS,
   normalizeRoomCode,validRoomCode,cleanInput,EMPTY_INPUT,THROW_ACTIONS,newRoomCode,newPlayerId,newSecret,secretHash,verifySecret,cleanName} from './protocol.mjs';
@@ -8,7 +8,7 @@ import {PROTOCOL,MAX_HUMANS,SIMULATION_HZ,SNAPSHOT_HZ,INPUT_TIMEOUT_MS,DISCONNEC
 const emptyActions=()=>({reload:false,smoke:false,grenade:false,frag:false,flashbang:false,throwTargets:{}});
 
 const actorView = actor => {
-  const {path,pathTimer,pathTarget,target,senseTimer,sensedAt,perceivedTargetId,lastKnown,lastSeenAt,flankGoal,flankSide,nextFlankAt,flankExpiresAt,flankHoldUntil,flankReached,flankPlannedAt,settleTime,navStalled,lastDanger,nextShelterPlanAt,shelterRevision,shelterAssigned,wasAwaitingAid,shelterBlockedFor,lastThreatSoundId,coverPoint,coverShelter,nextCoverPlanAt,coverRevision,coverAnchor,formationGoal,formationOrderKey,nextFormationAt,fieldGoal,fieldHome,fieldPost,fieldWaiting,fieldCohesion,fieldSlot,fieldRetreat,home,...view}=actor;
+  const {path,pathTimer,pathTarget,target,senseTimer,sensedAt,perceivedTargetId,lastKnown,lastSeenAt,flankGoal,flankSide,nextFlankAt,flankExpiresAt,flankHoldUntil,flankReached,flankPlannedAt,settleTime,navStalled,lastDanger,nextShelterPlanAt,shelterRevision,shelterAssigned,wasAwaitingAid,shelterBlockedFor,lastThreatSoundId,coverPoint,coverShelter,nextCoverPlanAt,coverRevision,coverAnchor,formationGoal,formationOrderKey,nextFormationAt,fieldGoal,fieldHome,fieldPost,fieldWaiting,fieldCohesion,fieldSlot,fieldRetreat,fieldContactPoint,fieldAidTargetId,fieldAidAt,fieldBandageProgress,fieldCovering,fieldRecovered,home,...view}=actor;
   return view;
 };
 const stateFields=['missionIndex','mission','difficulty','seed','time','status','endReason','stageIndex','stageCount',
@@ -170,6 +170,13 @@ export class CoopRooms {
       const owner=room.game.squad[p.slot];
       if(!owner.alive||owner.downed)return finish(false,'Your soldier must be able to act to place a ping.');
       if(!placePing(room.game,point,owner.id))return finish(false,'Wait a moment before placing another ping.');
+    }else if(type==='field_support'){
+      if(statusOf(room)!=='playing')return finish(false,'Deploy before requesting support.');
+      const point=message.point;
+      if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)||point.x<0||point.x>room.game.world.width||point.y<0||point.y>room.game.world.height)return finish(false,'Choose a point inside the district.');
+      const owner=room.game.squad[p.slot];
+      if(!owner.alive||owner.downed)return finish(false,'Your soldier must be able to act to request support.');
+      if(!requestFieldSupport(room.game,point,owner.id))return finish(false,getFieldSupportStatus(room.game).text||'The relief team cannot accept that request.');
     }else if(type==='order'){
       if(statusOf(room)!=='playing')return finish(false,'Deploy before giving squad orders.');
       const order=message.order;
@@ -178,7 +185,7 @@ export class CoopRooms {
       if(order==='move'&&(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)||point.x<0||point.x>room.game.world.width||point.y<0||point.y>room.game.world.height))return finish(false,'Choose a destination inside the district.');
       if(!issueCoopOrder(room.game,room.game.squad[p.slot].id,order,point))return finish(false,'That order is unavailable to your soldier.');
     }else return finish(false,'Unknown squad command.');
-    finish(true);this.snapshot(room,{reset:type!=='tactical_ping'});return true;
+    finish(true);this.snapshot(room,{reset:!['tactical_ping','field_support'].includes(type)});return true;
   }
   snapshotFor(room,p){
     const state={};for(const key of stateFields)if(room.game[key]!==undefined)state[key]=room.game[key];
@@ -187,6 +194,7 @@ export class CoopRooms {
     // Independent friendly squads do not lend their eyes to the player. Their
     // unseen positions and internal assignments remain on the authority.
     state.allies=(room.game.allies||[]).filter(a=>a.visible).map(actorView);
+    state.support=getFieldSupportStatus(room.game);
     for(const key of ['vehicles','bullets','grenades','effects','soundEvents','smokes','bodies','bloodstains'])state[key]=room.game[key];
     const actor=room.game.squad[p.slot],actorId=actor.id;state.playerId=actorId;state.role=actor.role==='leader'?'leader':'member';
     return {type:'snapshot',tick:room.tick,serverTime:this.now(),selfId:p.id,actorId,ack:p.seq,

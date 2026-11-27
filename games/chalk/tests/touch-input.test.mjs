@@ -4,6 +4,18 @@ import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, thumbOrigin, t
 
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} is not close to ${expected}`);
 
+test('support targeting is explicit for either role and never turns an ordinary ping into a request', () => {
+  for (const role of ['leader', 'member']) {
+    assert.equal(touchGroundAction({role, order:'support', map:true}), 'support');
+    assert.equal(touchGroundAction({role, order:'support', map:false}), 'support');
+    assert.equal(touchGroundAction({role, order:'support', ping:true}), 'ping');
+    assert.equal(touchGroundAction({role, map:true}), 'ping');
+    assert.equal(touchGroundAction({role, order:'support', active:false}), null);
+  }
+  assert.equal(touchGroundAction({role:'member', order:true}), null);
+  assert.equal(touchGroundAction({role:'leader', order:true}), 'move');
+});
+
 test('thumb dead zone prevents drift and starts smoothly at its boundary', () => {
   assert.deepEqual(stickVector(0, 0, 50), { x: 0, y: 0, magnitude: 0 });
   assert.deepEqual(stickVector(6, 0, 50), { x: 0, y: 0, magnitude: .12 });

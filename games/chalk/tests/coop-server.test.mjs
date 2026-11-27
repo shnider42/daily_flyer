@@ -32,7 +32,7 @@ test('independent squad snapshots preserve hidden positions and orders on the au
   const {rooms,room,host,start}=setup();start();
   const soldier=room.game.squad[0];
   room.game.allies=[
-    {...soldier,id:9001,team:'allied',visible:true,callsign:'Raven 2',assignment:'Checking the north route',fieldGoal:{x:1800,y:150},fieldPost:{x:700,y:600},fieldHome:{x:1600,y:900},home:{x:2,y:3},path:[{x:1700,y:100}],perceivedTargetId:999},
+    {...soldier,id:9001,team:'allied',visible:true,callsign:'Raven 2',assignment:'Checking the north route',fieldGoal:{x:1800,y:150},fieldPost:{x:700,y:600},fieldHome:{x:1600,y:900},home:{x:2,y:3},fieldContactPoint:{x:1800,y:400},fieldAidTargetId:321,fieldAidAt:1,fieldBandageProgress:2,fieldCovering:true,fieldRecovered:true,path:[{x:1700,y:100}],perceivedTargetId:999},
     {...soldier,id:9002,team:'allied',visible:false,x:1900,y:400},
   ];
   room.game.fieldSquads=[{id:'private-patrol',route:[{x:1900,y:400}]}];
@@ -40,7 +40,7 @@ test('independent squad snapshots preserve hidden positions and orders on the au
   assert.equal(host.latest.state.allies.length,1);
   const visible=host.latest.state.allies[0];
   assert.equal(visible.id,9001);assert.equal(visible.callsign,'Raven 2');
-  for(const key of ['path','perceivedTargetId','fieldGoal','fieldPost','fieldHome','home'])assert.equal(key in visible,false,key);
+  for(const key of ['path','perceivedTargetId','fieldGoal','fieldPost','fieldHome','home','fieldContactPoint','fieldAidTargetId','fieldAidAt','fieldBandageProgress','fieldCovering','fieldRecovered'])assert.equal(key in visible,false,key);
   assert.equal('fieldSquads' in host.latest.state,false);
   assert.equal(room.game.allies.length,2,'snapshot must not change authoritative population');
   room.game.allies[0].visible=false;rooms.snapshot(room,{reset:true});
@@ -83,6 +83,46 @@ test('tactical ping lifecycle rejects invalid states, preserves heartbeat, and r
   command(host,'tactical_ping',{point:{x:10,y:10}});step(241);assert.equal(room.game.pings.length,0);
   command(host,'tactical_ping',{point:{x:10,y:10}});assert.equal(room.game.pings.length,1);
   const epoch=room.epoch;command(host,'restart');assert.ok(room.epoch>epoch);assert.equal(room.game.pings.length,0);assert.deepEqual(host.latest.state.pings,[]);
+});
+
+test('field support is one shared acknowledged commitment with no order, ping or hidden-route side effects',()=>{
+  const {rooms,room,host,guest,command}=setup();
+  command(host,'start');
+  command(host,'order',{order:'hold'});
+  const before=structuredClone({order:room.game.order,pings:room.game.pings});
+  const owner=room.game.squad[1],point={x:owner.x,y:owner.y};
+  command(guest,'field_support',{point,actorId:room.game.squad[0].id});
+  assert.equal(guest.messages.at(-1).ok,true);
+  assert.deepEqual(host.latest.state.support,guest.latest.state.support);
+  assert.equal(host.latest.state.support.enabled,true);
+  assert.equal(host.latest.state.support.available,false);
+  assert.deepEqual({order:room.game.order,pings:room.game.pings},before);
+  assert.equal('fieldSupport' in host.latest.state,false);
+  assert.equal('fieldSquads' in host.latest.state,false);
+  for(const key of ['point','target','route','requesterId','groupId','casualtyId'])assert.equal(key in host.latest.state.support,false,key);
+  assert.equal(host.latest.state.squad.length,4);assert.equal(host.latest.room.capacity,2);
+  const id=guest.messages.at(-1).id,report=structuredClone(host.latest.state.support);
+  rooms.handle(guest,{type:'field_support',id,epoch:room.epoch,point:{x:2000,y:200}});
+  assert.equal(guest.messages.at(-1).ok,true,'a retransmission returns the original acknowledgment');
+  rooms.snapshot(room,{reset:true});assert.deepEqual(host.latest.state.support,report);
+  command(host,'field_support',{point});assert.equal(host.messages.at(-1).ok,false,'the second human cannot spend the same reserve again');
+});
+
+test('support requests require a live assigned soldier and current mission, and reset with the operation',()=>{
+  const {room,host,guest,command}=setup();
+  command(host,'field_support',{point:{x:200,y:1500}});assert.equal(host.messages.at(-1).ok,false);
+  command(host,'start');
+  const actor=room.game.squad[1],point={x:actor.x,y:actor.y};
+  for(const invalid of [null,{x:NaN,y:1},{x:1,y:Infinity},{x:-1,y:1},{x:99999,y:1}]){
+    command(guest,'field_support',{point:invalid});assert.equal(guest.messages.at(-1).ok,false);
+  }
+  command(guest,'field_support',{point,epoch:room.epoch-1});assert.equal(guest.messages.at(-1).ok,false);
+  actor.downed=true;command(guest,'field_support',{point,actorId:room.game.squad[0].id});assert.equal(guest.messages.at(-1).ok,false);actor.downed=false;
+  command(guest,'field_support',{point});assert.equal(guest.messages.at(-1).ok,true);
+  command(host,'restart');assert.equal(host.latest.state.support.available,true);
+  command(host,'return_lobby');command(host,'configure',{mission:1});command(host,'start');
+  assert.equal(host.latest.state.support.enabled,false);
+  command(host,'field_support',{point});assert.equal(host.messages.at(-1).ok,false);
 });
 
 test('all four added missions configure, deploy, restart and snapshot through authoritative rooms',()=>{

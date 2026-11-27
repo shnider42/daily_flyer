@@ -84,6 +84,7 @@ export class ThrowableDrag {
 export function touchGroundAction({ role, map = false, order = false, ping = false, active = true } = {}) {
   if (!active) return null;
   if (ping) return 'ping';
+  if (order === 'support') return 'support';
   if (order) return role === 'leader' ? 'move' : null;
   if (map) return 'ping';
   return role === 'leader' ? 'move' : null;

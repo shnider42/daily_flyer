@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Renderer, houseRevealed, renderMinimap, missionLighting, muzzleOrigin, muzzleProfile, muzzleLightPolygon } from '../public/renderer.mjs';
 import { prepareBuildingInteriors } from '../public/building-geometry.mjs';
 import { breachAtBlast, createDestructionState, syncBuildingDamage } from '../public/destruction.mjs';
+import { projectileStreak } from '../public/gunplay-visuals.mjs';
 
 function fixture(ratio=1) {
   const methods = { measureText: text => ({width:String(text).length*6}) };
@@ -722,7 +723,7 @@ test('night flashes have a readable peak at desktop and mobile zoom without ampl
       return draws.map(draw => ({ ...draw }));
     };
     const [dayCore] = capture('day', .03);
-    near(dayCore.rect[2], muzzleProfile('rifle').length * .86 * 1.25);
+    near(dayCore.rect[2], muzzleProfile('rifle').length * renderer.muzzleFlashes[0].variation.length * .86 * 1.25);
     const [nightLight, nightCore] = capture('night', .03);
     assert.equal(nightLight.kind, 'light'); assert.equal(nightCore.kind, 'core');
     assert.ok(nightCore.rect[2] > dayCore.rect[2] * 1.8, 'the night flare is materially larger than the unchanged daylight cue');
@@ -765,6 +766,65 @@ test('muzzle textures are small and reused across weapon families and snapshots'
   const rifle = renderer.muzzleSprite('rifle'), support = renderer.muzzleSprite('support'), sniper = renderer.muzzleSprite('sniper');
   for (let i = 0; i < 100; i++) { assert.equal(renderer.muzzleSprite('hostile'), rifle); assert.equal(renderer.muzzleSprite('hostile_support'), support); assert.equal(renderer.muzzleSprite('sniper'), sniper); }
   assert.equal(created.length, 3); assert.ok(created.every(canvas => canvas.width === 96 && canvas.height === 48));
+});
+
+test('projectile streaks need current shared sight at both ends and cannot leak through walls, smoke or a closed roof', () => {
+  const { renderer, state } = fixture(), streak = projectileStreak({ x: 1260, y: 950, px: 1200, py: 950, weapon: 'support' });
+  assert.equal(renderer.drawProjectileStreak(renderer.ctx, state, streak), true);
+  state.world.walls = [{ x: 1230, y: 800, w: 8, h: 300 }];
+  assert.equal(renderer.drawProjectileStreak(renderer.ctx, state, streak), false);
+  state.world.walls = []; state.smokes = [{ x: 1235, y: 950, radius: 110, ttl: 10 }];
+  assert.equal(renderer.drawProjectileStreak(renderer.ctx, state, streak), false);
+  state.smokes = []; renderer.houseCutaways = [{ building: { x: 1250, y: 900, w: 130, h: 150 }, amount: 0 }];
+  assert.equal(renderer.drawProjectileStreak(renderer.ctx, state, streak), false);
+  renderer.houseCutaways = [];
+  for (const view of [{ showMap: true }, { menu: true }, { paused: true }]) assert.equal(renderer.drawProjectileStreak(renderer.ctx, state, streak, view), false);
+});
+
+test('surface impact feedback survives a missed dust effect, clips to its struck face, and disappears with current sight', () => {
+  const { renderer, state } = fixture(), clips = [], fills = [];
+  state.time = 1; state.status = 'playing'; state.effects = [];
+  state.world.walls = [{ id: 'screen', x: 1280, y: 800, w: 10, h: 400 }];
+  state.soundEvents = [{ id: 1, type: 'impact', x: 1280, y: 950, angle: 0, normalX: -1, normalY: 0, material: 'metal', time: 1,
+    segmentStart: { x: 1210, y: 950 }, segmentEnd: { x: 1280, y: 950 }, weapon: 'rifle' }];
+  renderer.ctx.clip = mode => clips.push(mode); renderer.ctx.fill = () => fills.push(renderer.ctx.fillStyle);
+  renderer.updateGunplay(state, { time: 10 }); renderer.drawGunplay(renderer.ctx, state, 10.02);
+  assert.equal(renderer.gunplay.remnants.length, 1);
+  assert.equal(renderer.gunplay.remnants[0].style.kind, 'metal');
+  assert.ok(fills.includes('#fff2c7'), 'a metal hit has a short bright contact cue');
+  assert.ok(clips.includes('evenodd'), 'closed roofs are also excluded from the local effect');
+  assert.ok(renderer.gunplay.remnants[0].polygon.every(point => point.x < 1280));
+  const cached = renderer.gunplay.remnants[0].polygon;
+  renderer.drawGunplay(renderer.ctx, state, 10.03); assert.equal(renderer.gunplay.remnants[0].polygon, cached);
+  fills.length = 0;
+  state.world.walls = [{ id: 'fresh', x: 1240, y: 800, w: 10, h: 400 }]; state.world.geometryRevision = 1;
+  renderer.drawGunplay(renderer.ctx, state, 10.04); assert.equal(fills.length, 0, 'fresh obstruction suppresses already-admitted effects');
+});
+
+test('weapon and hit animation cannot change simulation coordinates, aiming, or prepared camera mapping', () => {
+  const { renderer, state, actor } = fixture(), translations = [];
+  state.time = 1; state.status = 'playing'; state.soundEvents = [{ id: 1, type: 'shot', x: 1220, y: 950, angle: 0, weapon: 'support', actorId: actor.id, sourceTime: 1 },
+    { id: 2, type: 'victim_hit', x: 1200, y: 950, angle: .4, damage: 10, cause: 'bullet', victimId: actor.id, sourceTime: 1 }];
+  renderer.updateCamera(state, { reducedMotion: true }); const camera = { ...renderer.camera }, aim = renderer.screenToWorld(600, 400), before = structuredClone(actor);
+  renderer.updateGunplay(state, { time: 10 }); renderer.ctx.translate = (x, y) => translations.push({ x, y });
+  renderer.drawActor(renderer.ctx, actor, state, 10.03, {});
+  assert.ok(translations.some(point => point.x < -1 && point.x > -4 && point.y === 0), 'arms and weapon move briefly into the shoulder');
+  assert.deepEqual(actor, before); assert.deepEqual(renderer.camera, camera); assert.deepEqual(renderer.screenToWorld(600, 400), aim);
+  translations.length = 0; renderer.drawActor(renderer.ctx, actor, state, 10.03, { reducedMotion: true });
+  assert.ok(!translations.some(point => point.x < -1 && point.x > -4 && point.y === 0));
+  assert.deepEqual(translations[0], { x: actor.x, y: actor.y });
+});
+
+test('stalled snapshot projectile feedback expires instead of leaving stationary bright lines', () => {
+  const { renderer, state } = fixture();
+  state.time = 1; state.bullets = [{ id: 1, x: 1260, y: 950, px: 1220, py: 950, weapon: 'rifle' }];
+  let streaks = 0; renderer.drawProjectileStreak = () => { streaks++; return true; };
+  renderer.updateGunplay(state, { time: 10 }); renderer.drawEffects(renderer.ctx, state, 10.02);
+  assert.equal(streaks, 1);
+  renderer.updateGunplay(state, { time: 10.2 }); renderer.drawEffects(renderer.ctx, state, 10.2);
+  assert.equal(streaks, 1, 'the same authority clock cannot freeze a bullet');
+  state.time += .1; renderer.updateGunplay(state, { time: 10.21 }); renderer.drawEffects(renderer.ctx, state, 10.21);
+  assert.equal(streaks, 2, 'a new authority sample restores its real current segment');
 });
 
 test('operation equipment requires sight and contextual objectives use compact action markers', () => {

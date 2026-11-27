@@ -1,7 +1,7 @@
 {
   "game": "CHALK",
-  "version": "1.16.1",
-  "date": "2026-11-24",
+  "version": "1.17.0",
+  "date": "2026-11-26",
   "missions": 10,
   "roles": [
     "leader",
@@ -100,7 +100,7 @@
     "medic",
     "machine gunner"
   ],
-  "protocol": 10,
+  "protocol": 11,
   "squad": {
     "soloSelection": "HUD cards or rebindable soldier shortcuts, retaining each soldier state",
     "formation": "Wider travel-oriented positions, staggered movement, individual cover, responsive explicit orders and doorway compression",
@@ -303,27 +303,45 @@
     "frag": "Timed thrown blast; walls shield actors; exposed allies/civilians can be harmed; no masonry breach.",
     "flashbang": "Nonlethal LOS and distance exposure; strong shared-room effect; smooth vision/hearing recovery; brief configurable ringing; blinded AI pauses firing and scouting.",
     "flight": "Short arc, wall stop, ground fuse; no bounce/roll simulation.",
-    "coop": "Server-authoritative inventory/exposure, per-action aim latching, explicit pause/cancel, protocol10."
+    "coop": "Server-authoritative inventory/exposure, per-action aim latching, explicit pause/cancel, protocol11."
   },
   "independentSquads": {
-    "alliedMaximum": 5,
+    "alliedMaximum": 8,
+    "alliesOutsideCordon": 5,
     "hostileMaximum": 6,
-    "groupMaximum": 4,
+    "groupMaximum": 5,
     "hostilesShareExistingBudget": true,
     "spawn": "Finite initial patrol, crossing relief and building garrison; no invisible around-player spawn ring",
-    "orders": "Own routes, short halts, cohesion/regroup, response to actual contacts and heard shots, return to assignment, withdrawal under severe losses",
+    "orders": "Own routes, short halts, cohesion/regroup, actual contacts and heard shots, earlier withdrawal to reachable refuge, finite bandaging and recovery, completed patrol return to staging",
     "training": "Group and seed-dependent cohesion; well-organized defenders coexist with looser patrols",
     "buildingGuards": "Interior posts with a real navigable doorway; Story can omit extra guards when the existing threat budget is full",
     "sight": "Only the playable four supply shared sight; unseen NPC positions and private orders excluded from co-op snapshots and local reconstruction",
-    "combat": "Real ammunition, reloads, projectiles, cover, suppression, casualties and at most one safe frag per field group",
+    "combat": "Real ammunition, reloads, projectiles, cover, suppression, recoverable casualties and at most one safe frag and one casualty-aid smoke per field group",
     "playerResponsibility": "Offscreen NPC kills and collateral do not inflate player kill/civilian-harm statistics; player-caused harm still counts",
     "missionCompletion": "Independent squads do not join playable roster, require extraction, or add kill-all gates"
   },
+  "fieldSupport": {
+    "mission": "Cordon",
+    "detachmentSize": 3,
+    "deploymentsPerOperation": 1,
+    "request": "Mobile Squad or desktop Squad orders > Request support here > select a map location; either living co-op player can request the same finite reserve",
+    "response": "Prepositioned soldiers physically travel to reachable cover, report delays, cover and aid nearby wounded, then return to staging; emergency friendly requests share this reserve",
+    "recoveryWindowSeconds": 70,
+    "treatment": "Finite medical supply; 3 seconds for a medic, 4.5 for others; partial health recovery and group withdrawal",
+    "scope": "On-map recovery and staging; no dragging, vehicle evacuation, or campaign casualty persistence"
+  },
+  "gunplay": {
+    "visuals": "Actual-shot weapon kick and distinct muzzle profiles; short actual-path streaks; surface-directed chips, sparks, splinters and dust; bounded casings and powder; current sight, smoke, wall and roof gates",
+    "reducedMotion": "Quieter muzzle and impact cues without added weapon/body kick, casing motion or powder",
+    "audio": "Existing credited recordings with distinct broad playback EQ, restrained continuation-round gain/reflection feed, priority for own and close incoming fire, cached procedural surface contacts and clearer real near passes",
+    "mechanics": "Presentation changes retain projectile physics and aim coordinates; no added ricochet physics",
+    "mobileAim": "Existing neutral pickup and aim/fire thresholds are unchanged in this release"
+  },
   "people": "Stable clothing, skin, headwear, load-bearing kit and small build differences; boots, shoulder seams, packs, radios, hands and readable specialties. Individual gait phases, restrained idle movement, reload gestures and reduced-motion support. Independent friendly squads use a distinct ring and leader callsign.",
   "validation": {
-    "fullTests": 433,
-    "frontendBuildTests": 408,
-    "authoritativeServerTests": 232,
+    "fullTests": 474,
+    "frontendBuildTests": 447,
+    "authoritativeServerTests": 249,
     "suitesOverlap": true,
     "nativeCanvasChecks": [
       "2560x1440 desktop",

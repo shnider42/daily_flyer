@@ -46,7 +46,7 @@ export function initializeEncounters(s,hooks){
 export function updateEncounters(s,dt,hooks,initial=false){
   if(!s.encounters||s.maxEnemies<=0)return;
   s.encounters.nextCheck-=dt;if(!initial&&s.encounters.nextCheck>0)return;s.encounters.nextCheck=.5;
-  const definitions=ENCOUNTERS[s.missionIndex]||[],standing=s.squad.filter(a=>a.alive&&!a.downed);
+  const definitions=ENCOUNTERS[s.missionIndex]||[],standing=s.squad.filter(a=>a.alive&&!a.downed),fieldAllies=(s.allies||[]).filter(a=>a.alive);
   for(const progress of s.encounters.groups){
     const definition=definitions.find(g=>g.id===progress.id);if(!definition||progress.closed)continue;
     const stageIndex=s.stages.findIndex(p=>p.id===definition.stageId);
@@ -74,7 +74,12 @@ export function updateEncounters(s,dt,hooks,initial=false){
       const alternatives=[...corners,...[{x:0,y:0},{x:0,y:90},{x:90,y:0},{x:-90,y:0},{x:0,y:-90}].map(offset=>({x:base.x+offset.x,y:base.y+offset.y}))];
       for(const candidate of alternatives){
         const point=hooks.nearbyFree(s,candidate.x,candidate.y);
-        if(standing.some(a=>distance(a,point)<=420)||hooks.squadCanSeePoint(s,point)||s.enemies.some(a=>a.alive&&distance(a,point)<60))continue;
+        // Occupied friendly positions deserve the same physical entry rules as
+        // CHALK. Actual allied sight is only a placement constraint: it never
+        // expands the player's fog of war or a co-op visibility snapshot.
+        if(standing.some(a=>distance(a,point)<=420)||hooks.squadCanSeePoint(s,point)||
+          fieldAllies.some(a=>distance(a,point)<=420||!a.downed&&distance(a,point)<=540&&hooks.combatLOS?.(s,a,point))||
+          s.enemies.some(a=>a.alive&&distance(a,point)<60))continue;
         if(hooks.spawnEnemy(s,point,false,kind)){
           const actor=s.enemies.at(-1);actor.encounterId=progress.id;actor.encounterSlot=i;actor.defensive=true;actor.defenseRadius=kind==='sniper'?180:kind==='flanker'?480:350;
           progress.spawned++;s.encounters.totalSpawned++;placed=true;break;

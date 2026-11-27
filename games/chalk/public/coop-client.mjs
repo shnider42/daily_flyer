@@ -19,7 +19,7 @@ const finite = (value, fallback = 0) => Number.isFinite(value) ? value : fallbac
 const monotonicNow = () => globalThis.performance?.now?.() ?? Date.now();
 const defaultStorage = () => { try { return globalThis.sessionStorage; } catch { return undefined; } };
 const actorCollections = ['squad', 'allies', 'enemies', 'civilians', 'survivors', 'vehicles'];
-const staticKeys = new Set(['world', 'grid', 'stages', 'fieldSquads', '__proto__', 'constructor', 'prototype']);
+const staticKeys = new Set(['world', 'grid', 'stages', 'fieldSquads', 'fieldSupport', '__proto__', 'constructor', 'prototype']);
 const angleBetween = (from, to, fraction) => from + Math.atan2(Math.sin(to-from), Math.cos(to-from)) * fraction;
 
 export function socketURL(value = globalThis.location?.origin) {
@@ -77,6 +77,7 @@ export class CoopStateHydrator {
       // Reconstruct terrain only: NPC orders and unseen garrison posts belong
       // to the authority, and are not retained from the seeded local setup.
       delete this.game.fieldSquads;
+      delete this.game.fieldSupport;
       this.game.allies = [];
       this.epoch = epoch;
     }
@@ -418,6 +419,7 @@ export class CoopClient {
   }
   order(type,point) { return this._command('order',{order:type,...(point?{point}: {})}); }
   ping(point) { return this._command('tactical_ping',{point}); }
+  requestSupport(point) { return this._command('field_support',{point}); }
   selectSoldier(actorId) {
     const id=typeof actorId==='string'&&/^\d+$/.test(actorId)?Number(actorId):actorId;
     if(!Number.isSafeInteger(id))return Promise.reject(this._report('Choose one of the four squad soldiers.'));

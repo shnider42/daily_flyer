@@ -916,6 +916,91 @@ test('distant firefights cannot consume the nearby shot budget and synthetic bat
   assert.equal(audio.voices.size,voiceCount);
 });
 
+test('weapon body comes from one filtered recording and continuing SAW rounds keep attacks without building a loud tail', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ time: 10 }), player = state.squad[0], reports = [];
+  for (let round = 0; round < 5; round++) {
+    if (round) h.advance(.095);
+    const before = new Set(audio.voices);
+    audio._shot({ type: 'shot', actorId: player.id, team: 'squad', weapon: 'support', x: 0, y: 0, sourceTime: 10 + round * .095 }, player, state);
+    const added = [...audio.voices].filter(voice => !before.has(voice));
+    assert.equal(added.length, 1, 'the direct round adds no synthetic mechanism/body source');
+    const report = added[0]; reports.push(report);
+    assert.equal(report.source.buffer, audio.samples.get('support'));
+    assert.equal(report.nodes.find(node => node?.type === 'peaking').frequency.value, 460);
+    assert.equal(report.nodes.find(node => node?.type === 'lowpass').frequency.value, 8800);
+    assert.ok(Math.abs(report.end - report.start - reportProfile('support').duration) < 1e-9, 'continuing rounds retain their complete source duration');
+  }
+  const send = voice => voice.nodes.find(node => node?.connections.includes(audio.reverbBanks.street.input)).gain.value;
+  assert.ok(reports[3].gain < reports[0].gain && reports[3].gain > reports[0].gain * .9);
+  assert.ok(send(reports[3]) < send(reports[0]) * .7, 'only new energy feeding the tail is reduced');
+  assert.equal(audio.lastReport.continuation, 4);
+  h.advance(.5);
+  audio._shot({ type: 'shot', actorId: player.id, team: 'squad', weapon: 'support', x: 0, y: 0, sourceTime: 11 }, player, state);
+  assert.equal(audio.lastReport.continuation, 0, 'the first round after a pause regains its full report');
+  const support = [...audio.voices].find(voice => voice.kind === 'report');
+  audio._shot({ type: 'shot', actorId: 'other', team: 'squad', weapon: 'rifle', x: 20, y: 0, sourceTime: 11 }, player, state);
+  const rifle = [...audio.voices].find(voice => voice.actorId === 'other');
+  assert.notEqual(rifle.nodes.find(node => node?.type === 'peaking').frequency.value, support.nodes.find(node => node?.type === 'peaking').frequency.value);
+});
+
+test('close hostile reports have reserved capacity and controlled rounds never consume either shared firing budget', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ time: 10 }), player = state.squad[0];
+  audio.shotBudget = 0; audio.distantShotBudget = 0;
+  audio._shot({ type: 'shot', actorId: 'enemy', team: 'enemy', weapon: 'hostile', x: 80, y: 0 }, player, state);
+  assert.ok([...audio.voices].some(voice => voice.actorId === 'enemy' && voice.kind === 'report'));
+  assert.equal(audio.threatShotBudget, 3);
+  for (let round = 0; round < 4; round++) audio._shot({ type: 'shot', actorId: player.id, team: 'squad', weapon: 'support', x: 0, y: 0, sourceTime: 10 + round * .095 }, player, state);
+  assert.equal([...audio.voices].filter(voice => voice.actorId === player.id && voice.kind === 'report').length, 4,
+    'every controlled round in a batched update remains represented');
+  assert.equal(audio.shotBudget, 0); assert.equal(audio.distantShotBudget, 0); assert.equal(audio.threatShotBudget, 3);
+});
+
+test('voice admission protects nearby reports before distant low-priority sources regardless of insertion order', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const nearby = audio._voice({ buffer: audio.noise, duration: 1, gain: .2, priority: 2, kind: 'report' });
+  for (let i = 0; i < 31; i++) audio._voice({ buffer: audio.noise, duration: 1, gain: .01, priority: 1, kind: 'report' });
+  const state = missionState({ time: 10 }), player = state.squad[0];
+  audio._shot({ type: 'shot', actorId: player.id, team: 'squad', weapon: 'rifle', x: 0, y: 0 }, player, state);
+  assert.ok(audio.voices.has(nearby), 'the older nearby source keeps its natural decay');
+  assert.equal([...audio.voices].filter(voice => voice.priority === 1).length, 30);
+  assert.equal(audio.voices.size, 32);
+});
+
+test('surface contacts use one cached material take at the impact location and remain bounded in cover fire', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ time: 10 }), player = state.squad[0], buffers = [];
+  for (const material of ['concrete', 'stone', 'metal', 'wood', 'rubber']) {
+    audio._stopVoices();
+    audio._event({ id: 3, type: 'impact', material, x: 70, y: 0, actorId: player.id }, player, state);
+    assert.equal(audio.voices.size, 1, 'debris lives inside the surface take instead of adding another voice');
+    const voice = [...audio.voices][0]; buffers.push(voice.source.buffer);
+    assert.equal(voice.source.buffer, audio.impactBuffers.get(`${material}:0`));
+    assert.equal(voice.kind, `${material}-impact`);
+    assert.ok(voice.nodes.some(node => node?.pan.value > 0), 'player-fired rounds still pan to the surface they actually hit');
+    assert.ok(!voice.nodes.some(node => node?.connections.includes(audio.reverbBanks.exterior.input)), 'impacts do not acquire a gunshot exterior tail');
+  }
+  assert.equal(new Set(buffers).size, 5);
+  audio._stopVoices();
+  for (let i = 0; i < 20; i++) audio._event({ id: i, type: 'impact', material: 'concrete', x: 500 - i * 20, y: 0 }, player, state);
+  assert.equal([...audio.voices].filter(voice => voice.surfaceImpact).length, 8);
+  assert.ok([...audio.voices].every(voice => voice.impactDistance <= 260), 'near contacts displace farther debris');
+  audio.setLevels({ effects: 0 });
+  audio._event({ type: 'impact', material: 'metal', x: 20, y: 0 }, player, state);
+  assert.equal(audio.voices.size, 0);
+});
+
+test('a near-pass has readable lateral placement and can displace all lower-priority gunfire', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ time: 10 }), player = state.squad[0];
+  for (let i = 0; i < 32; i++) audio._voice({ buffer: audio.noise, duration: 1, gain: .01, priority: 3, kind: 'report' });
+  audio._event({ type: 'near_pass', victimId: player.id, speedMps: 800, missDistance: 24, closestX: -24, closestY: 0 }, player, state);
+  const crack = [...audio.voices].find(voice => voice.kind === 'near-pass'); assert.ok(crack);
+  assert.ok(crack.nodes.some(node => node?.pan.value < -.5));
+  assert.equal(audio.voices.size, 32);
+});
+
 test('nearby independent allies speak physically then fade instead of switching to the player radio', async t => {
   const h=setup(t),{audio}=h;audio.setScene('mission');await h.unlock();
   const state=missionState({time:30}),player=state.squad[0];

@@ -1,4 +1,29 @@
 CHALK — recorded sound sources
+
+Gunfire playback and material contacts — version 1.17
+
+Version 1.17 retains the existing credited firearm recordings and audio assets.
+Broad playback EQ differentiates weapon families; the SAW reinforces the
+recorded low-mid body around 460 Hz and uses an 8.8 kHz upper cutoff. The rifle
+receives restrained presence around 1.8 kHz. Opposing weapons and the sniper
+use their existing sources with separate broad treatments. These are playback
+filters, not newly recorded weapons or changes to the source-bank files.
+
+Continuing automatic rounds retain their complete sample attacks and duration.
+Restrained continuation-round gain and newly fed reflection-energy changes
+improve burst articulation without extra shots or mechanical-noise layers.
+Existing response tails are allowed to finish. Actual source timestamps,
+propagation, obstruction and the existing room/street kernels remain in use.
+
+Surface contacts use original procedural foley for concrete, stone, metal,
+wood, rubber and the legacy body-contact fallback. Three short variants per
+material are generated once and cached; each actual contact uses one voice,
+with a bounded allowance that favors nearby impacts. These effects are not
+recorded impacts or a projectile ricochet simulation. The near-pass crack is
+still triggered by the listener's actual supersonic projectile event. Existing
+recording attributions and license terms below remain unchanged.
+Implementation: public/acoustics.mjs, public/weapon-reports.mjs and public/audio.mjs.
+
 Version 1.16 additions verified 24 November 2026.
 
 Contextual field radio — version 1.16

@@ -4,6 +4,7 @@ import { enemyInSharedSight, squadCanSeePoint, rayWallDistance, SharedSightLayer
 import { getSolidWalls } from './building-geometry.mjs';
 import { flashIntensity } from './hand-grenades.mjs';
 import { personAppearance } from './person-appearance.mjs';
+import { GunplayPresentation, GUNPLAY_LIMITS, flashVariation, projectileStreak } from './gunplay-visuals.mjs';
 
 const TAU = Math.PI * 2;
 const COLORS = {
@@ -156,6 +157,8 @@ export class Renderer {
     this.muzzleCursor = 0;
     this.muzzleScene = null;
     this.muzzleStateTime = null;
+    this.gunplay = new GunplayPresentation();
+    this.projectileStateTime = null; this.projectileFrameAt = null;
     this.flashMasks = new Map(); this.flashWorld = null;
     this.dust = Array.from({length:32}, (_, i) => ({x:hash(i+2), y:hash(i+23), speed:4+hash(i+99)*8, alpha:.07+hash(i+35)*.08, size:1+hash(i+56)*2, phase:i}));
     this.resize(this.width, this.height, globalThis.devicePixelRatio || 1);
@@ -231,8 +234,18 @@ export class Renderer {
     ctx.translate(18, 24);
     const length = family === 'sniper' ? 59 : family === 'support' ? 53 : 45;
     ctx.fillStyle = 'rgba(255,163,66,.82)';
-    ctx.beginPath(); ctx.moveTo(-7, 0); ctx.lineTo(8, -9); ctx.lineTo(15, -17); ctx.lineTo(21, -6);
-    ctx.lineTo(length, 0); ctx.lineTo(24, 6); ctx.lineTo(15, 15); ctx.lineTo(8, 7); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-7, 0);
+    if (family === 'sniper') {
+      ctx.lineTo(9, -5); ctx.lineTo(27, -9); ctx.lineTo(20, -3); ctx.lineTo(length, 0);
+      ctx.lineTo(22, 3); ctx.lineTo(32, 7); ctx.lineTo(9, 5);
+    } else if (family === 'support') {
+      ctx.lineTo(5, -9); ctx.lineTo(21, -16); ctx.lineTo(18, -5); ctx.lineTo(35, -6); ctx.lineTo(length, 0);
+      ctx.lineTo(29, 5); ctx.lineTo(23, 14); ctx.lineTo(11, 8); ctx.lineTo(2, 11);
+    } else {
+      ctx.lineTo(8, -9); ctx.lineTo(15, -17); ctx.lineTo(21, -6); ctx.lineTo(length, 0);
+      ctx.lineTo(24, 6); ctx.lineTo(15, 15); ctx.lineTo(8, 7);
+    }
+    ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#ffe9ad'; ctx.beginPath(); ctx.moveTo(-4, -2); ctx.lineTo(9, -6); ctx.lineTo(length * .75, 0); ctx.lineTo(9, 6); ctx.lineTo(-4, 2); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#fff8d8'; ctx.beginPath(); ctx.ellipse(4, 0, 11, 3, 0, 0, TAU); ctx.fill();
     if (family === 'support') { line(ctx, 20, -14, 29, -18, '#eeb776', 1.6); line(ctx, 26, 11, 34, 15, '#eeb776', 1.4); }
@@ -273,7 +286,7 @@ export class Renderer {
       const sourceTime = finite(event.sourceTime, finite(event.time, gameTime)), age = gameTime - sourceTime;
       if (age < -.05 || age > .22) continue;
       const profile = muzzleProfile(event.weapon), source = muzzleOrigin(event, state.world);
-      const flash = { ...source, actorId: event.actorId, weapon: event.weapon, angle: finite(event.angle), profile,
+      const flash = { ...source, actorId: event.actorId, weapon: event.weapon, angle: finite(event.angle), profile, variation: flashVariation(event.id),
         born: now - Math.min(Math.max(0, age), profile.duration - .045), geometryRevision: finite(state.world.geometryRevision),
         lightRadius: night ? profile.nightRadius : profile.radius };
       if (!this.muzzleVisible(state, flash, view)) continue;
@@ -320,12 +333,125 @@ export class Renderer {
         ctx.drawImage(this.radialSprite('muzzle-light', [[0, 'rgba(255,216,151,.96)'], [.22, 'rgba(255,184,90,.66)'], [.58, 'rgba(245,149,57,.22)'], [1, 'rgba(230,141,50,0)']]), flash.x - radius, flash.y - radius, radius * 2, radius * 2);
         ctx.restore();
       }
-      ctx.save(); ctx.translate(flash.x, flash.y); ctx.rotate(flash.angle);
+      const variation = flash.variation || { length: 1, width: 1, angle: 0 };
+      ctx.save(); ctx.translate(flash.x, flash.y); ctx.rotate(flash.angle + (view.reducedMotion ? 0 : variation.angle));
       ctx.globalAlpha = (view.reducedMotion ? .65 : 1) * pulse;
       if (brightNight) ctx.globalCompositeOperation = 'screen';
-      const length = profile.length * (brightNight ? 1.65 : night ? 1 : .86), width = profile.width * (brightNight ? 1.45 : night ? 1 : .85);
+      const length = profile.length * (brightNight ? Math.max(1, variation.length) : variation.length) * (brightNight ? 1.65 : night ? 1 : .86), width = profile.width * variation.width * (brightNight ? 1.45 : night ? 1 : .85);
       ctx.drawImage(this.muzzleSprite(flash.weapon), -length * .22, -width, length * 1.25, width * 2);
       ctx.restore(); ctx.restore();
+    }
+  }
+
+  gunplayVisible(state, point, view = {}) {
+    return !view.menu && !view.showMap && !view.paused && this.inView(point.x, point.y, 45) &&
+      this.houseVisibility(point, view) > .9 && squadCanSeePoint(state, point);
+  }
+
+  updateGunplay(state, view = {}) {
+    this.gunplay.update(state, view, point => this.gunplayVisible(state, point, view));
+    if (this.projectileStateTime !== state.time) {
+      this.projectileStateTime = state.time; this.projectileFrameAt = finite(view.time, finite(state.time));
+    }
+  }
+
+  clipGunplay(ctx, effect, state, radius = 40) {
+    const revision = finite(state.world.geometryRevision);
+    if (!effect.polygon || effect.geometryRevision !== revision) {
+      effect.polygon = muzzleLightPolygon(state.world, effect, radius); effect.geometryRevision = revision;
+    }
+    ctx.beginPath();
+    effect.polygon.forEach((point, i) => i ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
+    ctx.closePath(); ctx.clip();
+    ctx.beginPath(); ctx.rect(effect.x - radius, effect.y - radius, radius * 2, radius * 2);
+    for (const house of this.houseCutaways) {
+      const b = house.building;
+      if (house.amount >= .9 || b.x > effect.x + radius || b.y > effect.y + radius || b.x + b.w < effect.x - radius || b.y + b.h < effect.y - radius) continue;
+      ctx.rect(b.x, b.y, b.w, b.h);
+    }
+    ctx.clip('evenodd');
+  }
+
+  drawProjectileStreak(ctx, state, streak, view = {}, alpha = 1) {
+    const tail = { x: streak.tailX, y: streak.tailY }, middle = { x: (tail.x + streak.x) / 2, y: (tail.y + streak.y) / 2 };
+    if (!this.gunplayVisible(state, streak, view) || !this.gunplayVisible(state, tail, view) || !squadCanSeePoint(state, middle)) return false;
+    const width = (view.reducedMotion ? .95 : 1.25) / this.camera.zoom;
+    ctx.save(); ctx.globalAlpha = alpha * (view.reducedMotion ? .55 : .9);
+    if (this.quality !== 'performance' && !view.reducedMotion) line(ctx, tail.x, tail.y, streak.x, streak.y, 'rgba(227,173,96,.24)', width * 2.6);
+    // A tapered core is readable at phone zoom without painting a laser from
+    // the muzzle to its destination or advertising a hidden shooter's team.
+    ctx.beginPath(); ctx.moveTo(tail.x, tail.y);
+    ctx.lineTo(streak.x - streak.ux * 3 - streak.uy * width, streak.y - streak.uy * 3 + streak.ux * width);
+    ctx.lineTo(streak.x, streak.y);
+    ctx.lineTo(streak.x - streak.ux * 3 + streak.uy * width, streak.y - streak.uy * 3 - streak.ux * width);
+    ctx.closePath(); ctx.fillStyle = '#f4dfb0'; ctx.fill(); ctx.restore();
+    return true;
+  }
+
+  drawGunplay(ctx, state, time, view = {}) {
+    if (view.menu || view.showMap || view.paused) return;
+    for (const effect of this.gunplay.remnants) {
+      if (!this.gunplayVisible(state, effect, view)) continue;
+      const age = Math.max(0, time - effect.born), life = clamp(1 - age / effect.duration, 0, 1);
+      if (!life) continue;
+      if (effect.type === 'shot') {
+        if (view.reducedMotion) continue;
+        ctx.save(); this.clipGunplay(ctx, effect, state);
+        const dx = Math.cos(effect.angle), dy = Math.sin(effect.angle), drift = 3 + age * 12;
+        // One small puff and one casing per actual shot, with a short global
+        // budget. No accumulating decals, smoke volumes, or light emitters.
+        if (age < effect.profile.smoke) {
+          const fade = 1 - age / effect.profile.smoke, radius = 2.5 + age * 13;
+          ctx.globalAlpha = .22 * fade;
+          ctx.translate(effect.x + dx * drift, effect.y + dy * drift);
+          ctx.rotate(effect.angle);
+          ctx.fillStyle = '#b8b5a5'; ctx.beginPath(); ctx.ellipse(0, 0, radius * 1.5, radius * .7, 0, 0, TAU); ctx.fill();
+          ctx.restore(); ctx.save(); this.clipGunplay(ctx, effect, state);
+        }
+        const toss = Math.min(1, age / .22), side = 5 + 17 * toss, back = 9 + age * 13;
+        const lift = Math.sin(toss * Math.PI) * 4.5;
+        const x = effect.x - dx * back - dy * side, y = effect.y - dy * back + dx * side;
+        ctx.globalAlpha = life * .75;
+        ctx.fillStyle = 'rgba(31,32,23,.4)'; ctx.fillRect(x, y + 1, 2.6, 1.4);
+        ctx.translate(x, y - lift); ctx.rotate(effect.angle + age * 19 + effect.id);
+        ctx.fillStyle = '#c2a666'; ctx.fillRect(-1.8, -.65, 3.6, 1.3); ctx.restore();
+        continue;
+      }
+      if (age < .06 && effect.segmentStart && effect.segmentEnd) {
+        const streak = projectileStreak({ ...effect.segmentEnd, px: effect.segmentStart.x, py: effect.segmentStart.y, weapon: effect.weapon }, view.reducedMotion);
+        // Terminate just before the solid face so its point visibility is
+        // meaningful. The stroke still uses only the actual collision segment.
+        if (streak && streak.length > .8) {
+          const end = { x: streak.x - streak.ux * .8, y: streak.y - streak.uy * .8 };
+          const clipped = projectileStreak({ ...end, px: streak.tailX, py: streak.tailY, weapon: effect.weapon }, view.reducedMotion);
+          if (clipped) this.drawProjectileStreak(ctx, state, clipped, view, life * .7);
+        }
+      }
+      ctx.save(); this.clipGunplay(ctx, effect, state);
+      const style = effect.style;
+      ctx.translate(effect.x, effect.y); ctx.rotate(effect.angle);
+      if (view.reducedMotion) {
+        ctx.globalAlpha = life * .65;
+        circle(ctx, 1.5, 0, style.kind === 'metal' ? 2.6 : 3.8, style.color);
+        ctx.restore(); continue;
+      }
+      if (style.kind !== 'metal') {
+        const radius = 2.5 + (1 - life) * (style.kind === 'sand' ? 11 : 8);
+        ctx.globalAlpha = life * .28; ctx.fillStyle = style.dust;
+        ctx.beginPath(); ctx.ellipse(2 + (1 - life) * 6, 0, radius, radius * .7, 0, 0, TAU); ctx.fill();
+      }
+      ctx.globalAlpha = life * .85;
+      circle(ctx, .4, 0, 1.3 + life * 1.1, style.kind === 'metal' && age < .045 ? '#fff2c7' : '#6e6754');
+      const count = this.quality === 'performance' ? Math.min(3, style.particles) : style.particles;
+      for (let i = 0; i < count; i++) {
+        const spread = (hash(effect.id + i * 19) - .5) * 2.5;
+        const reach = 2 + Math.sqrt(1 - life) * style.reach * (.5 + hash(effect.id * 2 + i) * .5);
+        const x = Math.cos(spread) * reach, y = Math.sin(spread) * reach;
+        if (style.kind === 'metal') line(ctx, x * .55, y * .55, x, y, style.color, (life > .6 ? 1.3 : .8) / this.camera.zoom);
+        else if (style.kind === 'wood') line(ctx, x - Math.cos(spread) * 3.4, y - Math.sin(spread) * 3.4, x, y, style.color, 1.2);
+        else { ctx.fillStyle = style.color; ctx.fillRect(x - 1.1, y - .7, 2.2, 1.5); }
+      }
+      ctx.restore();
     }
   }
 
@@ -1078,7 +1204,8 @@ export class Renderer {
     const radius = Math.max(7, finite(actor.radius, 10)), profile = ally ? roleProfile(actor) : null;
     const appearance = personAppearance(actor);
     const angle = finite(actor.angle), pulse = .5 + Math.sin(time * 4) * .5;
-    ctx.save(); ctx.translate(actor.x, actor.y);
+    const flinch = this.gunplay.flinch(actor.id, time, view.reducedMotion || view.menu);
+    ctx.save(); ctx.translate(actor.x + flinch.x, actor.y + flinch.y);
     if (!view.menu && isPlayer) {
       const ringRadius = radius + (view.touch ? 5 : 7);
       ctx.fillStyle = 'rgba(133,205,175,.08)'; ctx.beginPath(); ctx.arc(0, 0, ringRadius + 2, 0, TAU); ctx.fill();
@@ -1132,6 +1259,8 @@ export class Renderer {
       }
       if (!civilian && !survivor) {
         const reloading = finite(actor.reloadTimer) > 0;
+        const kick = reloading ? 0 : this.gunplay.kick(actor.id, time, view.reducedMotion || view.menu);
+        ctx.save(); ctx.translate(-kick, 0); ctx.rotate(-kick * .009);
         const reloadReach = reloading ? 5 + (!view.reducedMotion ? Math.sin(time * 7 + appearance.phase) * 1.5 : 0) : 11;
         line(ctx, 2, -6, 10, -3, uniform, 4); line(ctx, 2, 6, reloadReach, 3, uniform, 4);
         circle(ctx, 10, -3, 1.8, appearance.skin); circle(ctx, reloadReach, 3, 1.8, appearance.skin);
@@ -1153,6 +1282,7 @@ export class Renderer {
           else if (actor.kind === 'sniper') { ctx.fillStyle = '#3b493a'; ctx.fillRect(12, -1, 8, 3); }
           if (view.touch) line(ctx, 15, 1, barrel - 1, 1, '#8b9078', .7);
         }
+        ctx.restore();
       } else if (frightened) {
         // Bent shoulders and empty hands close to the head distinguish a
         // person seeking cover without adding another tactical label.
@@ -1543,16 +1673,20 @@ export class Renderer {
       circle(ctx, grenade.x, grenade.y - lift, hand ? 3.7 : 2.8, grenade.weapon === 'flashbang' ? '#bdc9c4' : hand ? '#737b43' : '#c2b27e', '#293d30', 1);
       if (hand) line(ctx, grenade.x - 2, grenade.y - lift - 3, grenade.x + 2, grenade.y - lift - 3, '#d4d3b6', 1.4);
     }
-    for (const b of state.bullets || []) {
-      if (!this.inView(b.x, b.y, 30) || this.houseVisibility(b, view) <= .05) continue;
-      const px = Number.isFinite(b.px) ? b.px : b.x - finite(b.vx) * .013, py = Number.isFinite(b.py) ? b.py : b.y - finite(b.vy) * .013;
-      line(ctx, px, py, b.x, b.y, ['squad', 'allied'].includes(b.team) ? 'rgba(255,225,151,.85)' : 'rgba(246,161,102,.82)', 1.3 / this.camera.zoom);
-      circle(ctx, b.x, b.y, 1.5 / this.camera.zoom, '#fff0ba');
+    let streaks = 0;
+    const freshness = this.projectileFrameAt === null ? 1 : clamp(1 - Math.max(0, time - this.projectileFrameAt - .045) / .075, 0, 1);
+    if (!view.menu && !view.showMap && !view.paused && freshness > 0) for (const b of state.bullets || []) {
+      if (streaks >= GUNPLAY_LIMITS.streaks) break;
+      if (!this.inView(b.x, b.y, 30)) continue;
+      const streak = projectileStreak(b, view.reducedMotion);
+      if (streak && this.drawProjectileStreak(ctx, state, streak, view, freshness)) streaks++;
     }
+    this.drawGunplay(ctx, state, time, view);
     for (const e of state.effects || []) {
       // The shot event ring survives simulation catch-up and co-op snapshots;
       // those flashes are composited after the atmosphere below.
       if (e.type === 'muzzle' && Array.isArray(state.soundEvents)) continue;
+      if (e.type === 'dust' && Array.isArray(state.soundEvents)) continue;
       if (!this.inView(e.x, e.y, 50) || this.houseVisibility(e, view) <= .05) continue;
       // A revealed floor plan does not expose a gunman behind its partition.
       if (e.type === 'muzzle' && e.team === 'enemy' && !this.visibleEnemies.some(actor => actor.id === e.actorId)) continue;
@@ -1850,6 +1984,7 @@ export class Renderer {
     this.refreshHouseGeometry(world);
     this.updateHouseCutaways(state, view, time);
     this.updateMuzzleFlashes(state, view);
+    this.updateGunplay(state, view);
     const ctx = this.ctx;
     ctx.imageSmoothingQuality = this.quality === 'high' ? 'high' : 'low';
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.fillStyle = view.showMap ? '#101b17' : '#252f28'; ctx.fillRect(0, 0, this.width, this.height);
@@ -1920,10 +2055,10 @@ export class Renderer {
     if (view.showMap) {
       ctx.fillStyle = '#e2d9bb'; ctx.font = '600 12px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('DISTRICT MAP', safe.cx, view.touch ? safe.top + 5 : 22);
       ctx.fillStyle = '#b9c7ad'; ctx.font = '11px ui-monospace, monospace';
-      ctx.fillText(view.mapHint || (view.touch ? (view.placingOrder ? 'Tap a street or room to set the destination' : 'Squad and objective positions') : state.role === 'leader' ? 'Select MOVE, then a street or room • M to close' : 'Stay with the marked squad • M to close'), safe.cx, view.touch ? safe.bottom - 4 : this.height - 22);
+      if (view.mapHint !== false) ctx.fillText(view.mapHint || (view.touch ? (view.placingOrder ? 'Tap a street or room to set the destination' : 'Squad and objective positions') : state.role === 'leader' ? 'Select MOVE, then a street or room • M to close' : 'Stay with the marked squad • M to close'), safe.cx, view.touch ? safe.bottom - 4 : this.height - 22);
       if (!view.touch || safe.height > 190) {
         ctx.fillStyle = '#9eae98'; ctx.font = '10px ui-monospace, monospace';
-        ctx.fillText(view.mapLegend || 'Bright: squad sight · Dim: explored · Dark: unseen · Blue: ping', safe.cx, view.touch ? safe.top + 21 : 39);
+        ctx.fillText(view.mapLegend || 'Bright: squad sight · Dim: explored · Dark: unseen · Blue: ping', safe.cx, view.touch ? safe.top + 21 : 39, Math.max(1, safe.width - 12));
       }
     }
     this.drawFlashExposure(state, view);

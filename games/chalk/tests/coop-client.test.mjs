@@ -37,9 +37,11 @@ test('co-op terrain reconstruction discards seeded NPC orders and any unseen loc
   packet.state.allies=[];delete packet.state.fieldSquads;
   const {game}=hydrator.apply(packet,'peer1');
   assert.deepEqual(game.allies,[]);assert.equal('fieldSquads' in game,false);
+  assert.equal('fieldSupport' in game,false,'local reconstruction cannot retain a private reserve target');
   const next=fixture({time:.1});next.state.allies=[];
   hydrator.apply(next,'peer1');
   assert.equal('fieldSquads' in game,false,'private routes cannot reappear in later packets');
+  assert.equal('fieldSupport' in game,false,'private support state cannot enter through later packets');
 });
 
 async function connectedClient(options={}) {
@@ -64,6 +66,20 @@ test('tactical pings use an acknowledged command separate from heartbeat and hyd
     const prepared=encoder.prepare(packet);setTime(100);socket.receive(prepared.packet);encoder.commit(prepared);
     assert.deepEqual(client.game.pings,packet.state.pings);assert.deepEqual(client.game.order,order);
     setTime(8200);client.getState(.016);assert.deepEqual(client.game.pings,[],'markers do not linger if the connection stops delivering snapshots');
+  } finally {client.leave();}
+});
+
+test('support uses an explicit acknowledged command and hydrates only the public report',async()=>{
+  const {client,socket,encoder,setTime}=await connectedClient();
+  try {
+    const point={x:200,y:1500},order=structuredClone(client.game.order),pending=client.requestSupport(point);
+    const command=socket.sent.at(-1);assert.equal(command.type,'field_support');assert.equal(command.epoch,1);assert.deepEqual(command.point,point);
+    socket.receive({type:'result',id:command.id,ok:true});await pending;
+    const packet=fixture({time:.1});packet.state.support={enabled:true,available:false,remaining:0,status:'moving',callsign:'Relief',text:'Relief moving to support.',updatedAt:.1,requestId:1};
+    packet.state.fieldSupport={target:{x:1900,y:400},privateRoute:[{x:1500,y:200}]};
+    const prepared=encoder.prepare(packet);setTime(100);socket.receive(prepared.packet);encoder.commit(prepared);
+    assert.deepEqual(client.game.support,packet.state.support);assert.deepEqual(client.game.order,order);
+    assert.equal('fieldSupport' in client.game,false);assert.equal('fieldSquads' in client.game,false);
   } finally {client.leave();}
 });
 
