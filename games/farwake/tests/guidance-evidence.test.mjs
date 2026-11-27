@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import {GuidanceController} from '../dist/guidance.mjs';
 import {guidanceActionsForResult,localGuidanceEvent} from '../dist/guidance-evidence.mjs';
 
+test('an accepted Earth approach attempt does not count as an actual landing',()=>{
+ assert.deepEqual(guidanceActionsForResult('dock',{id:'earth'},{ok:true,approach:true}),[]);
+ assert.deepEqual(guidanceActionsForResult('dock',{id:'earth'},{ok:true}),['dock']);
+});
+
 test('practice credits confirmed personal actions without crediting failed orders or another mount selection',()=>{
  const guide=new GuidanceController({profileId:'crew-test'}),context={device:'touch',gunnery:{batteryId:'fore'}};
  const record=(name,args,answer,before=context)=>guidanceActionsForResult(name,args,answer,before).forEach((action,index)=>guide.record({action,id:`${name}:${args.batteryId||args.action||''}:${index}`,success:true},context));

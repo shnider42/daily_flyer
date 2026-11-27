@@ -115,7 +115,7 @@ test('Casual origin grants neither military docking clearance nor Earth quaranti
  assert.throws(()=>casual('casual-quarantine',{startSystemId:'sol'}),/quarantine/);
  const sol=casual('casual-quarantine');sol.state.systemId='sol';sol._loadSystem('sol');const earth=sol.system.bodies.find(body=>body.id==='earth');
  Object.assign(sol.state.ship,{x:earth.x,y:earth.y+earth.radius+80});
- assert.equal(sol.dock('earth').code,'quarantine');assert.equal(sol.hasFlag('vault_recovered'),false);
+ assert.equal(sol.dock('earth').approach,true);assert.equal(sol.state.mode,'ship');assert.equal(sol.hasFlag('vault_recovered'),false);
 });
 
 test('loading a Casual voyage preserves its destination and depleted equipment despite new start options',()=>{

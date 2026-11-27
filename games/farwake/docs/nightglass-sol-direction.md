@@ -2,12 +2,22 @@
 
 Authoring direction recorded 2026-11-26 and implemented in Farwake 0.39.0 / Nightglass 0.4.0. The earlier source audit remains below as implementation history.
 
+## Current Sol approach · 0.40
+
+The user replaced the menu lock with a physical cordon. Any ship with ordinary fold range and fuel can attempt Sol. An unscreened arrival sees damaged Earth and orbital wreckage while a short radio challenge leaves the controls free. Continuing into the defended approach draws overwhelming physical fire from interceptors and orbital batteries. The visible damage is an observation, not the late explanation.
+
+The chart must keep the risky jump available and identify its fuel cost, return-fuel risk and military response. Earth has an enabled approach attempt: it provokes the inner defenses while the ship remains in space. The defenses control the descent until they are overcome or the captain earns the recognized route and arrival answer. Physical presence, rescue, a completed breach or an empty interior snapshot must never manufacture permission or evidence.
+
+Retreat to the actual origin can break off a cordon fight, with ordinary drive and fuel rules; independent fights and boarding still apply. Outward flight clears the firing perimeter. Threshold is a screened refuge with existing services and survivor recovery. Loss retains the game's actual hull, crew and cargo consequences. Challenge progress and damaged defenses persist across reload and return visits. Shared captains use their actual hull and onboard earned clearances, with private investigation evidence kept separate.
+
+This current decision supersedes historical references below to a disabled or refused Sol jump. Sol remains excluded from new starting origins. The current Quiet Earth save epoch continues; this release does not require a new voyage.
+
 Sources checked: Farwake `feat/farwake-galaxy` at `f057e535a3ff548f112f4d0b0bb3cefb552aa0d8`; Nightglass `feat/farwake-lost-expeditions` at `30d0d388bf1c6d4b69cc9055d3890d1dc53eafe1`. Those were the pre-implementation baselines. Nightglass 0.4 now has three selectable cases: Luna, Mars and a Callisto outpost, with independent progress and two additional setting illustrations.
 
 ## Implemented release boundaries
 
 - Farwake stays at 26 systems and gives each a public role, reachable activities and local encounter policy. See `system-identity-and-bosses.md`.
-- Sol entry requires the recovered safe route and homeward clearance. Earth landing separately requires the arrival answer. Public origins exclude Sol. A cleared shared hull can transport guests without granting their personal evidence or final choices; the physical permit persists with the hull.
+- Safe passage through Sol's defenses requires the recovered route and homeward clearance; unapproved jumps remain possible. A screened Earth landing separately requires the arrival answer. Public origins exclude Sol. A cleared shared hull can transport guests without granting their personal evidence or final choices; the physical permit persists with the hull.
 - The first eight story chapters preserve real local relief and point into the longer investigation. Late physical evidence establishes the final facts, followed by separate choices of account and allegiance. Follow-up threads continue after every route. Keep the actual findings out of early summaries and release notes.
 - Ledger Ring and Still Berth use existing destination IDs and have playable inner districts, services, local work, space silhouettes and a rising far landscape. Still Berth’s sealed damage does not alter the Empty Ward evacuation.
 - Nightglass is an incident witnessed in the first person, 93 years earlier. Its three local puzzles have explicit prerequisites and separate ambiguous last moments. Each witness’s scope is their own facility, with no claim to know the fate of an entire world.

@@ -75,6 +75,7 @@ import { WORLD_TYPES_VERSION, bodyVisualRadius, applySystemActivity, flavorSyste
 import { STATION_GEOGRAPHY_VERSION } from './station-geography.mjs';
 import { GALAXY_EPOCH, requireCurrentGalaxy } from './galaxy-epoch.mjs';
 import { isPublicOrigin, solEntryAccess, solLandingAccess } from './sol-access.mjs';
+import {installSolCordon,captureSolCordon,stepSolCordon,beginSolVisit,beginEarthApproach,recordSolCordonAggression,recordSolCordonDefeat} from './sol-cordon.mjs';
 import { applySystemIdentityContext } from './system-identity.mjs';
 import { installShipBossEncounter, stepShipBosses, captureShipBosses, shipBossDamage, isShipBossActor } from './ship-bosses.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
@@ -448,6 +449,7 @@ export class Game {
     const record = this._record();
     record.trafficStates = captureTraffic(this.system.traffic);
     record.shipBosses = captureShipBosses(this.system);
+    record.solCordon = captureSolCordon(this.system);
     if(this.system.warzone){record.warzoneSpace=captureWarzoneSpace(this.system);record.warzoneLastVisit=this.state.stats.time;}
     record.pickups = this.system.pickups.map(x => clone(x));
     record.enemyHealth ||= {};
@@ -559,6 +561,7 @@ export class Game {
     this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, systemTypeId:data.systemTypeId, typeLabel:data.typeLabel, typeDescription:data.typeDescription, stellar:data.stellar, activity:data.activity, worldTypesVersion:WORLD_TYPES_VERSION, spaceVersion:SYSTEM_SPACE_VERSION, spatialScale:SYSTEM_SPACE_SCALE, context, warzoneFactions:data.warzoneFactions, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals:flavorSystemSignals(data,contextualSignals(data,signals,this.state.seed)), traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
     this.system.identityRole=data.identityRole;this.system.localActivities=data.localActivities;
     installShipBossEncounter(this.system,{seed:this.state.seed,system:data,record});
+    installSolCordon(this.system,record);
     if(id===CROSSWIND_SYSTEM_ID)installWarzoneSpace(this.system,{seed:this.state.seed,saved:record.warzoneSpace,elapsed:Math.max(0,this.state.stats.time-(record.warzoneLastVisit??this.state.stats.time))});
     else materializeEncounterContacts(this);
     for(const ship of [...this.system.parkedShips,...this.system.enemies])relocateHullOccupants(ship);
@@ -714,6 +717,11 @@ export class Game {
       onEvent:(type,event)=>this._worldEvent(type,event),
       onPlayerHit:(participant,amount,details)=>participant.game._damageShip(amount,{...details,sourceX:details.x,sourceY:details.y,sourceId:details.enemyId,cause:'ship-boss'})
     });
+    stepSolCordon(this.system,dt,{
+      participants:targets.map(game=>({id:game.playerId,vesselId:game.netVesselId||game.state.ship.id,ship:game.state.ship,game,targetEligible:game.netTargetEligible!==false,parked:!!game._parkedVessel})),
+      // Shared vessel actors distribute their events to the actual crew once.
+      onEvent:(type,event)=>{for(const game of games)if((game.netVesselId||game.state.multiplayer?.aboardVesselId||game.state.ship.id)===event.targetVesselId)game._event(type,event);}
+    });
     this._updateEnemies(dt,targets);
     stepPeacekeeperDefense(this.system,dt,targets,(type,event)=>this._worldEvent(type,event));
     this._updateBullets(dt,targets);
@@ -814,7 +822,7 @@ export class Game {
     const sh = this.state.ship,system=getHullSystems(sh.classId),battery=fireControl?.manual?getGunneryBattery(sh,fireControl.batteryId||'fore'):null;
     if(fireControl?.manual&&!battery)return;
     let angle = battery?clampGunneryAim(fireControl.angle,sh.angle+battery.bearing,battery.arcHalfAngle):sh.angle;
-    const candidates = this.system.enemies.filter(e => e.hp > 0 && !e.promotedVesselId && !e.canonicalVesselId && !e.capturedBy && distance(e, sh) < 550).sort((a, b) => distance(a, sh) - distance(b, sh));
+    const candidates = this.system.enemies.filter(e => e.hp > 0 && !e.promotedVesselId && !e.canonicalVesselId && !e.capturedBy && (!e.solCordon||e.active&&e.targetVesselId===(this.netVesselId||sh.id)) && distance(e, sh) < 550).sort((a, b) => distance(a, sh) - distance(b, sh));
     for (const e of fireControl?.manual?[]:candidates) {
       const target = Math.atan2(e.y - sh.y, e.x - sh.x);
       if (Math.abs(Math.atan2(Math.sin(target - angle), Math.cos(target - angle))) < 0.25) { angle = target; break; }
@@ -877,7 +885,7 @@ export class Game {
 
   _updateEnemies(dt, targets = [this]) {
     for(const e of this.system.enemies){
-      if(e.hp<=0||e.promotedVesselId||e.canonicalVesselId||e.warzone||isShipBossActor(e))continue;
+      if(e.hp<=0||e.promotedVesselId||e.canonicalVesselId||e.warzone||e.solCordon||isShipBossActor(e))continue;
       if(e.trainingTarget){e.active=false;e.vx=0;e.vy=0;continue;}
       if(e.disabled||e.boardingTargetId||e.capturedBy){e.active=false;e.vx=0;e.vy=0;continue;}
       const target=targets.filter(g=>e.militaryOperationId&&g.state.npcContract?.military?.operationId===e.militaryOperationId||(g.state.rep[e.faction]||0)<45).sort((a,b)=>distance(e,a.state.ship)-distance(e,b.state.ship))[0];
@@ -933,6 +941,7 @@ export class Game {
         const collision=hits[0];if(!collision)continue;b.ttl=0;
         if(collision.game){const hit=collision.game;hit._damageShip(b.damage,{sourceId:b.ownerId,sourceVesselId:b.vesselId,bullet:b});this._worldEvent('hit',{id:`${b.id}:hit`,systemId:this.state.systemId,attackerId:b.ownerId,sourceVesselId:b.vesselId,x:collision.point.x,y:collision.point.y,target:'player',playerId:hit.playerId,vesselId:hit.netVesselId||collision.point.id,damage:b.damage});continue;}
         const hit=collision.enemy,applied=shipBossDamage(hit,b.damage,this.system),damage=Math.min(hit.hp,applied);ensureDamageControl(hit);hit.hp=Math.max(0,hit.hp-applied);hit.active=true;
+        if(hit.solCordon)recordSolCordonAggression(this.system,hit,shooter||this._rewardGames?.get(b.ownerId));
         const interiorOwner=this._worldGames?.find(game=>game.state.interior?.kind==='enemy'&&game.currentDamageHull()?.id===hit.id);
         (interiorOwner||this)._registerInteriorHit(hit,damage,0,{sourceId:b.ownerId,sourceVesselId:b.vesselId,bullet:b});
         recordDirectorDamage(this.worldDirector,hit,b.ownerId||this.playerId,damage);
@@ -951,10 +960,10 @@ export class Game {
         }else this._record().enemyHealth[hit.id]=hit.hp;
         this._worldEvent('hit',{id:`${b.id}:hit`,systemId:this.state.systemId,attackerId:b.ownerId,sourceVesselId:b.vesselId,x:hit.x,y:hit.y,target:'enemy',targetId:hit.id,vesselId:hit.id,damage});
         if(hit.hp<=0){const owner=this._rewardGames?.get(b.ownerId)||this._worldGames?.find(g=>(g.netVesselId||g.state.ship.id)===b.vesselId)||this;if(hit.warzone)notifyWarzoneDestroyed(this.system,hit,{sourceId:b.ownerId,byPlayer:true});else this._defeat(hit,owner);this._boardedTargetDestroyed(hit);}
-        else if(hit.hp<=hit.maxHp*.4&&!hit.disabled&&!isShipBossActor(hit)){hit.disabled=true;hit.active=false;hit.vx=0;hit.vy=0;this._worldEvent('disabled',{enemyId:hit.id,text:hit.trainingTarget?`${hit.name} disabled. Continue the gunnery exercise.`:hit.militaryOperationId?`${hit.name} disabled. The marked contact is neutralized.`:`${hit.name} disabled. Close to board, or finish the hull.`});}
+        else if(hit.hp<=hit.maxHp*.4&&!hit.disabled&&!hit.solCordon&&!isShipBossActor(hit)){hit.disabled=true;hit.active=false;hit.vx=0;hit.vy=0;this._worldEvent('disabled',{enemyId:hit.id,text:hit.trainingTarget?`${hit.name} disabled. Continue the gunnery exercise.`:hit.militaryOperationId?`${hit.name} disabled. The marked contact is neutralized.`:`${hit.name} disabled. Close to board, or finish the hull.`});}
       }else{
-        const hit=targets.filter(g=>g.state.ship.hull>0&&segmentDistance(g.state.ship,fromX,fromY,b.x,b.y)<=g.state.ship.radius+(b.radius||4)).sort((a,c)=>Math.hypot(a.state.ship.x-fromX,a.state.ship.y-fromY)-Math.hypot(c.state.ship.x-fromX,c.state.ship.y-fromY))[0];
-        if(hit){hit._damageShip(b.damage,{sourceId:b.ownerId,sourceVesselId:b.vesselId||b.ownerId,bullet:b});b.ttl=0;this._worldEvent('hit',{x:hit.state.ship.x,y:hit.state.ship.y,target:'player',playerId:hit.playerId,vesselId:hit.netVesselId||hit.state.ship.id,damage:b.damage});}
+        const hit=targets.filter(g=>g.state.ship.hull>0&&(!b.solCordon||(g.netVesselId||g.state.ship.id)===b.targetVesselId)&&segmentDistance(g.state.ship,fromX,fromY,b.x,b.y)<=g.state.ship.radius+(b.radius||4)).sort((a,c)=>Math.hypot(a.state.ship.x-fromX,a.state.ship.y-fromY)-Math.hypot(c.state.ship.x-fromX,c.state.ship.y-fromY))[0];
+        if(hit){hit._damageShip(b.damage,{sourceId:b.ownerId,sourceVesselId:b.vesselId||b.ownerId,bullet:b,...(b.solCordon?{solCordon:true,cause:'Sol quarantine fire'}:{})});b.ttl=0;this._worldEvent('hit',{x:hit.state.ship.x,y:hit.state.ship.y,target:'player',playerId:hit.playerId,vesselId:hit.netVesselId||hit.state.ship.id,damage:b.damage});}
       }
     }
     this.system.bullets=this.system.bullets.filter(b=>b.ttl>0);
@@ -1003,15 +1012,16 @@ export class Game {
     const record = this._record();
     if (record.defeated.includes(enemy.id)) return;
     record.defeated.push(enemy.id);
+    if(enemy.solCordon)recordSolCordonDefeat(this.system,enemy);
     delete record.enemyHealth[enemy.id];
-    if(!enemy.trainingTarget){
+    if(!enemy.trainingTarget&&!enemy.solCordon){
       credited.state.stats.kills++;
       credited.progressJob('bounty', 1, {token:enemy.id});
       credited._flag('won_battle'); credited._flag('first_victory');
       credited.state.rep.freewake = clamp(credited.state.rep.freewake + 2, -100, 100);
     }
     if(!enemy.noLoot)this._dropPickup({ id: `${enemy.id}:wreck`, x: enemy.x, y: enemy.y, credits: enemy.reward, ore: 1, crystal: 0, name: 'Raider salvage' });
-    this._worldEvent('explosion', { x: enemy.x, y: enemy.y, size: 25, text: enemy.trainingTarget?'Practice target neutralized':'Raider defeated' });
+    this._worldEvent('explosion', { x: enemy.x, y: enemy.y, size: 25, text: enemy.solCordon?'Cordon defense destroyed':enemy.trainingTarget?'Practice target neutralized':'Raider defeated' });
     credited._refreshJobs();
   }
   _dropPickup(item) { if (!this.system.pickups.some(p => p.id === item.id)) this.system.pickups.push({ radius: 12, ...item }); }
@@ -1078,6 +1088,7 @@ export class Game {
     if (distance(this.state.ship, body) > body.radius + 150) return this._fail(`Fly closer to ${body.name} to ${body.kind === 'station' ? 'dock' : 'land'}.`, 'distance');
     const portPermission=this.portAccess(body);
     if(!portPermission.ok){
+      if(body.id==='earth'&&portPermission.attemptable)return beginEarthApproach(this);
       if(body.id==='earth'&&portPermission.code==='permission'){
         const hail=this.triggerEncounter('earth_arrival');
         if(hail.ok)this._event('encounter',{id:hail.encounter.id,encounter:hail.encounter});
@@ -1154,9 +1165,10 @@ export class Game {
     const current = this.currentSystem;
     const dist = Math.hypot(target.gx - current.gx, target.gy - current.gy);
     const fuelCost = Math.ceil((2+dist*.65)*getHullSystems(this.state.ship.classId).foldFuelMultiplier*this.characterEffects.foldFuel);
-    const base = { target, distance: dist, fuelCost, range: this.state.ship.warpRange };
+    const quarantine=solEntryAccess(this,id);
+    const base = { target, distance: dist, fuelCost, range: this.state.ship.warpRange,
+      ...(id==='sol'?{cleared:quarantine.cleared,quarantine:quarantine.quarantine,warning:quarantine.warning}:{}) };
     if (id === current.id) return this._fail('You are already in this system.', 'same-system');
-    const quarantine=solEntryAccess(this,id);if(!quarantine.ok)return {...quarantine,...base};
     if (this.state.mode !== 'ship') return { ...this._fail('Launch your ship before jumping.', 'mode'), ...base };
     const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return {...vesselAccess,...base};
     if (!this.hasHyperdrive) return { ...this._fail('Fit Vector thrusters, an Echo scanner and a Fold Drive at a port first.', 'hyperdrive'), ...base };
@@ -1169,6 +1181,7 @@ export class Game {
     const info = this.travelInfo(id);
     if (!info.ok) return info;
     this._persistRuntime();
+    const originSystemId=this.state.systemId;
     this.state.ship.fuel -= info.fuelCost;
     this.state.systemId = id;
     this.state.stats.jumps++;
@@ -1179,9 +1192,11 @@ export class Game {
     const port = this.system.bodies.find(b => b.kind === 'station') || this.system.bodies[0];
     Object.assign(this.state.ship, { x: port.x, y: port.y + port.radius + 95, vx: 0, vy: 0 });
     if(id===CROSSWIND_SYSTEM_ID)Object.assign(this.state.ship,{...CROSSWIND_ARRIVAL,vx:0,vy:0});
+    if(id==='sol'&&!info.cleared)Object.assign(this.state.ship,{...this.system.solCordon.arrival,vx:0,vy:0,angle:Math.PI/2,angularVelocity:0});
     this._discoverNear(id);
     this._log(`Arrived in ${this.currentSystem.name}`, this.currentSystem.description, 'discovery');
     this._event('jump', { systemId: id, target: this.currentSystem, text: `Welcome to ${this.currentSystem.name}` });
+    if(id==='sol'&&!this._sharedWorld)beginSolVisit(this,originSystemId);
     this._refreshJobs(); this._checkChapters();
     this.warzoneArrival();
     if (id === 'sol' && this.hasFlag('vault_recovered') && !this.state.encounterHistory.includes('earth_arrival')) {

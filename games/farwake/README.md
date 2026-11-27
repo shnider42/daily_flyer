@@ -1,8 +1,20 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.39.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.40.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.40.0 — Attempt the Sol cordon
+
+Sol can be attempted before the investigation grants clearance. Ordinary fold range, equipment and fuel still apply. The chart warns about the armed quarantine, makes the risky jump explicit, and shows when the ship lacks fuel for the return. Unscreened arrivals see Earth, damaged orbital structures and the actual defenses while an eight-second radio challenge leaves the flight controls active.
+
+Two heavy interceptors and six orbital batteries enforce the approach with physical, marked volleys. Continuing toward Earth brings the inner defenses into the fight. **Attempt Earth approach** starts that interception without a menu lock, a free landing or a story reward. The overwhelmingly strong early defenses control the descent; if their entire inner screen is physically destroyed, that exceptional breach does not invent legal clearance. Ordinary players earn a screened route through the investigation and Threshold's arrival answer.
+
+Turning outward leaves the firing perimeter. The recorded return route is available through cordon combat when the ship has the normal drive range and fuel; unrelated combat and boarding still apply. Threshold remains a screened refuge and the recovery destination for casualties. Hull loss and crew consequences use the existing rules. Entering, surviving, docking or recovery never grants expedition evidence or a hull permit by itself.
+
+The initial view is an observation of damaged Earth and orbital wreckage. It does not disclose the cause, the late findings, or the intelligence's identity. Personal evidence remains personal aboard shared expeditions; patrols target the actual unauthorized hull without attacking a nearby cleared ship. Warning progress and physical damage persist through saves, reconnects and return visits. Re-entering does not renew the full grace period.
+
+Current Quiet Earth saves and shared galaxies continue with content revision **16**. Refresh existing clients before reconnecting. The earlier release entries below retain their historical access rules.
 
 ## 0.39.0 — Distinct systems, the Sol cordon, and a continuing Earth campaign
 

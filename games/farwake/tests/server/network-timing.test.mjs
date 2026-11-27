@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { FixedStepClock } from '../../server/timing.mjs';
 import { Realm } from '../../server/realm.mjs';
 import { compactSnapshot } from '../../server/index.mjs';
+import { mergeSnapshot } from '../../dist/network.mjs';
 
 const storage = () => ({ kind: 'test-memory', save: async (_id, version) => ({ version: version + 1 }) });
 async function captainFixture() {
@@ -77,6 +78,47 @@ test('direct motion snapshots match the established compact protocol in space an
     assert.equal(motion.state.journal, undefined); assert.equal(motion.state.worlds, undefined);
     assert.equal(motion.fleet, undefined); assert.equal(motion.presence, undefined);
   }
+});
+
+test('both compact encodings retain the occupied Sol visit and clear the cordon after departure', async t => {
+  const { realm, captain } = await captainFixture(), vessel = realm.vessels.get(captain.ownedVesselId);
+  captain.game.state.upgrades.fold_3 = 1; captain.game._updateStats();
+  vessel.ship = captain.game.state.ship; vessel.ship.fuel = vessel.ship.maxFuel;
+  Object.assign(vessel, { systemId: 'witness', dockedAt: null, helmOwner: captain.id, actor: null });
+  captain.aboard = vessel.id; captain.crewRole = 'helm';
+  Object.assign(captain.game.state, { systemId: 'witness', mode: 'ship', locationId: null, interior: null, pendingEncounter: null });
+  realm._room('witness').runtime.enemies = []; realm._bindCaptain(captain);
+  const jump = realm._command(captain, 'travel', { id: 'sol' }); assert.equal(jump.ok, true, jump.reason);
+  const sol = realm._room('sol'), cordon = sol.runtime.solCordon;
+  cordon.visits['other-hull'] = { originSystemId: 'hearth', elapsed: 50, approach: true, aggressive: true };
+  const battery = sol.runtime.enemies.find(enemy => enemy.solCordon && enemy.cordonRole === 'battery');
+  battery.hp = 0; sol.coordinator._defeat(battery, captain.game);
+  const snapshotAt = Date.now(); t.mock.method(Date, 'now', () => snapshotAt);
+  const paired = () => {
+    const full = realm.snapshotFor(captain, { drainEvents: false });
+    const direct = realm.snapshotFor(captain, { drainEvents: false, compact: true, worldViews: new Map() });
+    const converted = compactSnapshot(full);
+    assert.deepEqual(direct, converted, 'Both network entry points publish the same public protocol.');
+    return { full, direct };
+  };
+  let lastSol;
+  for (const view of ['space', 'cabin']) {
+    if (view === 'cabin') realm._cabin(captain, vessel);
+    const { full, direct } = paired();
+    assert.deepEqual(Object.keys(direct.world.solCordon.visits), [vessel.id], 'Another hull’s visit stays private in either encoding.');
+    assert.equal(direct.world.solCordon.visits[vessel.id].originSystemId, 'witness');
+    assert.deepEqual(direct.world.solCordon.destroyedBatteryIds, [battery.id]);
+    cordon.visits[vessel.id].elapsed += .25;
+    const update = paired().direct;
+    assert.deepEqual(mergeSnapshot(full, update).world.solCordon, update.world.solCordon, 'A motion update replaces the previous visit on the client.');
+    lastSol = full;
+  }
+  Object.assign(captain.game.state, { mode: 'ship', locationId: null, interior: null, pendingEncounter: null });
+  captain.crewRole = 'helm'; vessel.helmOwner = captain.id; realm._bindCaptain(captain);
+  const retreat = realm._command(captain, 'travel', { id: 'witness' }); assert.equal(retreat.ok, true, retreat.reason);
+  const { direct } = paired();
+  assert.equal(direct.world.solCordon, null, 'Departure explicitly clears Sol state instead of omitting the field.');
+  assert.equal(mergeSnapshot(lastSol, direct).world.solCordon, null);
 });
 
 test('snapshots and durable documents do not traverse discarded per-captain world histories', async () => {

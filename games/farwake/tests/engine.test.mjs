@@ -293,7 +293,7 @@ test('all eight chapters are earned through mining, jobs, travel, repairs and ac
 
 test('Earth remains quarantined until the Witness approach and arrival decision, with a dismissed hail recoverable',()=>{
   const g=new Game('quarantine');g.state.systemId='sol';g._loadSystem('sol');atBody(g,'earth');
-  assert.equal(g.dock('earth').code,'quarantine');assert.equal(g.state.mode,'ship');assert.ok(!g.hasFlag('landed_earth'));
+  assert.equal(g.dock('earth').approach,true);assert.equal(g.state.mode,'ship');assert.ok(!g.hasFlag('landed_earth'));
   g.state.flags.push('vault_recovered','homeward_signal');
   assert.equal(g.dock('earth').code,'permission');assert.equal(g.state.pendingEncounter.id,'earth_arrival');
   g.dismissEncounter();assert.equal(g.state.pendingEncounter,null);

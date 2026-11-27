@@ -1,6 +1,7 @@
 import { Game, buildGalaxy, distance, seededRandom } from '../dist/engine.mjs';
 import { GALAXY_EPOCH, requireCurrentGalaxy } from '../dist/galaxy-epoch.mjs';
 import { personalSolClearance } from '../dist/sol-access.mjs';
+import { beginSolVisit, solCordonRetreat } from '../dist/sol-cordon.mjs';
 import { bossMusicContext } from '../dist/ship-bosses.mjs';
 import { advanceWorldDirector, syncDirectorWorld, recordDirectorDamage } from '../dist/world-director.mjs';
 import { questThread } from '../dist/quest-content.mjs';
@@ -58,6 +59,11 @@ const untouchedStarterUpgrades = state => {
 };
 const usable = result => result && result.ok !== false;
 const smallId = value => typeof value === 'string' && value.length > 0 && value.length < 160;
+const solCordonView = (cordon, vesselId) => {
+  if (!cordon) return null;
+  const { visits, ...geometry } = cordon;
+  return { ...clone(geometry), visits: vesselId && visits?.[vesselId] ? { [vesselId]: clone(visits[vesselId]) } : {} };
+};
 const DOCK_EXIT_ALIASES = new Set(['leaveCrew', 'leaveInterior', 'exitCabin', 'leaveDerelict', 'returnToOwnShip', 'retreatBoarding']);
 const helmPoints = new Map();
 const helmPoint = vessel => {
@@ -380,7 +386,16 @@ export class Realm extends BoardingAuthority {
     record.spaceVersion = SYSTEM_SPACE_VERSION;
     for (const key of ['enemies']) if (Array.isArray(saved[key])) {
       const positions = new Map(saved[key].map(e => [e.id, e]));
-      for (const entity of runtime[key]) { const prior = positions.get(entity.id); if (prior) for (const field of ['x', 'y', 'angle', 'vx', 'vy', 'hp', 'cooldown']) if (Number.isFinite(prior[field])) entity[field] = prior[field]; }
+      for (const entity of runtime[key]) {
+        const prior = positions.get(entity.id); if (!prior) continue;
+        for (const field of ['x', 'y', 'angle', 'vx', 'vy', 'hp', 'cooldown']) if (Number.isFinite(prior[field])) entity[field] = prior[field];
+        if (entity.solCordon && prior.solCordon) {
+          if (prior.cordonState && typeof prior.cordonState === 'object') entity.cordonState = clone(prior.cordonState);
+          entity.active = prior.active === true;
+          entity.targetId = smallId(prior.targetId) ? prior.targetId : null;
+          entity.targetVesselId = smallId(prior.targetVesselId) ? prior.targetVesselId : null;
+        }
+      }
     }
     // Empty rooms do not run combat. Only a bounded amount of harmless traffic motion catches up.
     const elapsed = Math.min(15, Math.max(0, (now() - (saved.savedAt || now())) / 1000));
@@ -395,7 +410,7 @@ export class Realm extends BoardingAuthority {
   }
   _captureRoom(room) {
     room.coordinator._persistRuntime();
-    const fields = entity => Object.fromEntries(['id', 'x', 'y', 'angle', 'vx', 'vy', 'hp', 'cooldown'].filter(key => entity[key] !== undefined).map(key => [key, entity[key]]));
+    const fields = entity => Object.fromEntries(['id', 'x', 'y', 'angle', 'vx', 'vy', 'hp', 'cooldown', ...(entity.solCordon ? ['solCordon', 'cordonState', 'active', 'targetId', 'targetVesselId'] : [])].filter(key => entity[key] !== undefined).map(key => [key, key==='cordonState'?clone(entity[key]):entity[key]]));
     this.worlds[room.systemId] = { spaceVersion: SYSTEM_SPACE_VERSION, record: clone(room.record), enemies: room.runtime.enemies.map(fields), traffic: captureTraffic(room.runtime.traffic), savedAt: now() };
   }
   _bindCaptain(captain) {
@@ -521,6 +536,9 @@ export class Realm extends BoardingAuthority {
       if (miner?.session && this._helm(miner, vessel) && miner.ownedVesselId === vessel.id && !vessel.destroyed && vessel.ship.hull > 0 && miner.game.state.person.health > 0 && !miner.game.state.person.down) miner.game.recordOpeningMining(ore, rock);
     };
     actor.state.multiplayer={serverAuthoritative:true,ownedVesselId:owner.ownedVesselId,aboardVesselId:vessel.id};
+    // A physical hull is screened using its own permit and people actually
+    // aboard. An absent owner's personal investigation cannot clear it.
+    actor._solExpeditionClearance=()=>({...this._solClearanceForVessel(vessel),authoritative:true});
     actor.state.npcContract = this._militaryContract(vessel) || (vessel.npcContractId === owner.game.state.npcContract?.id ? owner.game.state.npcContract : null);
     actor.state.npcContractHistory = owner.game.state.npcContractHistory;
     actor._directorShared=this.director;
@@ -564,6 +582,17 @@ export class Realm extends BoardingAuthority {
       return result;
     };
     actor.netCanDamage = other => this._shipsHostile(vessel, this.vessels.get(other.netVesselId || other.state.ship.id));
+    actor._damageShip = (amount, details = {}) => {
+      if(vessel.systemId!=='sol')return Game.prototype._damageShip.call(actor,amount,details);
+      const ship = actor.state.ship, before = finite(ship.hull) + finite(ship.shield);
+      const cordon = details.solCordon === true || details.bullet?.solCordon === true || room.runtime.enemies.some(enemy => enemy.solCordon && [details.sourceId, details.sourceVesselId].includes(enemy.id));
+      const result = Game.prototype._damageShip.call(actor, amount, details);
+      if (before > finite(ship.hull) + finite(ship.shield)) {
+        const field = cordon ? 'solCordonHitRemaining' : 'solIndependentHitRemaining';
+        vessel[field] = Math.max(finite(vessel[field]), finite(actor._hitTimer));
+      }
+      return result;
+    };
     actor.netOnShipDestroyed = details => this._destroyVessel(vessel, details);
     actor.netOnHullDamaged = details => {
       if(!vessel.npcEnemyId||vessel.captured)return;
@@ -643,12 +672,17 @@ export class Realm extends BoardingAuthority {
     for (const captain of this.captains.values()) if (captain.aboard === vessel.id || captain.id === owner.id) captain.events.push(...events);
     if (vessel.dockedAt && vessel.dockedAt !== previousDock) this._notifyDockedCrew(vessel);
   }
+  _solClearanceForVessel(vessel) {
+    if(!vessel||vessel.destroyed||!(vessel.ship?.hull>0))return {entry:false,landing:false};
+    const permits=[vessel.solClearance||{},...([...this.captains.values()].filter(other=>other.aboard===vessel.id).map(other=>personalSolClearance(other.game)))];
+    const entry=permits.some(value=>value.entry===true);
+    return {entry,landing:entry&&permits.some(value=>value.landing===true)};
+  }
   _solClearanceFor(captain, vessel = this.vessels.get(captain.aboard || captain.portVesselId)) {
     const state=captain.game.state;
     if(!vessel||vessel.destroyed||!(vessel.ship?.hull>0)||vessel.systemId!==state.systemId)return {entry:false,landing:false};
     if(captain.aboard!==vessel.id&&(captain.portVesselId!==vessel.id||!vessel.dockedAt||vessel.dockedAt!==state.locationId||state.interior||!this._canBoard(captain,vessel)))return {entry:false,landing:false};
-    const permits=[vessel.solClearance||{},...([...this.captains.values()].filter(other=>other.aboard===vessel.id).map(other=>personalSolClearance(other.game)))];
-    return {entry:permits.some(value=>value.entry===true),landing:permits.some(value=>value.landing===true)};
+    return this._solClearanceForVessel(vessel);
   }
   _withShip(captain, vessel, callback, { forceShip = false } = {}) {
     this._syncCasualCrew(vessel);
@@ -672,10 +706,15 @@ export class Realm extends BoardingAuthority {
       if (forceShip) state.mode = mode;
     }
   }
-  _inCombat(vessel) {
+  _inCombat(vessel, { ignoreSolCordon = false } = {}) {
     if (!vessel || vessel.dockedAt) return false;
     const room = this.rooms.get(vessel.systemId);
-    return !!(vessel.actor?._hitTimer > 0 || vessel.boarding?.phase === 'active' || vessel.pvp?.phase === 'active' || room?.runtime.enemies.some(e => e.hp > 0 && e.active && (!e.warzone||e.warzoneTargetKind==='player'&&e.targetVesselId===vessel.id) && distance(e, vessel.ship) < 700));
+    if(vessel.boarding?.phase==='active'||vessel.pvp?.phase==='active')return true;
+    if(ignoreSolCordon&&(vessel.occupation?.contested||this._hostileOccupied(vessel)||finite(vessel.solIndependentHitRemaining)>0))return true;
+    if(vessel.actor?._hitTimer>0&&(!ignoreSolCordon||finite(vessel.solCordonHitRemaining)<=0))return true;
+    return !!room?.runtime.enemies.some(enemy=>enemy.hp>0&&enemy.active&&distance(enemy,vessel.ship)<700&&
+      (!enemy.solCordon||!ignoreSolCordon&&enemy.targetVesselId===vessel.id)&&
+      (!enemy.warzone||enemy.warzoneTargetKind==='player'&&enemy.targetVesselId===vessel.id));
   }
   _warzoneCeasefireContext(captain) {
     const vessels = [...new Set([captain.portVesselId, captain.ownedVesselId])].map(id => this.vessels.get(id)).filter(vessel =>
@@ -1222,8 +1261,9 @@ export class Realm extends BoardingAuthority {
     if (name === 'dock') {
       if (!this._helm(c, active)) return fail('Only the current helmsman may dock this vessel.', 'helm');
       if(active.boarding?.phase==='active'||active.pvp?.phase==='active')return fail('Clear the boarders before docking this ship.','boarding');
+      const expeditionClearance=this._solClearanceFor(c,active);
       const result = this._withShip(c, active, () => game.dock(id));
-      if (result.ok) { if(id==='earth')active.solClearance={entry:true,landing:true};active.dockedAt = id; active.helmOwner = null; this._landCharacter(c, active.systemId, id); this._notifyDockedCrew(active); }
+      if (result.ok && !result.approach) { if(id==='earth'&&expeditionClearance.entry)active.solClearance=expeditionClearance;active.dockedAt = id; active.helmOwner = null; this._landCharacter(c, active.systemId, id); this._notifyDockedCrew(active); }
       else if(game.state.boarding?.source==='rescued-pirates'&&game.state.boarding.phase==='active'){active.boarding=game.state.boarding;active.actor=null;this._cabin(c,active);active.helmOwner=null;}
       return result;
     }
@@ -1246,13 +1286,16 @@ export class Realm extends BoardingAuthority {
     }
     if (name === 'travel') {
       if (!this._helm(c, active)) return fail('Only the current helmsman may engage the fold drive.', 'helm');
-      if (this._inCombat(active)) return fail('Clear the immediate attack before engaging the fold drive.', 'combat');
-      const expeditionClearance=this._solClearanceFor(c,active);
-      const result = this._withShip(c, active, () => game.travel(id));
+      const expeditionClearance=this._solClearanceFor(c,active),originSystemId=active.systemId;
+      const result = this._withShip(c, active, () => {
+        if (this._inCombat(active,{ignoreSolCordon:solCordonRetreat(game,id)})) return fail('Clear the immediate attack before engaging the fold drive.', 'combat');
+        return game.travel(id);
+      });
       if (result.ok) {
-        if(id==='sol')active.solClearance={entry:true,landing:expeditionClearance.landing};
+        if(id==='sol'&&expeditionClearance.entry)active.solClearance=expeditionClearance;
         active.systemId = game.state.systemId; active.dockedAt = null;
         for (const other of this.captains.values()) if (other.aboard === active.id) { other.game.state.systemId = active.systemId; other.game._flag(`visited_${active.systemId}`); other.game._flag(`jumped_to_${active.systemId}`); if (!other.game.state.visited.includes(active.systemId)) other.game.state.visited.push(active.systemId); this._bindCaptain(other); if(other!==c)other.game.warzoneArrival(); }
+        if(id==='sol')this._withShip(c,active,()=>beginSolVisit(game,originSystemId));
         active.actor = null;
       }
       return result;
@@ -1585,6 +1628,7 @@ export class Realm extends BoardingAuthority {
     for (const vessel of this.vessels.values()) if (occupiedSystems.has(vessel.systemId) && !vessel.destroyed && (!vessel.dockedAt || vessel.npcContractId && this.captains.get(vessel.ownerId)?.game.state.npcContract?.active || vessel.ship.damageControl?.sections.some(section=>section.fire>0||section.breach>0))) activeVessels.set(vessel.id, vessel);
     const actorsBySystem = new Map();
     for (const vessel of activeVessels.values()) {
+      for(const field of ['solCordonHitRemaining','solIndependentHitRemaining'])if(vessel[field]>0)vessel[field]=Math.max(0,finite(vessel[field])-dt);
       const actor = this._actor(vessel), helm = this.captains.get(vessel.helmOwner);
       actor.state.stats.time = timeBefore.get(actor._economyCaptainId || vessel.ownerId) || 0;
       const participants = activeCaptains.filter(c => this._onBoardingDeck(c, vessel));
@@ -1687,7 +1731,7 @@ export class Realm extends BoardingAuthority {
       const { worlds, explorationRecords, worldDirector, gamblingSession, gamblingView, ship: ownedShip, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...personalState } = ownState;
       state = clone(personalState); state.ship = clone(ship); state.boarding = clone(boarding);
       state.worldDirector=clone(this.director);
-      const {warzoneSpace,warzoneLastVisit,...publicRecord}=this._room(state.systemId).record;
+      const {warzoneSpace,warzoneLastVisit,solCordon,...publicRecord}=this._room(state.systemId).record;
       state.worlds = { [state.systemId]: clone(publicRecord) };
       if (aboardOwner) {
         state.crew = clone(this._crewFor(vessel));
@@ -1732,11 +1776,11 @@ export class Realm extends BoardingAuthority {
     let commonWorld = worldViews?.get(relevantWorld)?.get(worldViewKey);
     if (!commonWorld) {
       if (compact) {
-        commonWorld = clone(Object.fromEntries(MOTION_WORLD_FIELDS.filter(key=>key!=='warzone').map(key => [key, inSpace || key.startsWith('mining') ? relevantWorld[key] : []])));
+        commonWorld = clone(Object.fromEntries(MOTION_WORLD_FIELDS.filter(key=>key!=='warzone'&&key!=='solCordon').map(key => [key, inSpace || key.startsWith('mining') ? relevantWorld[key] : []])));
         commonWorld.asteroidStates = inSpace ? relevantWorld.asteroids.map(rock => [rock.id, Math.round(rock.angle * 1000) / 1000, rock.hp, rock.ore, rock.crystal]) : [];
-      } else if (inSpace) {const {warzone,...publicWorld}=relevantWorld;commonWorld=clone(publicWorld);}
+      } else if (inSpace) {const {warzone,solCordon,...publicWorld}=relevantWorld;commonWorld=clone(publicWorld);}
       else {
-        const { asteroids, enemies, bullets, pickups, traffic, signals, warzone, ...metadata } = relevantWorld;
+        const { asteroids, enemies, bullets, pickups, traffic, signals, warzone, solCordon, ...metadata } = relevantWorld;
         commonWorld = clone({ ...metadata, asteroids: [], enemies: [], bullets: [], pickups: [], traffic: [], signals: [] });
       }
       commonWorld.enemies = (commonWorld.enemies || []).filter(enemy => !enemy.canonicalVesselId && !enemy.promotedVesselId);
@@ -1748,6 +1792,7 @@ export class Realm extends BoardingAuthority {
     // Captain-specific signal progress and allegiance never enter the shared
     // projection. The common tree is already detached from authority state.
     const world = { ...commonWorld, signals: commonWorld.signals.map(signal => signal.id === 'hearth:story:tinbell' ? { ...signal, resolved: c.game.hasFlag('belt_signal_scanned') } : signal) };
+    world.solCordon=solCordonView(relevantWorld.solCordon,c.aboard&&vessel?.systemId===state.systemId?vessel.id:null);
     const fleetController=c.aboard&&vessel?(this.captains.get(vessel.helmOwner)||this.captains.get(vessel.occupation?.controllerId)||this.captains.get(vessel.ownerId)):c;
     world.warzone=warzoneSpaceView(relevantWorld,{factionId:fleetController?.game.warzoneFaction(),hostileFactions:[...(vessel?.warzoneHostileFactions||[]),...(fleetController?.game.warzoneHostilities()||[])]});
     if(!inSpace&&world.warzone){world.warzone.projectiles=[];world.warzone.effects=[];}

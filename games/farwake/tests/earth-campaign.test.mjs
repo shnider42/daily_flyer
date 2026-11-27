@@ -47,7 +47,7 @@ test('sixteen numbered missions are discoverable remotely without inventing exis
  const before=[...game.state.flags];accept(game);assert.equal(current(game).id,'tinbell-reading');assert.deepEqual(game.state.flags,before);
  toCurrent(game);assert.equal(act(game).code,'requirements');assert.equal(record(game).stage,1);
  assert.deepEqual([...new Set(EARTH_CAMPAIGN.stages.map(step=>step.mission))],Array.from({length:16},(_,index)=>index+1));
- go(game,{systemId:'sol',x:0,y:0});const earth=game.system.bodies.find(body=>body.id==='earth');Object.assign(game.state.ship,{x:earth.x,y:earth.y+earth.radius+60});assert.equal(game.dock('earth').code,'quarantine');
+ go(game,{systemId:'sol',x:0,y:0});const earth=game.system.bodies.find(body=>body.id==='earth');Object.assign(game.state.ship,{x:earth.x,y:earth.y+earth.radius+60});assert.equal(game.dock('earth').approach,true);assert.equal(game.state.mode,'ship');assert.equal(game.hasFlag('landed_earth'),false);
  for(const contactId of ['earth-ines','earth-vale']){const contact=questContact(contactId);go(game,{...contact,entityId:`quest:${contactId}`});assert.ok(ok(game.inspectContact(`quest:${contactId}`)).contact);}
 });
 

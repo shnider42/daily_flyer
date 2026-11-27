@@ -1,5 +1,6 @@
 /** Translate confirmed local actions into practice evidence. Never issues commands. */
 export function guidanceActionsForResult(name,args={},answer={},before={}) {
+ if(name==='dock'&&answer.approach)return [];
  if(answer?.ok!==true)return [];
  const action={dock:'dock',acceptJob:'job-accept',turnInJob:'job-turn-in',boardEnemy:'board-enemy',boardHostileShip:'board-enemy',boardShip:'board-friend',returnToOwnShip:'return-airlock',takeCapturedHelm:'take-helm',exitCabin:'take-helm',quickHelm:'take-helm',scan:'scan',travel:'jump',enterGunnery:'gunnery-enter',selectGunneryBattery:'gunnery-battery',startMilitaryPassage:'service-return'}[name];
  const unchangedBattery=name==='selectGunneryBattery'&&(!args.batteryId||before.gunnery?.batteryId===args.batteryId);

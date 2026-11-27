@@ -178,7 +178,7 @@ test('private fares, story passengers, and medical patients share real berth cap
 
 test('Earth desks work after legal landing while taxi dispatch does not offer a quarantined destination',()=>{
  const game=fresh('earth-services');go(game,deskTarget('sol','threshold'));assert.ok(game.passengerOffers().every(offer=>offer.targetBody!=='earth'));
- game.state.mode='ship';game.state.locationId=null;const earth=game.system.bodies.find(body=>body.id==='earth');Object.assign(game.state.ship,{x:earth.x,y:earth.y+earth.radius+60});assert.equal(game.dock('earth').code,'quarantine');
+ game.state.mode='ship';game.state.locationId=null;const earth=game.system.bodies.find(body=>body.id==='earth');Object.assign(game.state.ship,{x:earth.x,y:earth.y+earth.radius+60});assert.equal(game.dock('earth').approach,true);assert.equal(game.state.mode,'ship');
  game._flag('vault_recovered');game._flag('homeward_signal');assert.equal(game.dock('earth').code,'permission');ok(game.applyChoice('earth_arrival',0));go(game,deskTarget('sol','earth'));const passage=ok(game.inspectContact('quest:passage-desk:earth'));assert.ok(passage.passengers.length);assert.equal(passage.passengers[0].targetBody,'threshold');
  ok(game.acceptPassenger(passage.passengers[0].id,'quest:passage-desk:earth'));const saved=Game.fromSave(game.save());assert.equal(saved.state.narrative.passenger.originBody,'earth');
  go(saved,{systemId:'sol',bodyId:'earth',entityId:'quest:liaison:earth'});const office=ok(saved.inspectContact('quest:liaison:earth'));assert.equal(office.factions[0].id,'concord');ok(saved.pledgeFaction('concord','quest:liaison:earth'));
