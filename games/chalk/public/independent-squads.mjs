@@ -2,6 +2,7 @@
 // doors, ammunition and projectiles as the playable chalk. No offscreen dice
 // damage, reinforcements behind the player, or omniscient destination tracking.
 import { roleProfile } from './squad-roles.mjs';
+import { enemyProfile, ballisticProfile } from './combat-profiles.mjs';
 import { initializeFieldSupport, beginFieldSupport, updateFieldSupport, chooseFieldRefuge, knownFieldThreats, fieldAidSafe, FIELD_AID } from './field-support.mjs';
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -20,11 +21,26 @@ function membersOf(s,group){
   const actors=group.team==='allied'?s.allies:s.enemies;
   return actors.filter(a=>a.fieldSquadId===group.id&&alive(a));
 }
-function clearPlacement(s,p,hooks,used){
-  return hooks.free(s,p.x,p.y,15)&&!hooks.squadCanSeePoint(s,p)&&
-    s.squad.every(a=>distance(a,p)>550)&&
+function clearPlacement(s,p,hooks,used,nearChalk=false){
+  return hooks.free(s,p.x,p.y,15)&&(nearChalk||!hooks.squadCanSeePoint(s,p))&&
+    s.squad.every(a=>distance(a,p)>(nearChalk?60:550))&&
     ![...s.civilians,...s.survivors].some(a=>a.alive&&distance(a,p)<38)&&
     ![...s.enemies,...s.allies,...used].some(a=>alive(a)&&distance(a,p)<60);
+}
+function reliefStagingPosts(s,hooks){
+  // The reserve starts behind the initial approach, not beside the first
+  // defenders. Check real geometry and current hostile positions once at setup;
+  // these soldiers receive no protection or teleport after the mission starts.
+  const approach=hooks.nearbyFree(s,200,1540),posts=[];
+  for(const x of [80,120,200,280])for(const y of [1810,1730,1650,1570]){
+    const point={x,y};
+    if(posts.some(p=>distance(p,point)<70)||!clearPlacement(s,point,hooks,[],true))continue;
+    if(s.enemies.some(a=>alive(a)&&(distance(a,point)<520||
+      distance(a,point)<=ballisticProfile(enemyProfile(a).weapon).range&&hooks.hasLineOfSight(s,a,point))))continue;
+    if(!hooks.findPath(s,point,approach).length)continue;
+    posts.push(point);if(posts.length===3)return posts;
+  }
+  return posts;
 }
 function roomPosts(s,anchor,hooks){
   const buildings=s.world.buildings.filter(b=>b.enterable&&b.rooms?.length)
@@ -47,7 +63,7 @@ function addGroup(s,definition,hooks){
     originalAssignment:definition.assignment,staging:{...definition.posts[0]},reachedStops:[{...definition.posts[0]}],pressureTime:0,smokeUsed:false};
   const names=group.team==='allied'?(group.callsign==='Raven'?['Ortiz','Bell','Price']:group.callsign==='Relief'?['Vega','Brooks','Shah']:['Dunn','Keller']):['Armed fighter','Armed fighter','Armed fighter'];
   for(let i=0;i<definition.posts.length;i++){
-    const p=definition.posts[i];if(!clearPlacement(s,p,hooks,[]))continue;
+    const p=definition.posts[i];if(!clearPlacement(s,p,hooks,[],definition.order==='reserve'))continue;
     let actor;
     if(group.team==='enemy'){
       if(!hooks.spawnEnemy(s,p,false,'rifleman'))continue;
@@ -59,7 +75,7 @@ function addGroup(s,definition,hooks){
     }else{
       const role=i===0?'leader':group.order==='reserve'&&i===2?'medic':i===1&&group.callsign!=='Hammer'?'support':'rifleman',loadout=roleProfile(role);
       actor=hooks.actor(s,'allied',names[i],role,p.x,p.y,{role,hp:96,maxHp:96,ammo:loadout.magSize,
-        magSize:loadout.magSize,reserve:loadout.reserve,visible:false,frags:i===0?1:0,medkits:role==='medic'?3:1,smokes:i===0?1:0,
+        magSize:loadout.magSize,reserve:loadout.reserve,visible:group.order==='reserve'&&hooks.squadCanSeePoint(s,p),frags:i===0?1:0,medkits:role==='medic'?3:1,smokes:i===0?1:0,
         handThrowCooldown:0,home:{x:p.x,y:p.y},senseTimer:.06*i,perceivedTargetId:null,lastKnown:null,lastSeenAt:-100});
       s.allies.push(actor);
     }
@@ -86,8 +102,11 @@ export function initializeIndependentSquads(s,hooks){
   const posts=roomPosts(s,{x:eastward?920:1400,y:460},hooks);
   if(posts.length)addGroup(s,{id:'field-house-guard',team:'enemy',callsign:'House guard',assignment:'Holding a building approach',order:'garrison',
     cohesion:.68+(variant%3)*.07,route:posts,posts},hooks);
-  if(s.missionIndex===0)addGroup(s,{id:'field-relief',team:'allied',callsign:'Relief',assignment:'Standing by at the western staging area',order:'reserve',cohesion:.92,
-    route:[at(200,1120)],posts:[at(200,1120),at(200,1040),at(200,960)]},hooks);
+  if(s.missionIndex===0){
+    const reservePosts=reliefStagingPosts(s,hooks);
+    if(reservePosts.length===3)addGroup(s,{id:'field-relief',team:'allied',callsign:'Relief',assignment:'Standing by at the western staging area',order:'reserve',cohesion:.92,
+      route:[{...reservePosts[0]}],posts:reservePosts},hooks);
+  }
   initializeFieldSupport(s);
 }
 

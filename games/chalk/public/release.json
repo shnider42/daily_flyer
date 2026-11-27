@@ -1,6 +1,6 @@
 {
   "game": "CHALK",
-  "version": "1.17.0",
+  "version": "1.17.1",
   "date": "2026-11-26",
   "missions": 10,
   "roles": [
@@ -323,6 +323,7 @@
   "fieldSupport": {
     "mission": "Cordon",
     "detachmentSize": 3,
+    "staging": "Real rear-western positions outside opening hostile firing exposure, with free space and an outbound route; ordinary visibility near CHALK and normal vulnerability during play",
     "deploymentsPerOperation": 1,
     "request": "Mobile Squad / Radio or desktop orders panel > Request support here > select a map location; either living co-op player can request the same finite reserve",
     "response": "Prepositioned soldiers physically travel to reachable cover, report delays, cover and aid nearby wounded, then return to staging; emergency friendly requests share this reserve",
@@ -339,9 +340,9 @@
   },
   "people": "Stable clothing, skin, headwear, load-bearing kit and small build differences; boots, shoulder seams, packs, radios, hands and readable specialties. Individual gait phases, restrained idle movement, reload gestures and reduced-motion support. Independent friendly squads use a distinct ring and leader callsign.",
   "validation": {
-    "fullTests": 474,
-    "frontendBuildTests": 447,
-    "authoritativeServerTests": 249,
+    "fullTests": 475,
+    "frontendBuildTests": 448,
+    "authoritativeServerTests": 250,
     "suitesOverlap": true,
     "nativeCanvasChecks": [
       "2560x1440 desktop",

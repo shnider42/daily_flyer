@@ -27,7 +27,7 @@ test('all missions seed finite independent squads and connected real interior gu
     assert.ok(s.enemies.reduce((sum,a)=>sum+enemyProfile(a).cost,0)<=budget.weight);
     assert.ok(s.fieldSquads.groups.length<=FIELD_SQUAD_LIMITS.groups);
     assert.ok(s.enemies.filter(a=>a.fieldSquadId).length<=FIELD_SQUAD_LIMITS.hostiles);
-    for(const a of s.allies){assert.equal(a.team,'allied');assert.equal(a.visible,false);assert.ok(distance(a,s.squad[0])>550);}
+    for(const a of s.allies){assert.equal(a.team,'allied');if(a.fieldSquadId!=='field-relief'){assert.equal(a.visible,false);assert.ok(distance(a,s.squad[0])>550);}}
     const guards=s.enemies.filter(a=>a.fieldPost);
     if(difficulty!=='story')assert.ok(guards.length>0,`${mission}/${difficulty} has building occupants`);
     for(const a of guards){
@@ -52,7 +52,7 @@ test('distant squads exchange real fire and damage with an idle player, without 
   });
   assert.ok(alliedShots>=15&&enemyShots>=15);assert.ok(alliedHits>0&&hostileHits>0);
   assert.ok(closest>540,'fight is truly beyond ordinary player sight');
-  assert.equal(s.allies.some(a=>a.visible),false);assert.equal(s.enemies.some(a=>a.visible),false);
+  assert.equal(s.allies.filter(a=>a.fieldSquadId!=='field-relief').some(a=>a.visible),false);assert.equal(s.enemies.some(a=>a.visible),false);
   assert.equal(s.stats.shots,0);assert.equal(s.stats.hits,0);assert.equal(s.stats.squadDowns,0);
   assert.deepEqual(s.order,initialOrder);assert.equal(s.stageIndex,0);
   assert.ok(s.soundEvents.length<=128);assert.ok(s.effects.length<=220);

@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createGame,step,stepCoop,setHumanPlayers,getFieldSupportStatus,requestFieldSupport,hasLineOfSight,combatLOS,rebuildNavigationGrid} from '../public/sim.mjs';
+import {createGame,step,stepCoop,setHumanPlayers,getFieldSupportStatus,requestFieldSupport,hasLineOfSight,combatLOS,rebuildNavigationGrid,findPath} from '../public/sim.mjs';
 import {FIELD_AID,fieldAidSafe} from '../public/field-support.mjs';
+import {enemyProfile,ballisticProfile} from '../public/combat-profiles.mjs';
+import {squadCanSeePoint} from '../public/visibility.mjs';
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function run(s,seconds,input={},dt=1/30){for(let t=0;t<seconds-1e-8&&s.status==='playing';t+=dt)step(s,input,dt);}
 function quiet(s){s.enemies=[];s.civilians=[];s.survivors=[];for(const e of s.encounters.groups)e.closed=true;return s;}
@@ -18,11 +20,33 @@ test('Cordon relief is finite, prepositioned, and reports actual availability wi
   assert.equal(reserve.length,3);assert.equal(s.allies.length,8);assert.equal(s.squad.length,4);
   assert.equal(status.available,true);assert.equal(status.remaining,1);assert.equal(status.status,'available');
   assert.deepEqual(Object.keys(status).sort(),['enabled','available','remaining','status','callsign','text','updatedAt','requestId'].sort());
-  assert.equal(JSON.stringify(status).includes('destination'),false);assert.ok(reserve.every(a=>!a.visible));
+  assert.equal(JSON.stringify(status).includes('destination'),false);assert.ok(reserve.every(a=>a.visible===squadCanSeePoint(s,a)));
   reserve[0].hp=15;assert.equal(getFieldSupportStatus(s).available,false);
   assert.equal(getFieldSupportStatus(s).status,'recovering');assert.equal(requestFieldSupport(s,{x:200,y:1340}),false);
   assert.equal(s.fieldSupport.remaining,1,'failed request cannot spend the only deployment');
   assert.equal(getFieldSupportStatus(createGame({mission:1})).enabled,false);
+});
+
+test('Cordon reserves stage outside opening hostile fire and remain reachable on the reproduced problem seeds',()=>{
+  for(const seed of [6,1,4,17,41,91]){
+    const s=createGame({seed,role:'member'}),reserve=s.allies.filter(a=>a.fieldSquadId==='field-relief');
+    const group=s.fieldSquads.groups.find(g=>g.id==='field-relief'),start=reserve.map(a=>({id:a.id,x:a.x,y:a.y}));
+    assert.equal(reserve.length,3,`three real reserve actors on seed ${seed}`);
+    assert.deepEqual(group.staging,group.posts[0]);assert.deepEqual(group.route[0],group.staging);
+    for(const a of reserve){
+      assert.deepEqual(a.fieldHome,{x:a.x,y:a.y});
+      assert.ok(s.squad.every(other=>distance(a,other)>60),'initial formations must not overlap');
+      assert.ok(s.enemies.every(e=>distance(a,e)>=520),'reserve is outside the opening close encounter');
+      assert.ok(s.enemies.every(e=>distance(a,e)>ballisticProfile(enemyProfile(e).weapon).range||!hasLineOfSight(s,e,a)),`no initial unobstructed hostile firing exposure on seed ${seed}`);
+      assert.ok(findPath(s,a,{x:200,y:1340}).length,'rear staging has a real outbound route');
+    }
+    run(s,15);assert.equal(getFieldSupportStatus(s).available,true,`opening pressure must not consume reserve availability on seed ${seed}`);
+    assert.ok(reserve.every(a=>a.alive&&!a.downed&&a.hp===a.maxHp));
+    assert.ok(reserve.every(a=>distance(a,start.find(p=>p.id===a.id))<1),'reserve remains physically at staging before dispatch');
+    quiet(s);assert.equal(requestFieldSupport(s,{x:200,y:1340}),true);run(s,14);
+    assert.equal(getFieldSupportStatus(s).status,'covering');
+    assert.ok(reserve.some(a=>distance(a,start.find(p=>p.id===a.id))>150),'accepted request moves the same real soldiers');
+  }
 });
 
 test('one explicit request moves the existing detachment, covers the area, then returns without spawning replacements',()=>{

@@ -122,8 +122,11 @@ test('a group report shares only an observed position and expires after the play
 
 test('first-street play produces grouped rifle and automatic contacts without firing by the human',()=>{
   const s=createGame({seed:17,mission:0,difficulty:'standard'}),lead=s.squad[0],counts={},shooters=new Set();
-  // Health only is raised so this observation is not truncated by casualty RNG.
-  for(const a of s.squad){a.hp=100000;a.maxHp=100000;}
+  // Observe the whole contact with durable participants on both sides. Making
+  // only CHALK durable lets a field squad kill the gunner or its nearby rifle
+  // support partway through this cadence observation. Suppression, cover,
+  // ammunition, weapon timing and the actual player route remain unchanged.
+  for(const a of [...s.squad,...s.enemies,...s.allies]){a.hp=100000;a.maxHp=100000;}
   const route=[{x:680,y:1720},{x:680,y:1340},{x:680,y:1190}];let next=0,last=s.nextId;
   for(let frame=0;frame<18*30;frame++){
     const goal=route[next],d=goal?distance(lead,goal):0;if(goal&&d<8)next++;

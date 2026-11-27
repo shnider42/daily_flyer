@@ -1,7 +1,7 @@
 import { MISSIONS, createGame, step, issueOrder, placePing, requestFieldSupport, getFieldSupportStatus, selectSquadMember, getObjective, hasLineOfSight, chooseStoryOption, getStoryInteraction, getStoryLeaderId, getMissionInteraction, getNextCampaignMission, campaignOutcome, normalizeCampaignCarry } from './sim.mjs';
 import { Renderer } from './renderer.mjs';
 import { GameAudio } from './audio.mjs';
-import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, touchGroundAction, thumbOrigin, thumbDisplayOrigin } from './touch-input.mjs?v=1.17.0';
+import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, touchGroundAction, thumbOrigin, thumbDisplayOrigin } from './touch-input.mjs?v=1.17.1';
 import { CoopClient } from './coop-client.mjs';
 import { coopServerURL } from './network-config.mjs';
 import { clientToCanvasPoint } from './desktop-input.mjs';
