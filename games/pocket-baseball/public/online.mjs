@@ -1,5 +1,5 @@
 /** Private-room transport. UI, drawing and sound stay in app.mjs. */
-import { BaseballGame } from './engine.mjs?v=0.7.1';
+import { BaseballGame } from './engine.mjs?v=0.8.0';
 
 const STORAGE_KEY = 'dfe.baseball.online.v1';
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -9,7 +9,7 @@ const phaseKey = s => `${s.phase}:${s.phaseStartedAt}:${s.inning}:${s.half}:${s.
 const pitchId = s => s.phase === 'ready' ? s.nextPitchId : (s.pitch?.id ?? s.nextPitchId);
 const GAME_INPUTS = new Set(['pitch', 'swing', 'throw', 'run', 'lead', 'steal', 'pickoff', 'defense', 'changePitcher', 'chargeMound', 'fight']);
 const clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
-const AUTHORITY_FIELDS = ['score', 'hits', 'hitByPitches', 'lineScore', 'outs', 'balls', 'strikes', 'bases', 'batterIndex', 'pitching', 'practice', 'result', 'pending', 'lastContact', 'temper', 'confrontation', 'brawl', 'lineupChanges', 'ejections', 'defensiveAlignment'];
+const AUTHORITY_FIELDS = ['score', 'hits', 'errors', 'hitterReads', 'hitByPitches', 'lineScore', 'outs', 'balls', 'strikes', 'bases', 'batterIndex', 'pitching', 'practice', 'result', 'pending', 'lastContact', 'temper', 'confrontation', 'brawl', 'lineupChanges', 'ejections', 'defensiveAlignment'];
 function storage() { try { return typeof sessionStorage !== 'undefined' ? sessionStorage : null; } catch { return null; } }
 function savedSession(baseUrl) {
   try { const value = JSON.parse(storage()?.getItem(STORAGE_KEY) || 'null'); return value && (!baseUrl || value.baseUrl === baseUrl.replace(/\/$/, '')) ? value : null; } catch { return null; }

@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, MOUND_RULES, FIGHT_ACTIONS, inStrikeZone } from './engine.mjs?v=0.7.1';
-import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.7.1';
-import { DELIVERIES, getRoster, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.7.1';
+import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, MOUND_RULES, FIGHT_ACTIONS, inStrikeZone } from './engine.mjs?v=0.8.0';
+import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.8.0';
+import { DELIVERIES, getRoster, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.8.0';
 
 // The simulation uses +x toward first base. Mirror x in the view so first base
 // appears on the right from behind home, without changing authoritative state.
@@ -12,6 +12,17 @@ const TAU = Math.PI * 2;
 const smooth = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
 const COLORS = { dirt: 0xb88258, chalk: 0xf1ebd6, wall: 0x173d35,
   home: 0xf0e7cf, homeCap: 0x173d35, away: 0xb5403e, awayCap: 0x1b2f45 };
+
+export function playerAppearance(actor = {}, number = actor.number || 1) {
+  const a=actor.appearance || {};
+  return { ...a, skin:a.skin || ['#c68e62','#986444','#d6aa80','#b57a51'][number%4],
+    hair:a.hair || '#352b25', height:clamp(a.height || 1,.78,1.16), build:clamp(a.build || 1,.80,1.25),
+    hairStyle:a.hairStyle || 'short', wheelchair:!!a.wheelchair };
+}
+const personIdentity = (actor,number) => actor?.appearance ? actor.playerId || actor.id || JSON.stringify(actor.appearance) : `shared-${number%4}`;
+const uniformName = (actor,home) => String(actor?.playerId || actor?.id || '').startsWith('backyard-') ? 'BACKYARD'
+  : String(actor?.playerId || actor?.id || '').startsWith('harbor-') ? 'HARBOR'
+    : String(actor?.playerId || actor?.id || '').startsWith('foundry-') ? 'FOUNDRY' : home ? 'FOUNDRY' : 'HARBOR';
 
 // A resolved pitch still belongs to the batter who saw it. The rules may have
 // advanced the lineup already; retain this player for the follow-through/recoil.
@@ -301,6 +312,26 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
     p.leftArm = p.rightArm = stop ? -1.35 : -.35; p.leftSpread = stop ? -.65 : .15; p.rightSpread = stop ? .65 : -.15;
     p.leftElbow = p.rightElbow = stop ? -.35 : -.7;
   }
+  // Presentation follows actual possession actions, including a missed scoop.
+  const actionAge=time-(actor.actionStartedAt ?? -100), actionLive=time<(actor.actionUntil ?? -1);
+  if(actionLive && !['batter','runner','umpire'].includes(role)) {
+    const duration=Math.max(.12,(actor.actionUntil||time)-(actor.actionStartedAt||time)),u=clamp(actionAge/duration,0,1),pulse=Math.sin(u*Math.PI);
+    if(actor.action==='pickup'||actor.action==='bobble') {
+      p.hipY-=.18*pulse;p.lean+=.38*pulse;p.leftKnee+=.40*pulse;p.rightKnee+=.32*pulse;
+      p.leftArm=mix(p.leftArm,-.50,pulse);p.leftElbow=mix(p.leftElbow,-.18,pulse);
+      p.rightArm=mix(p.rightArm,-.70,pulse);
+      if(actor.action==='bobble'){p.twist+=Math.sin(u*TAU)*.20;p.head=-.20;p.rightSpread+=pulse*.25;}
+    } else if(actor.action==='receive') {
+      p.leftArm=mix(-1.65,-1.0,u);p.leftElbow=mix(-.35,-1.1,u);p.lean=.10;p.twist=-.08*pulse;
+    } else if(actor.action==='tag') {
+      p.hipY-=.24*pulse;p.lean=.48*pulse;p.leftArm=-.72;p.leftElbow=-.12;p.leftSpread=-.28*pulse;p.leftKnee+=.42*pulse;p.rightKnee+=.25*pulse;
+    }
+  }
+  if(actor.appearance?.wheelchair || (role==='pitcher' && pitch?.delivery==='seated')) {
+    p.hipY=-.35;p.leftHip=p.rightHip=-Math.PI/2;p.leftKnee=p.rightKnee=Math.PI/2;
+    p.roll*=.18;p.stride=0;p.lean=clamp(p.lean,-.12,.30);
+    if(moving){const push=Math.sin(time*8);p.leftArm=p.rightArm=.20+push*.38;p.leftElbow=p.rightElbow=-.45-push*.25;p.twist=0;}
+  }
   return presentationHand(state, role, actor) === 'L' && role !== 'runner' ? mirrorMotion(p) : p;
 }
 
@@ -314,10 +345,11 @@ function canvasTexture(width, height, draw) {
 
 function fieldTexture(parkId = 'harbor') {
   return canvasTexture(2048, 2048, (c, w) => {
+    const park = getPark(parkId), palette = park.palette;
     const scale = w / 360, px = x => (180 - x) * scale, pz = z => (z + 135) * scale;
     c.fillStyle = '#294c36'; c.fillRect(0, 0, w, w);
     for (let z = -130; z < 225; z += 12) {
-      c.fillStyle = (Math.round(z / 12) & 1) ? '#376640' : '#417449';
+      c.fillStyle = (Math.round(z / 12) & 1) ? palette?.grass || '#376640' : palette?.stripe || '#417449';
       c.fillRect(0, pz(z), w, 12 * scale);
     }
     const path = (points, fill) => {
@@ -362,6 +394,14 @@ function fieldTexture(parkId = 'harbor') {
       seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; const x = seed % w;
       seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; const y = seed % w;
       c.fillStyle = i & 1 ? 'rgba(0,0,0,.028)' : 'rgba(255,255,230,.025)'; c.fillRect(x, y, 2, 2);
+    }
+    if (park.neighborhood) {
+      // Irregular worn patches stay painted into the static grass texture.
+      for (let i = 0; i < 65; i++) {
+        const angle = -.70 + (i * .6180339 % 1) * 1.4, r = 41 + (i * 17 % 43);
+        c.fillStyle = park.style === 'sandlot' ? 'rgba(190,164,112,.42)' : 'rgba(168,146,83,.13)';
+        c.beginPath(); c.ellipse(px(Math.sin(angle)*r),pz(Math.cos(angle)*r),(1+i%4)*scale,(.6+i%3)*scale,i*.7,0,TAU);c.fill();
+      }
     }
   }).texture;
 }
@@ -408,6 +448,9 @@ export class BallparkRenderer {
   buildParkScene() {
     const previous = new Set(this.scene.children);
     this.wallMeshes = []; this.lastBoard = '';
+    const palette = getPark(this.parkId).palette;
+    if(this.skyMaterial) { this.skyMaterial.uniforms.top.value.set(palette?.sky || '#101e36'); this.skyMaterial.uniforms.horizon.value.set(palette?.horizon || '#b89086'); }
+    if(this.skyline) this.skyline.visible = !getPark(this.parkId).neighborhood;
     this.buildField(); this.buildStadium(); this.buildParkDetails();
     const group = new THREE.Group(); group.name = `park:${this.parkId}`;
     for (const child of [...this.scene.children]) if (!previous.has(child)) group.add(child);
@@ -440,7 +483,7 @@ export class BallparkRenderer {
   }
   parkRadius(angle) { return fieldRadius(angle, this.parkId); }
   standBase(angle) {
-    return this.parkId === 'fenway' && Math.abs(angle) <= Math.PI / 4 ? fenceHeight(-angle, this.parkId) + .25 : 1.6;
+    return ['fenway','wrigley'].includes(this.parkId) && Math.abs(angle) <= Math.PI / 4 ? fenceHeight(-angle, this.parkId) + .25 : 1.6;
   }
   standRows(angle) {
     return this.parkId === 'fenway' && angle >= 8 * Math.PI / 180 && angle <= Math.PI / 4 ? 3 : 12;
@@ -470,14 +513,16 @@ export class BallparkRenderer {
       vertexShader: 'varying vec3 p;void main(){p=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader: 'varying vec3 p;uniform vec3 top;uniform vec3 horizon;void main(){float t=smoothstep(-.05,.65,normalize(p).y);gl_FragColor=vec4(mix(horizon,top,t),1.);}'
     }));
+    this.skyMaterial = sky.material;
     this.scene.add(sky);
     const sun = new THREE.Mesh(this.geometries.sphere, new THREE.MeshBasicMaterial({ color: 0xffd2a0 }));
     sun.position.set(-205, 12, 255); sun.scale.setScalar(9); this.scene.add(sun);
     // A quiet industrial skyline gives this original ballpark a local identity.
+    this.skyline = new THREE.Group(); this.scene.add(this.skyline);
     for (let i = 0; i < 33; i++) {
       const x = -235 + i * 14, h = 9 + ((i * 29) % 33), z = 180 + (i % 5) * 10;
-      this.box(i % 3 ? 0x2f414e : 0x3b4a54, x, h / 2, z, 11 + (i % 4) * 2, h, 15);
-      if (i % 4 === 0) this.box(0x2d464b, x + 2, h + 4, z, 2, 8, 2);
+      this.box(i % 3 ? 0x2f414e : 0x3b4a54, x, h / 2, z, 11 + (i % 4) * 2, h, 15,this.skyline);
+      if (i % 4 === 0) this.box(0x2d464b, x + 2, h + 4, z, 2, 8, 2,this.skyline);
     }
   }
 
@@ -500,7 +545,7 @@ export class BallparkRenderer {
       const p = V(-data.a.x, 0, data.a.z), q = V(-data.b.x, 0, data.b.z);
       const outward = V(-data.normal.x, 0, data.normal.z), thickness = .6;
       const middle = p.clone().add(q).multiplyScalar(.5).addScaledVector(outward, thickness / 2);
-      const wall = this.box(data.zone === 'monster' ? 0x235647 : i % 2 ? 0x204b3d : 0x244f40,
+      const wall = this.box(data.zone === 'monster' ? 0x235647 : getPark(this.parkId).palette?.wall || (i % 2 ? 0x204b3d : 0x244f40),
         middle.x, data.height / 2, middle.z, p.distanceTo(q), data.height, thickness);
       wall.rotation.y = -Math.atan2(q.z - p.z, q.x - p.x);
       wall.userData.wallSegment = data; this.wallMeshes.push(wall);
@@ -522,11 +567,12 @@ export class BallparkRenderer {
   standRadius(a) {
     const t = Math.abs(a);
     if (t <= Math.PI / 4) return this.parkRadius(-a) + 5;
-    const corner = this.parkId === 'fenway' ? this.parkRadius(-Math.sign(a) * Math.PI / 4) + 5 : 110;
-    return mix(corner, this.parkId === 'fenway' ? 31 : 36, clamp((t - Math.PI / 4) / (Math.PI * .53), 0, 1));
+    const corner = this.parkId !== 'harbor' ? this.parkRadius(-Math.sign(a) * Math.PI / 4) + 5 : 110;
+    return mix(corner, this.parkId !== 'harbor' ? 31 : 36, clamp((t - Math.PI / 4) / (Math.PI * .53), 0, 1));
   }
 
   buildStadium() {
+    if(getPark(this.parkId).neighborhood) { this.buildNeighborhood(); return; }
     const positions = [], colors = [];
     const vertex = (x, y, z, color) => { positions.push(x, y, z); colors.push(color.r, color.g, color.b); };
     const quad = (p, q, r, s, color) => { [p, q, r, p, r, s].forEach(v => vertex(...v, color)); };
@@ -587,10 +633,11 @@ export class BallparkRenderer {
       this.box(0xdecda6, 0, 18.7, 122, 32, .6, 2);
       const screen = new THREE.Mesh(new THREE.PlaneGeometry(28.7, 11.2), new THREE.MeshBasicMaterial({ map: this.board.texture }));
       screen.position.set(0, 12, 120.95); screen.rotation.y = Math.PI; this.scene.add(screen); this.boardScreen = screen;
-      this.sign('HARBOR FIELD', 0, 21.1, 122, 32, 3.2, '#e5d6af', '#223e35');
+      this.sign(getPark(this.parkId).shortName, 0, 21.1, 122, 32, 3.2, '#e5d6af', '#223e35');
       this.sign('EST. 2003', 43, 4.6, 105, 13, 2.8, '#e8d8ae', '#264b3c', .45);
       this.sign('DFE SPORTS', -43, 4.6, 105, 17, 2.8, '#d8cfb3', '#264b3c', -.45);
     }
+    if(this.parkId==='wrigley') this.buildIvyDetails();
     this.updateBoard(null);
     for (let i = 0; i < 3; i++) {
       const x = -23 + i * 23;
@@ -637,6 +684,103 @@ export class BallparkRenderer {
     this.sign('FENWAY PARK',p.x,p.y,p.z,19,2.0,'#e1dfbc','#235647',angle);
   }
 
+  buildIvyDetails() {
+    const rigid=new THREE.Group(); this.scene.add(rigid);
+    for(const wall of getWallSegments(this.parkId)) {
+      for(let i=0;i<Math.ceil(wall.length/1.9);i++) {
+        const t=(i+.5)/Math.ceil(wall.length/1.9),x=-mix(wall.a.x,wall.b.x,t)+wall.normal.x*.08,z=mix(wall.a.z,wall.b.z,t)-wall.normal.z*.08;
+        // Flattened clustered leaves give the ivy depth without transparent cards.
+        this.mesh('sphere',i%3?0x3d683e:0x597e3f,x,wall.height*.48,z,1.15,wall.height*.48,.20,rigid);
+      }
+    }
+    for(const side of[-1,1])for(let i=0;i<5;i++) {
+      const x=side*(42+i*12),z=125-i*8,h=8+(i%3)*1.3;
+      this.box(i%2?0x9b6954:0x886449,x,h/2,z,10,h,12,rigid);
+      this.box(0x35453e,x,h+.25,z,11,.5,13,rigid);
+      for(let row=0;row<3;row++)this.box(0x53766a,x,h+.8+row*.65,z+row*1.1,8,.24,.8,rigid);
+      for(let col=0;col<3;col++)this.box(0x304544,x-3+col*3,h-2.1,z-6.05,1.2,1.7,.08,rigid);
+    }
+    this.batchWorld(rigid);
+    this.sign('WELCOME TO THE FRIENDLY CONFINES',0,4,-39,22,2.7,'#fff2d2','#a73632');
+    for(const marker of getPark(this.parkId).dimensions){
+      const walls=getWallSegments(this.parkId),wall=walls.find(w=>marker.angle<=Math.atan2(w.b.x,w.b.z)+1e-7)||walls.at(-1),r=this.parkRadius(marker.angle);
+      this.sign(String(marker.feet),-Math.sin(marker.angle)*r+wall.normal.x*.25,1.3,Math.cos(marker.angle)*r-wall.normal.z*.25,3.8,1.1,'#efe6b8','#2a5235',Math.atan2(wall.normal.x,-wall.normal.z)-Math.PI);
+    }
+  }
+
+  buildNeighborhood() {
+    const park=getPark(this.parkId),rigid=new THREE.Group();this.scene.add(rigid);
+    const tree=(x,z,r=5)=>{
+      this.mesh('cylinder',0x776047,x,3.8,z,.55,7.6,.55,rigid);
+      this.mesh('sphere',0x426a3e,x,8.7,z,r,r*.85,r,rigid);
+      this.mesh('sphere',0x547b43,x-r*.4,10.3,z-.9,r*.72,r*.70,r*.75,rigid);
+    };
+    const fence=getWallSegments(this.parkId);
+    for(const wall of fence) {
+      const count=Math.ceil(wall.length/(park.style==='backyard'?.8:4));
+      for(let i=0;i<=count;i++){
+        const t=i/count,x=-mix(wall.a.x,wall.b.x,t),z=mix(wall.a.z,wall.b.z,t);
+        this.box(park.style==='backyard'?0xc2af86:0x899285,x,wall.height/2+.1,z,.10,wall.height+.3,.12,rigid);
+      }
+      if(park.style==='schoolyard'&&wall.height>3)for(let y=.5;y<wall.height;y+=.5){
+        this.segment(V(-wall.a.x,y,wall.a.z-.05),V(-wall.b.x,y,wall.b.z-.05),.022,0xc79577,rigid);
+      }
+    }
+    // A few portable bleachers retain an intimate scale, clear of all basepaths.
+    for(const side of[-1,1])for(let row=0;row<3;row++){
+      this.box(0x879789,side*(39+row),.55+row*.48,4,1.1,.15,9,rigid);
+      for(const z of[1,7])this.box(0x64746c,side*(39+row),(.55+row*.48)/2,z,.15,.55+row*.48,.15,rigid);
+    }
+    if(park.style==='backyard') {
+      for(let i=0;i<5;i++){
+        const x=-70+i*34,z=108+(i%2)*9,h=5+(i%2)*1.7;
+        this.box([0xc1af8b,0x93a8a1,0xb8a391][i%3],x,h/2,z,19,h,13,rigid);
+        const roof=this.box(0x59635d,x,h+.7,z,21,1.4,15,rigid);roof.rotation.z=(i%2?1:-1)*.04;
+        for(const dx of[-6,6])this.box(0x4c6268,x+dx,3,z-6.6,2.4,2.1,.12,rigid);
+        this.box(0x765f49,x,.2,z-9,12,.4,5,rigid);
+      }
+      tree(-80,75,8);tree(70,75,8);tree(-18,108,6);tree(38,119,7);
+      // Shed and clothesline beyond the short fence.
+      this.box(0x987747,-59,2.1,63,7,4.2,5,rigid);this.box(0x655848,-59,4.3,63,8,.35,6,rigid);
+      for(const x of[-72,-57])this.box(0x8c8d78,x,2.5,90,.12,5,.12,rigid);
+      this.segment(V(-72,4.4,90),V(-57,4.4,90),.025,0xd0c7ad,rigid);
+      for(let i=0;i<5;i++)this.box([0xd5c18e,0x7393a3,0xab6657][i%3],-70+i*2.6,3.6,90,.95,1.6,.035,rigid);
+    } else if(park.style==='sandlot') {
+      this.box(0x8c735f,-55,6,119,42,12,18,rigid);this.box(0x5c6965,-55,12.2,119,44,.4,20,rigid);
+      for(let i=0;i<4;i++)this.box(0x4c5b57,-70+i*10,5,109.9,6,8,.15,rigid);
+      for(const z of[125,130])this.box(0x4d5148,25,.15,z,105,.16,.16,rigid);
+      for(let x=-27;x<78;x+=2)this.box(0x776957,x,.08,127.5,.35,.15,7,rigid);
+      for(let i=0;i<3;i++){
+        const x=-15+i*31;this.box(i%2?0x99714d:0x7b5345,x,3.8,127.5,27,5.8,5,rigid);
+        this.box(0x574d41,x,.9,127.5,25,.7,5.3,rigid);
+        for(const dx of[-9,9])for(const dz of[-2.8,2.8])this.mesh('sphere',0x343c38,x+dx,.8,127.5+dz,.85,.85,.30,rigid);
+      }
+      tree(78,97,5);tree(-91,63,6);
+      for(let i=0;i<7;i++)this.box(0x7c805d,60+i*2.3,.6,56+i*.6,1.6,1.2,1.3,rigid);
+    } else {
+      this.box(0xa06c55,21,6.5,113,73,13,16,rigid);this.box(0x716a58,21,13.3,113,75,.6,18,rigid);
+      for(let i=0;i<12;i++)for(const y of[4,9])this.box(0x547277,-10+i*5.6,y,104.9,2.5,2.7,.15,rigid);
+      this.box(0x87735a,21,1.8,103.5,6,3.6,2,rigid);
+      this.box(0x696f6b,-63,.025,45,25,.05,32,rigid);
+      for(const z of[33,57]){this.mesh('cylinder',0x84938b,-63,2.3,z,.1,4.6,.1,rigid);this.box(0xd2d4ba,-63,4.3,z,2.8,1.8,.12,rigid);this.box(0xa65c3d,-63,3.7,z-.5,.9,.07,.8,rigid);}
+      for(const x of[62,75])this.mesh('cylinder',0x5b7974,x,2.1,68,.13,4.2,.13,rigid);
+      this.box(0x607e75,68.5,4.2,68,13.4,.16,.16,rigid);
+      for(const x of[65,71]){this.box(0x867451,x,1.1,68,2,.15,.7,rigid);for(const dx of[-.8,.8])this.box(0x9aab9e,x+dx,2.65,68,.035,3.1,.035,rigid);}
+      tree(82,84,7);tree(-82,82,6);
+    }
+    const z=fieldRadius(0,this.parkId)+7;
+    this.box(0x324c3e,0,6.2,z,17,6.5,.45,rigid);
+    for(const x of[-7,7])this.box(0x665b44,x,3,z,.35,6,.35,rigid);
+    // A dark backing, outside the playing surface, keeps pitch flight readable.
+    this.box(0x2c4836,0,2,z-2,18,4,.3,rigid);
+    this.batchWorld(rigid);
+    this.board=canvasTexture(1024,400,()=>{});
+    const screen=new THREE.Mesh(new THREE.PlaneGeometry(16,5.4),new THREE.MeshBasicMaterial({map:this.board.texture}));
+    screen.position.set(0,6.2,z-.3);screen.rotation.y=Math.PI;this.scene.add(screen);this.boardScreen=screen;
+    this.sign(park.shortName,0,10.4,z,20,2.2,'#f0e6c5',park.style==='schoolyard'?'#804d39':'#324c3e');
+    this.updateBoard(null);
+  }
+
   batchWorld(group) {
     group.updateMatrixWorld(true);
     const positions = [], normals = [], colors = [];
@@ -660,6 +804,7 @@ export class BallparkRenderer {
   }
 
   buildParkDetails() {
+    if(getPark(this.parkId).neighborhood) return;
     const rigid = new THREE.Group(); this.scene.add(rigid);
     // Brick front walls, aisle portals, railings, and a covered home grandstand.
     // This permanent architecture is folded into a single rigid draw.
@@ -682,7 +827,7 @@ export class BallparkRenderer {
       }
     }
     // A dark batter's eye keeps the ball readable against the center-field park.
-    const eyeZ = this.parkId === 'fenway' ? Math.max(...getWallSegments(this.parkId).flatMap(s=>[s.a.z,s.b.z])) + 2 : 116.9;
+    const eyeZ = this.parkId !== 'harbor' ? Math.max(...getWallSegments(this.parkId).flatMap(s=>[s.a.z,s.b.z])) + 2 : 116.9;
     this.box(0x112c2a, 0, 5.0, eyeZ, 25, 8.2, .8, rigid);
     for (const x of [-12.6,12.6]) this.box(0x53635b, x, 5.0, eyeZ-.1, .18, 8.5, .9, rigid);
     for (const side of [-1,1]) {
@@ -726,7 +871,7 @@ export class BallparkRenderer {
     const stars=[];for(let i=0;i<70;i++){const a=i*2.399963,r=380,y=70+((i*47)%180);stars.push(Math.sin(a)*r,y,Math.cos(a)*r);}
     const starGeo=new THREE.BufferGeometry();starGeo.setAttribute('position',new THREE.Float32BufferAttribute(stars,3));
     this.scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xe3e9ee,size:.75,sizeAttenuation:true,transparent:true,opacity:.38,depthWrite:false})));
-    if (this.parkId !== 'fenway') {
+    if (this.parkId === 'harbor') {
       this.sign('115 M',0,1.2,114.35,4.6,.8,'#d8d1b7','#173a30');
       this.sign('HARBOR LINE  •  EST. 2003',-42,1.8,105,20,1.1,'#d4c6a4','#294b3b',-.45);
       this.sign('FOUNDRY ATHLETIC CLUB',42,1.8,105,20,1.1,'#d4c6a4','#294b3b',.45);
@@ -781,11 +926,11 @@ export class BallparkRenderer {
     if (key === this.lastBoard) return; this.lastBoard = key;
     const { ctx: c } = this.board; c.fillStyle = '#112c28'; c.fillRect(0, 0, 1024, 400);
     c.strokeStyle = '#bda975'; c.lineWidth = 4; c.strokeRect(16, 16, 992, 368);
-    c.fillStyle = '#e4d3a1'; c.font = 'bold 40px Georgia'; c.textAlign = 'center'; c.fillText(this.parkId === 'fenway' ? 'FENWAY PARK  •  BOSTON' : 'HARBOR FIELD', 512, 73);
+    c.fillStyle = '#e4d3a1'; c.font = 'bold 40px Georgia'; c.textAlign = 'center'; c.fillText(this.parkId === 'fenway' ? 'FENWAY PARK  •  BOSTON' : getPark(this.parkId).shortName, 512, 73);
     c.font = '26px monospace'; c.fillStyle = '#94a78b'; c.fillText('1  2  3  4  5  6  7  8  9    R  H', 623, 126);
     c.textAlign = 'left'; c.fillStyle = '#f0dfae'; c.font = 'bold 35px monospace';
     for (let side = 0; side < 2; side++) {
-      const y = 193 + side * 64; c.fillText(side ? 'FOUNDRY' : 'HARBOR', 46, y);
+      const y = 193 + side * 64; c.fillText(getRoster(side,state).abbrev, 46, y);
       c.font = '32px monospace';
       for (let i = 0; i < 9; i++) {
         if (this.parkId === 'fenway') { c.fillStyle = '#0d271f'; c.fillRect(323 + i * 52, y - 36, 44, 48); c.fillStyle = '#f0dfae'; }
@@ -799,13 +944,15 @@ export class BallparkRenderer {
     this.board.texture.needsUpdate = true;
   }
 
-  uniformMaterial(home, number, back = false) {
+  uniformMaterial(home, number, back = false,person) {
     this.uniformMaterials ||= new Map();
-    const key = `${home}:${number}:${back}`;
+    const label=uniformName(person,home),ink=person?.appearance?.trim || (home?'#1b4435':'#f4e9ce');
+    const key = `${home}:${number}:${back}:${label}:${ink}`;
     if (!this.uniformMaterials.has(key)) {
-      const { texture } = canvasTexture(256, 256, c => {
-        c.clearRect(0, 0, 256, 256); c.fillStyle = home ? '#1b4435' : '#f4e9ce'; c.textAlign = 'center';
-        c.font = `bold ${back ? 35 : 36}px Georgia`; c.fillText(home ? 'FOUNDRY' : 'HARBOR', 128, 49);
+      const { texture } = canvasTexture(128, 128, c => {
+        c.scale(.5,.5);
+        c.clearRect(0, 0, 256, 256); c.fillStyle = ink; c.textAlign = 'center';
+        c.font = `bold ${back ? 35 : 36}px Georgia`; c.fillText(label, 128, 49);
         c.font = `bold ${back ? 154 : 125}px Arial`; c.fillText(String(number), 128, back ? 218 : 205);
       });
       this.uniformMaterials.set(key, new THREE.MeshLambertMaterial({ map: texture, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }));
@@ -819,16 +966,21 @@ export class BallparkRenderer {
     this.rigMaterial ||= new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: false });
     model.ownedGeometries = [];
     const groups = []; model.body.traverse(o => { if (o.isGroup) groups.push(o); });
+    model.chair?.traverse(o => { if(o.isGroup)groups.push(o); });
     for (const parent of groups) {
       const parts = parent.children.filter(o => o.isMesh && !o.material.map && !o.material.transparent);
       if (!parts.length) continue;
-      const positions = [], normals = [], colors = [];
+      const positions = [], normals = [], colors = [], indices = [];
       for (const part of parts) {
         part.updateMatrix();
-        const geometry = part.geometry.index ? part.geometry.toNonIndexed() : part.geometry.clone();
+        // Preserve shared vertices. Expanding every sphere into separate triangle
+        // vertices multiplied the cached roster's memory without changing its look.
+        const geometry = part.geometry.clone(), offset = positions.length / 3;
         geometry.applyMatrix4(part.matrix);
         if (!geometry.attributes.normal) geometry.computeVertexNormals();
         positions.push(...geometry.attributes.position.array); normals.push(...geometry.attributes.normal.array);
+        if(geometry.index)for(const index of geometry.index.array)indices.push(index+offset);
+        else for(let i=0;i<geometry.attributes.position.count;i++)indices.push(i+offset);
         const colour = part.material.color;
         for (let i = 0; i < geometry.attributes.position.count; i++) colors.push(colour.r, colour.g, colour.b);
         parent.remove(part); geometry.dispose();
@@ -837,6 +989,7 @@ export class BallparkRenderer {
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
       geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
       geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      geometry.setIndex(indices);
       geometry.computeBoundingSphere(); model.ownedGeometries.push(geometry);
       parent.add(new THREE.Mesh(geometry, this.rigMaterial));
     }
@@ -853,12 +1006,12 @@ export class BallparkRenderer {
   numberPlayer(model, number) {
     if (model.number === number) return;
     model.number = number;
-    if (model.frontLabel) model.frontLabel.material = this.uniformMaterial(model.home, number, false);
-    if (model.backLabel) model.backLabel.material = this.uniformMaterial(model.home, number, true);
+    if (model.frontLabel) model.frontLabel.material = this.uniformMaterial(model.home, number, false,model.person);
+    if (model.backLabel) model.backLabel.material = this.uniformMaterial(model.home, number, true,model.person);
   }
 
-  playerKey(home, number, bat, role, handedness) {
-    return `${home}:${bat ? 'batter' : role === 'pitcher' ? 'fielder' : role}:${handedness}:${number % 4}`;
+  playerKey(home, number, bat, role, handedness,person) {
+    return `${home}:${bat ? 'batter' : role === 'pitcher' ? 'fielder' : role}:${handedness}:${personIdentity(person,number)}`;
   }
 
   clonePlayer(template) {
@@ -871,15 +1024,16 @@ export class BallparkRenderer {
     return model;
   }
 
-  player(home, number = 1, bat = false, role = 'fielder', handedness = 'R') {
+  player(home, number = 1, bat = false, role = 'fielder', handedness = 'R',person) {
     this.playerTemplates ||= new Map();
-    const key = this.playerKey(home, number, bat, role, handedness);
+    const key = this.playerKey(home, number, bat, role, handedness,person);
     const template = this.playerTemplates.get(key);
     if (template) {
       const model = this.clonePlayer(template); model.role = role;
       this.numberPlayer(model, number); this.scene.add(model.group); return model;
     }
-    const model = this.buildPlayer(home, number, bat, role, handedness);
+    const model = this.buildPlayer(home, number, bat, role, handedness,person);
+    model.identityKey=key;
     model.sharedGeometry = true;
     // Retain a pristine transform hierarchy; live poses and numbers must never
     // alter the template used for the next hitter, runner, or defensive club.
@@ -887,22 +1041,43 @@ export class BallparkRenderer {
     return model;
   }
 
-  async prepare() {
-    if (this.prepared) return;
+  async prepare(stateOrOptions) {
+    this.preparedTeams ||= new Set();
+    const signature=[getRoster(0,stateOrOptions).id,getRoster(1,stateOrOptions).id].join('/');
+    if(this.preparedTeams.has(signature))return;
+    const wantedKeys=new Set();
     const warm = (home, person, bat, role, hand) => {
-      const model = this.player(home, person.number, bat, role, hand);
+      wantedKeys.add(this.playerKey(home,person.number,bat,role,hand,person));
+      const model = this.player(home, person.number, bat, role, hand,person);
       this.releaseModel(model);
     };
     for (let side = 0; side < 2; side++) {
-      const home = side === 1, roster = getRoster(side);
+      const home = side === 1, roster = getRoster(side,stateOrOptions);
       for (const person of [...roster.lineup, ...roster.bench]) {
         for (const hand of person.bats === 'S' ? ['R', 'L'] : [person.bats]) warm(home, person, true, 'batter', hand);
         warm(home, person, false, 'runner', 'R');
         warm(home, person, false, 'fielder', person.throws);
+        if(person.position==='C'||roster.bench.includes(person))warm(home,person,false,'catcher',person.throws);
       }
       for (const person of roster.pitchers) warm(home, person, false, 'pitcher', person.throws);
       warm(home, { number: 2 }, false, 'catcher', 'R');
+      // Legacy snapshots and establishing-shot extras have no identity data.
+      for(let n=0;n<4;n++)for(const hand of['L','R']){
+        warm(home,{number:n},true,'batter',hand);warm(home,{number:n},false,'runner','R');warm(home,{number:n},false,'fielder',hand);
+      }
     }
+    // A selection change keeps only the requested clubs plus anything still
+    // visible during the menu/lobby handoff. Never dispose a live model's buffers.
+    const activeModels=[this.batter,this.catcher,this.umpire,...(this.models?.values()||[]),...(this.runnerModels||[])];
+    for(const model of activeModels)if(model?.identityKey)wantedKeys.add(model.identityKey);
+    for(const [key,template] of this.playerTemplates)if(!wantedKeys.has(key)){
+      for(const geometry of template.ownedGeometries||[])geometry.dispose();
+      this.playerTemplates.delete(key);
+    }
+    const keptMaterials=new Set();
+    const keep=object=>{for(const material of Array.isArray(object.material)?object.material:object.material?[object.material]:[])keptMaterials.add(material);};
+    this.scene.traverse(keep);for(const template of this.playerTemplates.values())template.group.traverse(keep);
+    for(const [key,material] of this.uniformMaterials||[])if(!keptMaterials.has(material)){material.map?.dispose();material.dispose();this.uniformMaterials.delete(key);}
     for (const material of this.uniformMaterials?.values() || []) this.renderer.initTexture?.(material.map);
     // Upload the same cached geometry that live players will use. A one-pixel
     // offscreen pass keeps shader compilation and first-use buffer uploads out
@@ -926,18 +1101,20 @@ export class BallparkRenderer {
       this.scene.remove(warmGroup);
       for (const template of this.playerTemplates.values()) warmGroup.remove(template.group);
     }
-    this.prepared = true;
+    this.prepared = true;this.preparedTeams.clear();this.preparedTeams.add(signature);
   }
 
-  buildPlayer(home, number = 1, bat = false, role = 'fielder', handedness = 'R') {
+  buildPlayer(home, number = 1, bat = false, role = 'fielder', handedness = 'R',person) {
     this.geometries.jersey ||= new THREE.LatheGeometry([new THREE.Vector2(.200,-.25),new THREE.Vector2(.225,-.15),new THREE.Vector2(.245,.07),new THREE.Vector2(.26,.19),new THREE.Vector2(.20,.25)],12);
     this.geometries.label ||= new THREE.PlaneGeometry(.35, .30);
     this.shadowMaterial ||= new THREE.MeshBasicMaterial({ color: 0x10271b, transparent: true, opacity: .23, depthWrite: false });
     const group = new THREE.Group(), body = new THREE.Group(), torso = new THREE.Group(), head = new THREE.Group();
     group.add(body); body.position.y = .93; body.add(torso); torso.add(head); head.position.set(0, .76, .015);
-    const jersey = role === 'umpire' ? 0x38454b : home ? COLORS.home : COLORS.away;
-    const cap = role === 'umpire' ? 0x263239 : home ? COLORS.homeCap : COLORS.awayCap;
-    const skin = [0xc68e62, 0x986444, 0xd6aa80, 0xb57a51][number % 4], pants = home ? 0xe6dfcc : 0xd4d6d0;
+    const appearance=playerAppearance(person,number);
+    const jersey = role === 'umpire' ? 0x38454b : appearance.jersey || (home ? COLORS.home : COLORS.away);
+    const cap = role === 'umpire' ? 0x263239 : appearance.cap || (home ? COLORS.homeCap : COLORS.awayCap);
+    const skin = appearance.skin,pants=appearance.pants || (home ? 0xe6dfcc : 0xd4d6d0);
+    body.scale.set(appearance.build,appearance.height,appearance.build);
     this.mesh('jersey', jersey, 0, .29, 0, 1, 1, .67, torso);
     this.mesh('sphere', pants, 0, .035, 0, .225, .135, .145, body);
     for (const side of [-1,1]) this.mesh('sphere', jersey, side*.225, .44, 0, .105, .105, .115, torso);
@@ -954,7 +1131,7 @@ export class BallparkRenderer {
     }
     this.mesh('sphere', skin, 0, 0, 0, .125, .159, .124, head);
     this.mesh('sphere', skin, 0, -.079, .034, .101, .088, .101, head);
-    this.mesh('sphere', 0x463729, 0, .055, -.084, .116, .107, .056, head);
+    this.mesh('sphere', appearance.hair, 0, .055, -.084, .116, .107, .056, head);
     this.mesh('sphere', skin, -.135, -.007, -.005, .031, .052, .032, head);
     this.mesh('sphere', skin, .135, -.007, -.005, .031, .052, .032, head);
     this.mesh('sphere', skin, 0, -.018, .129, .031, .043, .043, head);
@@ -963,10 +1140,26 @@ export class BallparkRenderer {
       this.box(0x382b23, side * .053, .029, .118, .026, .012, .012, head);
       this.box(0x322820, side * .053, .054, .110, .040, .010, .013, head);
     }
-    this.mesh('sphere', cap, 0, .123, -.008, .148, .087, .148, head);
-    this.box(cap, 0, .111, .144, .235, .022, .152, head);
-    this.box(home ? 0xe6d9b7 : 0xe6d8be, 0, .16, .134, .04, .043, .008, head);
-    const helmet = bat || role === 'runner' || role === 'catcher';
+    if(!appearance.noCap || role==='catcher'){
+      this.mesh('sphere', cap, 0, .123, -.008, .148, .087, .148, head);
+      this.box(appearance.capTrim||cap, 0, .111, .144, .235, .022, .152, head);
+      this.box(home ? 0xe6d9b7 : 0xe6d8be, 0, .16, .134, .04, .043, .008, head);
+    } else this.mesh('sphere',appearance.hair,0,.10,-.018,.142,.11,.14,head);
+    if(appearance.hairStyle==='curly')for(let i=0;i<7;i++){
+      const a=i/7*TAU;this.mesh('sphere',appearance.hair,Math.sin(a)*.12,.075,Math.cos(a)*.095-.03,.066,.069,.061,head);
+    }
+    if(appearance.hairStyle==='long'||appearance.hairStyle==='braids')for(const side of[-1,1])this.mesh('sphere',appearance.hair,side*.12,-.07,-.06,.047,.18,.052,head);
+    if(appearance.hairBuns)for(const side of[-1,1])this.mesh('sphere',appearance.hair,side*.14,.13,-.045,.085,.09,.085,head);
+    if(appearance.ponytail)this.mesh('sphere',appearance.hair,0,-.04,-.18,.065,.18,.055,head);
+    if(appearance.pompadour)this.mesh('sphere',appearance.hair,0,.15,.055,.13,.09,.10,head);
+    if(appearance.glasses){for(const side of[-1,1]){this.box(0x272b30,side*.057,.027,.133,.080,.055,.013,head);this.box(0x8399a0,side*.057,.027,.142,.056,.032,.005,head);}this.box(0x272b30,0,.034,.14,.030,.010,.014,head);}
+    if(appearance.accessory==='headphones'){
+      for(const side of[-1,1])this.mesh('sphere',0xb73b32,side*.163,.015,0,.045,.09,.067,head);
+      this.box(0xb73b32,0,.205,-.02,.30,.035,.07,head);
+    }
+    if(appearance.freckles)for(const side of[-1,1])for(let i=0;i<3;i++)this.mesh('sphere',0xa56f49,side*(.05+i*.016),-.015-i%2*.012,.119,.006,.006,.006,head);
+    if(appearance.rainbow)for(let i=0;i<4;i++)this.box([0xc96555,0xd6b35f,0x648754,0x748fac][i],0,.35+i*.026,.175,.27,.02,.008,torso);
+    const helmet = (!appearance.noCap && (bat || role === 'runner')) || role === 'catcher';
     if (helmet) {
       this.mesh('sphere', cap, handedness === 'L' && bat ? .135 : -.135, .004, -.014, .035, .113, .115, head);
       if (role === 'catcher') this.mesh('sphere', cap, .135, .004, -.014, .035, .113, .115, head);
@@ -1025,11 +1218,24 @@ export class BallparkRenderer {
       this.mesh('cylinder', 0x423a2c, 0, .105, 0, .024, .20, .024, batPivot);
       this.mesh('sphere', 0xc5a374, 0, -.005, 0, .035, .018, .035, batPivot);
     }
-    const model = { group, body, torso, head, ...limbs, batPivot, home, number, role, hand: handedness, gloveSide: handedness === 'L' ? 'right' : 'left', lastX: null, lastZ: null, facing: 0, shadow };
+    let chair;
+    if(appearance.wheelchair){
+      chair=new THREE.Group();group.add(chair);chair.name='wheelchair';
+      for(const side of[-1,1]){
+        const tire=this.mesh('cylinder',0x273439,side*.38,.41,.05,.39,.075,.39,chair);tire.rotation.z=Math.PI/2;
+        const hub=this.mesh('cylinder',0xaab4ad,side*.425,.41,.05,.29,.015,.29,chair);hub.rotation.z=Math.PI/2;
+        this.box(0x667f8c,side*.29,.65,-.10,.055,.53,.055,chair);
+        this.mesh('sphere',0x273439,side*.25,.10,.48,.095,.095,.06,chair);
+      }
+      this.box(0x305f8a,0,.57,.02,.58,.13,.47,chair);this.box(0x305f8a,0,.80,-.20,.57,.48,.09,chair);
+      this.box(0x748a93,0,.17,.53,.5,.055,.24,chair);
+      // Static frame/wheels are batched with their own root, fixed on the ground.
+    }
+    const model = { group, body, torso, head,chair, ...limbs, batPivot, home, number, role,person,appearance, hand: handedness, gloveSide: handedness === 'L' ? 'right' : 'left', lastX: null, lastZ: null, facing: 0, shadow };
     this.batchRig(model);
     if (role !== 'catcher' && role !== 'umpire') {
-      model.frontLabel = new THREE.Mesh(this.geometries.label, this.uniformMaterial(home, number, false)); model.frontLabel.position.set(0, .30, .178); torso.add(model.frontLabel);
-      model.backLabel = new THREE.Mesh(this.geometries.label, this.uniformMaterial(home, number, true)); model.backLabel.position.set(0, .30, -.174); model.backLabel.rotation.y = Math.PI; torso.add(model.backLabel);
+      model.frontLabel = new THREE.Mesh(this.geometries.label, this.uniformMaterial(home, number, false,person)); model.frontLabel.position.set(0, .30, .178); torso.add(model.frontLabel);
+      model.backLabel = new THREE.Mesh(this.geometries.label, this.uniformMaterial(home, number, true,person)); model.backLabel.position.set(0, .30, -.174); model.backLabel.rotation.y = Math.PI; torso.add(model.backLabel);
     }
     model.heldBall = new THREE.Mesh(this.geometries.sphere, this.material(0xf6f0df));
     model.heldBall.scale.setScalar(.041); model.heldBall.position.set(0, -.025, .045); model.heldBall.visible = false; model[handedness === 'L' ? 'leftHand' : 'rightHand'].add(model.heldBall);
@@ -1103,7 +1309,7 @@ export class BallparkRenderer {
   pose(model, x, z, state, { moving = false, facing = model.facing || 0, role = model.role, actor = {}, index = 0 } = {}) {
     model.group.position.set(x, 0, z); model.group.rotation.y = facing; model.facing = facing;
     const p = samplePlayerMotion(state, role, { moving, actor, index });
-    model.body.position.set(p.hipX || 0, .93 + p.hipY, p.hipZ || 0); model.body.rotation.set(p.lean, 0, p.roll || 0);
+    model.body.position.set(p.hipX || 0, (.93 + p.hipY)*(model.appearance?.height||1), p.hipZ || 0); model.body.rotation.set(p.lean, 0, p.roll || 0);
     model.torso.rotation.set(0, p.twist, 0); model.head.rotation.y = p.head;
     model.leftLeg.rotation.set(p.leftHip, 0, .035); model.rightLeg.rotation.set(p.rightHip, 0, -.035);
     model.leftShin.rotation.x = p.leftKnee; model.rightShin.rotation.x = p.rightKnee;
@@ -1188,23 +1394,28 @@ export class BallparkRenderer {
     const fielders = state?.fielders?.length ? state.fielders : fallback.map(([role,x,z], id) => ({ id, role, x, z }));
     const homeDefense = !state || state.battingSide === 0;
     const batterActor = presentationBatter(state), batterHand = batterActor.hand || 'R';
-    if (this.homeDefense !== homeDefense) {
+    const appearanceTeams=[getRoster(0,state).id,getRoster(1,state).id].join('/');
+    if (this.homeDefense !== homeDefense || this.appearanceTeams !== appearanceTeams) {
+      this.appearanceTeams=appearanceTeams;
       this.homeDefense = homeDefense;
       for (const model of this.models.values()) this.releaseModel(model); this.models.clear();
-      this.releaseModel(this.batter); this.batter = this.player(!homeDefense, batterActor.number || 1, true, 'batter', batterHand);
-      this.releaseModel(this.catcher); this.catcher = this.player(homeDefense, 2, false, 'catcher');
+      this.releaseModel(this.batter); this.batter = this.player(!homeDefense, batterActor.number || 1, true, 'batter', batterHand,batterActor);
+      const catcherPerson=state?.fielders?.find(f=>f.id==='C');
+      this.releaseModel(this.catcher); this.catcher = this.player(homeDefense, catcherPerson?.number || 2, false, 'catcher',catcherPerson?.throws||'R',catcherPerson);
       for (const model of this.runnerModels) this.releaseModel(model); this.runnerModels = [];
     }
+    const currentCatcher=fielders.find(f=>f.id==='C'||f.role==='C');
+    if(currentCatcher && this.catcher.identityKey!==this.playerKey(homeDefense,currentCatcher.number||2,false,'catcher',currentCatcher.throws||'R',currentCatcher)){this.releaseModel(this.catcher);this.catcher=this.player(homeDefense,currentCatcher.number||2,false,'catcher',currentCatcher.throws||'R',currentCatcher);}
     const alpha = clamp(options.interpolationAlpha ?? 1, 0, 1), active = new Set();
     for (const p of fielders) {
       const catching = p.role === 'C' || p.role === 'catcher' || p.id === 'C';
       if (catching && !fielding) continue;
       const id = String(p.id); active.add(id);
       const pitcher = p.role === 'P' || p.role === 'pitcher' || p.id === 'P';
-      const actor = pitcher ? brawl ? { ...brawl.fighters[1], id: p.id } : { ...p, ...getPitcher(state), id: p.id, x: p.x, z: p.z } : p;
+      const actor = pitcher ? brawl ? { ...brawl.fighters[1], id: p.id } : { ...p, ...getPitcher(state), playerId:getPitcher(state).id, id: p.id, x: p.x, z: p.z } : p;
       const actorRole = catching ? 'catcher' : pitcher ? 'pitcher' : 'fielder', hand = presentationHand(state, actorRole, actor);
-      if (!catching && this.models.get(id)?.hand !== hand) { this.releaseModel(this.models.get(id)); this.models.delete(id); }
-      if (!catching && !this.models.has(id)) this.models.set(id, this.player(homeDefense, actor.number || this.models.size + 3, false, actorRole, hand));
+      if (!catching && this.models.get(id)?.identityKey !== this.playerKey(homeDefense,actor.number||this.models.size+3,false,actorRole,hand,actor)) { this.releaseModel(this.models.get(id)); this.models.delete(id); }
+      if (!catching && !this.models.has(id)) this.models.set(id, this.player(homeDefense, actor.number || this.models.size + 3, false, actorRole, hand,actor));
       const model = catching ? this.catcher : this.models.get(id), x = brawl && pitcher ? -actor.x : -mix(p.prevX ?? p.x, p.x, alpha), z = brawl && pitcher ? actor.z : mix(p.prevZ ?? p.z, p.z, alpha);
       this.numberPlayer(model, actor.number || model.number);
       const dx = -(p.x - (p.prevX ?? p.x)), dz = p.z - (p.prevZ ?? p.z), moving = Math.hypot(dx, dz) > .001;
@@ -1232,7 +1443,7 @@ export class BallparkRenderer {
     }
     for (const [id, model] of this.models) model.group.visible = active.has(id);
 
-    if (this.batter.hand !== batterHand) { this.releaseModel(this.batter); this.batter = this.player(!homeDefense, batterActor.number || 1, true, 'batter', batterHand); }
+    if (this.batter.identityKey !== this.playerKey(!homeDefense,batterActor.number||1,true,'batter',batterHand,batterActor)) { this.releaseModel(this.batter); this.batter = this.player(!homeDefense, batterActor.number || 1, true, 'batter', batterHand,batterActor); }
     this.numberPlayer(this.batter, state?.play?.batter?.number || batterActor.number || 1);
     const battingActor = brawl ? brawl.fighters[0] : batterActor;
     this.pose(this.batter, brawl ? -battingActor.x : batterHand === 'L' ? -1.02 : 1.02, brawl ? battingActor.z : -.04, state, { moving: !!brawl && battingActor.moving, facing: brawl ? battingActor.displayFacing : (batterHand === 'L' ? 1 : -1) * Math.PI / 2, role: 'batter', actor: battingActor });
@@ -1251,7 +1462,7 @@ export class BallparkRenderer {
     const runners = state?.runners || [];
     for (let i = 0; i < Math.max(runners.length, this.runnerModels.length); i++) {
       const runner = runners[i];
-      if (runner && !this.runnerModels[i]) this.runnerModels[i] = this.player(!homeDefense, runner.number || 1, false, 'runner');
+      if (runner && this.runnerModels[i]?.identityKey !== this.playerKey(!homeDefense,runner.number||1,false,'runner','R',runner)) { this.releaseModel(this.runnerModels[i]); this.runnerModels[i] = this.player(!homeDefense,runner.number||1,false,'runner','R',runner); }
       const model = this.runnerModels[i]; if (!model) continue;
       model.group.visible = !!runner && !runner.out && !runner.scored && !menu && (!brawl || runner.playerId !== state.brawl.batter.id);
       if (runner) {

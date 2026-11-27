@@ -671,3 +671,15 @@ dialog{background:var(--ink-deep);color:var(--cream);border:1px solid rgba(238,2
   #app .event-toast{top:var(--hud-top);max-width:calc(100% - 430px);padding:6px 9px}
   #app.is-brawl .event-toast{top:calc(var(--hud-top) + 90px);max-width:280px}
 }
+
+/* Club choice and legible ratings stay in the menu/dugout, away from live play. */
+.team-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.team-fields label{font-size:12px;letter-spacing:.7px;color:#d3dccd;font-weight:700}
+.team-fields select{font-size:14px;min-height:42px}
+.team-note{font-size:12px;line-height:1.4;color:#cbd6c7;margin:7px 0 10px}
+.roster-table-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;touch-action:pan-x pan-y}
+.roster-table{min-width:650px}
+.roster-table thead th{font-size:12px}.roster-table tbody td,.roster-table tbody th{font-size:14px}
+.roster-player .classic-ratings{font-size:11px;white-space:normal;line-height:1.4;color:#c9d4c3;max-width:240px}
+.roster-footnote{font-size:13px}.matchup b{font-size:12px}.matchup small{font-size:10px}
+@media(max-width:700px){.team-fields{gap:7px;margin-top:10px}.team-fields select{font-size:13px}.team-note{font-size:11px}.roster-table{min-width:610px}.roster-table tbody td,.roster-table tbody th{font-size:13px}.roster-table thead th{font-size:11px}}

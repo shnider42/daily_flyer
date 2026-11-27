@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BaseballGame, STEP, PITCH_AIM_AREA, MOUND_RULES, FIGHT_ACTIONS, getBatterBody, getLineup, getRoster } from '../public/engine.mjs';
+import { BaseballGame, STEP, PITCH_AIM_AREA, PITCHES, MOUND_RULES, FIGHT_ACTIONS, getBatterBody, getLineup, getRoster } from '../public/engine.mjs';
 
 const make = options => new BaseballGame({ seed: 2003, humanSides: [0, 1], ...options });
 function advance(game, predicate, seconds = 15) {
@@ -13,8 +13,10 @@ function advance(game, predicate, seconds = 15) {
 function hitBatter(game) {
   assert.equal(game.state.phase, 'ready');
   const body = getBatterBody(game.state);
-  assert.equal(game.command({ type: 'pitch', side: 1 - game.state.battingSide, pitchType: game.availablePitches.includes('fastball') ? 'fastball' : game.availablePitches[0], quality: 1,
-    aim: { x: body.x / PITCH_AIM_AREA.x, y: 0 } }), true, game.lastRejection);
+  const pitchType=game.availablePitches.includes('fastball')?'fastball':game.availablePitches[0];
+  const movement=PITCHES[pitchType],hand=game.activePitcher.hand==='L'?-1:1;
+  assert.equal(game.command({ type: 'pitch', side: 1 - game.state.battingSide, pitchType, quality: 1,
+    aim: { x: (body.x-movement.breakX*hand) / PITCH_AIM_AREA.x, y: movement.breakY/PITCH_AIM_AREA.y } }), true, game.lastRejection);
   advance(game, s => s.phase === 'result');
   assert.equal(game.state.result.kind, 'hitByPitch');
 }

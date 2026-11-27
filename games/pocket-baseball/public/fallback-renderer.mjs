@@ -1,7 +1,7 @@
-import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, inStrikeZone } from './engine.mjs?v=0.7.1';
-import { samplePlayerMotion, presentationBatter, presentationHand, presentationBrawl, brawlCamera } from './renderer.mjs?v=0.7.1';
-import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.7.1';
-import { getPitcher } from './rosters.mjs?v=0.7.1';
+import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, inStrikeZone } from './engine.mjs?v=0.8.0';
+import { samplePlayerMotion, playerAppearance, presentationBatter, presentationHand, presentationBrawl, brawlCamera } from './renderer.mjs?v=0.8.0';
+import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.8.0';
+import { getPitcher, getRoster } from './rosters.mjs?v=0.8.0';
 
 // Perspective software renderer. Geometry uses the same metres and boundaries
 // as the simulation; only presentation is simplified when WebGL is unavailable.
@@ -38,10 +38,10 @@ export class CompatibilityRenderer {
   }
   standRadius(a){
     if(Math.abs(a)<=Math.PI/4)return fieldRadius(a,this.parkId)+5;
-    const corner=this.parkId==='fenway'?fieldRadius(Math.sign(a)*Math.PI/4,this.parkId)+5:110;
-    return mix(corner,this.parkId==='fenway'?31:36,clamp((Math.abs(a)-Math.PI/4)/(Math.PI*.53),0,1));
+    const corner=this.parkId!=='harbor'?fieldRadius(Math.sign(a)*Math.PI/4,this.parkId)+5:110;
+    return mix(corner,this.parkId!=='harbor'?31:36,clamp((Math.abs(a)-Math.PI/4)/(Math.PI*.53),0,1));
   }
-  standBase(a){return this.parkId==='fenway'&&Math.abs(a)<=Math.PI/4?fenceHeight(a,this.parkId)+.25:1.7;}
+  standBase(a){return ['fenway','wrigley'].includes(this.parkId)&&Math.abs(a)<=Math.PI/4?fenceHeight(a,this.parkId)+.25:1.7;}
   standRows(a){return this.parkId==='fenway'&&a<=-8*Math.PI/180&&a>=-Math.PI/4?3:8;}
   setQuality(quality){this.quality=quality;this.resize();}
   resize(){
@@ -75,7 +75,9 @@ export class CompatibilityRenderer {
     this.polygon([vec(a,y+h,c),vec(b,y+h,c),vec(b,y+h,e),vec(a,y+h,e)],color);
   }
   buildPark(){
-    for(let z=-130;z<220;z+=12)this.ground([[-180,z],[180,z],[180,z+12],[-180,z+12]],Math.round(z/12)%2?'#376d45':'#407a4c',-.03);
+    const park=getPark(this.parkId),palette=park.palette;
+    this.boardPosition={x:0,y:12,z:122,width:27};
+    for(let z=-130;z<220;z+=12)this.ground([[-180,z],[180,z],[180,z+12],[-180,z+12]],Math.round(z/12)%2?palette?.grass||'#376d45':palette?.stripe||'#407a4c',-.03);
     const walls=getWallSegments(this.parkId),boundary=[walls[0].a,...walls.map(w=>w.b)];
     const outside=boundary.map(p=>[p.x,p.z]),inside=boundary.map(p=>{const r=Math.hypot(p.x,p.z),k=(r-4.2)/r;return[p.x*k,p.z*k];}).reverse();
     this.ground([...outside,...inside],'#a5825f');
@@ -106,10 +108,11 @@ export class CompatibilityRenderer {
       for(let j=0;j<pieces;j++){
         const a=vec(mix(wall.a.x,wall.b.x,j/pieces),0,mix(wall.a.z,wall.b.z,j/pieces));
         const b=vec(mix(wall.a.x,wall.b.x,(j+1)/pieces),0,mix(wall.a.z,wall.b.z,(j+1)/pieces));
-        this.polygon([a,b,vec(b.x,wall.height,b.z),vec(a.x,wall.height,a.z)],wall.zone==='monster'?'#285b49':i%2?'#1f4b39':'#24553e');
+        this.polygon([a,b,vec(b.x,wall.height,b.z),vec(a.x,wall.height,a.z)],wall.zone==='monster'?'#285b49':palette?.wall||(i%2?'#1f4b39':'#24553e'));
       }
       line(vec(wall.a.x,wall.height+.035,wall.a.z),vec(wall.b.x,wall.height+.035,wall.b.z),'#c5a664',1.5);
     }
+    if(park.neighborhood){this.buildNeighborhood();this.finalizePark();return;}
     const standRadius=a=>this.standRadius(a);
     for(let j=0;j<64;j++){
       const a=-Math.PI+j/64*TAU,b=a+TAU/64,mid=(a+b)/2;
@@ -144,21 +147,80 @@ export class CompatibilityRenderer {
       this.floodlights.push(vec(x,34.2,z-.6));
     }
     for(const sign of[-1,1]){const a=sign*Math.PI/4,r=fieldRadius(a,this.parkId),height=this.parkId==='fenway'?(sign<0?23:18):16;this.box(Math.sin(a)*r,0,Math.cos(a)*r,.20,height,.20,'#e1c14f');}
-    const eyeZ=this.parkId==='fenway'?Math.max(...walls.flatMap(s=>[s.a.z,s.b.z]))+2:117;
+    const eyeZ=this.parkId!=='harbor'?Math.max(...walls.flatMap(s=>[s.a.z,s.b.z]))+2:117;
     this.box(0,.6,eyeZ,25,8.2,.8,'#142d29','#112821');
     if(this.parkId==='fenway')this.buildFenwayDetails();else{
       this.box(0,4,123,30,14,1.3,'#193a32','#122d28');this.box(0,18.1,123,31,.4,1.8,'#d1b979');
       for(const x of[-16,16])this.box(x,0,123,.7,18,.7,'#465b4b');
     }
+    if(this.parkId==='wrigley')this.buildIvyDetails();
     for(const x of[-23,0,23]){this.box(x,13,139,.13,15,.13,'#9eaa9b');this.polygon([vec(x,25,139),vec(x+3.5,24.9,139),vec(x+3.5,26.6,139),vec(x,26.7,139)],x<0?'#a94a42':x>0?'#375a76':'#e0d2ab');}
     for(let x=-17;x<=17;x+=2)line(vec(x,1.5,-16.5),vec(x,7.8,-16.5),'rgba(171,187,168,.23)',.7);
     for(let y=1.5;y<=7.8;y+=.9)line(vec(-17,y,-16.5),vec(17,y,-16.5),'rgba(171,187,168,.23)',.7);
     // The park never deforms. Reuse its paint lists and sort records when the
     // camera moves, instead of cloning every polygon on every animation frame.
+    this.finalizePark();
+  }
+  finalizePark(){
     this.groundPolygons=this.static.filter(p=>p.ground);
     this.sortedPolygons=this.static.filter(p=>!p.ground);
     for(const p of this.sortedPolygons){const center=vec();for(const v of p.points){center.x+=v.x;center.y+=v.y;center.z+=v.z;}center.x/=p.points.length;center.y/=p.points.length;center.z/=p.points.length;p.center=center;p.depth=0;}
     this.backgroundDirty=true;
+  }
+  buildIvyDetails(){
+    for(const wall of getWallSegments(this.parkId))for(let i=0;i<Math.ceil(wall.length/2);i++){
+      const t=(i+.5)/Math.ceil(wall.length/2),x=mix(wall.a.x,wall.b.x,t)-wall.normal.x*.12,z=mix(wall.a.z,wall.b.z,t)-wall.normal.z*.12;
+      this.box(x,.35,z,1.6,wall.height-.50,.18,i%3?'#3d683e':'#597e3f');
+    }
+    for(const side of[-1,1])for(let i=0;i<5;i++){
+      const x=side*(42+i*12),z=125-i*8,h=8+i%3*1.3;
+      this.box(x,0,z,10,h,12,i%2?'#9b6954':'#886449','#6c4a3c');this.box(x,h,z,11,.5,13,'#35453e');
+      for(let row=0;row<3;row++)this.box(x,h+.7+row*.65,z+row*1.1,8,.24,.8,'#53766a');
+      for(let col=0;col<3;col++)this.box(x-3+col*3,h-3,z-6.1,1.2,1.7,.08,'#304544');
+    }
+    this.wallLabels=[];
+  }
+  buildNeighborhood(){
+    const park=getPark(this.parkId),style=park.style;this.floodlights=[];this.wallLabels=[];
+    const tree=(x,z,r=5)=>{this.box(x,0,z,.8,8,.8,'#796147');for(let i=0;i<2;i++){
+      const y=6+i*3,q=r*(1-i*.25);this.polygon([vec(x-q,y,z),vec(x-q*.7,y+q,z),vec(x,y+q*1.4,z),vec(x+q*.8,y+q,z),vec(x+q,y,z)],i?'#557b43':'#426b3e');
+    }};
+    for(const wall of getWallSegments(this.parkId)){
+      const count=Math.ceil(wall.length/(style==='backyard'?.8:4));
+      for(let i=0;i<=count;i++){const t=i/count,x=mix(wall.a.x,wall.b.x,t),z=mix(wall.a.z,wall.b.z,t);this.box(x,0,z,.1,wall.height+.3,.12,style==='backyard'?'#c2af86':'#899285');}
+      if(style==='schoolyard'&&wall.height>3)for(let y=.5;y<wall.height;y+=.5)this.parkLines.push({a:vec(wall.a.x,y,wall.a.z-.05),b:vec(wall.b.x,y,wall.b.z-.05),color:'#c79577',width:.8});
+    }
+    for(const side of[-1,1])for(let row=0;row<3;row++){
+      this.box(side*(39+row),.5+row*.48,4,1.1,.15,9,'#879789');
+      for(let i=0;i<4;i++)this.crowd.push({x:side*(39+row),y:1.1+row*.48,z:1+i*2,color:['#aa6557','#7393a3','#d4be88'][i%3],skin:'#bf916e'});
+    }
+    if(style==='backyard'){
+      for(let i=0;i<5;i++){
+        const x=-70+i*34,z=108+i%2*9,h=5+i%2*1.7;this.box(x,0,z,19,h,13,['#c1af8b','#93a8a1','#b8a391'][i%3]);
+        this.box(x,h,z,21,1.4,15,'#59635d');for(const dx of[-6,6])this.box(x+dx,1.8,z-6.6,2.4,2.1,.12,'#4c6268');this.box(x,0,z-9,12,.4,5,'#765f49');
+      }
+      tree(-80,75,8);tree(70,75,8);tree(-18,108,6);tree(38,119,7);
+      this.box(59,0,63,7,4.2,5,'#987747');this.box(59,4.2,63,8,.35,6,'#655848');
+      for(const x of[57,72])this.box(x,0,90,.12,5,.12,'#8c8d78');this.parkLines.push({a:vec(57,4.4,90),b:vec(72,4.4,90),color:'#d0c7ad',width:1});
+      for(let i=0;i<5;i++)this.box(59+i*2.6,2.8,90,.95,1.6,.035,['#d5c18e','#7393a3','#ab6657'][i%3]);
+    }else if(style==='sandlot'){
+      this.box(55,0,119,42,12,18,'#8c735f');this.box(55,12,119,44,.4,20,'#5c6965');for(let i=0;i<4;i++)this.box(40+i*10,1,109.9,6,8,.15,'#4c5b57');
+      for(const z of[125,130])this.box(-25,.10,z,105,.16,.16,'#4d5148');for(let x=-78;x<27;x+=2)this.box(x,0,127.5,.35,.15,7,'#776957');
+      for(let i=0;i<3;i++){const x=15-i*31;this.box(x,.9,127.5,27,5.8,5,i%2?'#99714d':'#7b5345');this.box(x,.5,127.5,25,.7,5.3,'#574d41');}
+      tree(-78,97,5);tree(91,63,6);
+    }else{
+      this.box(-21,0,113,73,13,16,'#a06c55');this.box(-21,13,113,75,.6,18,'#716a58');
+      for(let i=0;i<12;i++)for(const y of[2.6,7.6])this.box(10-i*5.6,y,104.9,2.5,2.7,.15,'#547277');
+      this.box(-21,0,103.5,6,3.6,2,'#87735a');this.ground([[50,29],[76,29],[76,61],[50,61]],'#696f6b',.02);
+      for(const z of[33,57]){this.box(63,0,z,.2,4.6,.2,'#84938b');this.box(63,3.4,z,2.8,1.8,.12,'#d2d4ba');this.box(63,3.6,z-.5,.9,.07,.8,'#a65c3d');}
+      for(const x of[-62,-75])this.box(x,0,68,.2,4.2,.2,'#5b7974');this.box(-68.5,4.2,68,13.4,.16,.16,'#607e75');
+      for(const x of[-65,-71]){this.box(x,1.1,68,2,.15,.7,'#867451');for(const dx of[-.8,.8])this.box(x+dx,1.1,68,.035,3.1,.035,'#9aab9e');}
+      tree(-82,84,7);tree(82,82,6);
+    }
+    const z=fieldRadius(0,this.parkId)+7;this.boardPosition={x:0,y:6.2,z:z-.3,width:16};
+    this.box(0,2.9,z,17,6.5,.45,'#324c3e');for(const x of[-7,7])this.box(x,0,z,.35,6,.35,'#665b44');
+    this.box(0,0,z-2,18,4,.3,'#2c4836');
+    for(const sign of[-1,1]){const a=sign*Math.PI/4,r=fieldRadius(a,this.parkId);this.box(Math.sin(a)*r,0,Math.cos(a)*r,.15,8,.15,'#e1c14f');}
   }
   buildFenwayDetails(){
     const walls=getWallSegments(this.parkId),monster=walls[0];
@@ -196,7 +258,7 @@ export class CompatibilityRenderer {
     c.fillStyle='#e7e3bc';c.font='bold 35px Georgia';c.textAlign='center';c.fillText('FENWAY PARK  ·  BOSTON',512,61);
     c.fillStyle='#c4cfab';c.font='25px monospace';c.fillText('1  2  3  4  5  6  7  8  9    R  H',623,121);c.textAlign='left';
     for(let side=0;side<2;side++){
-      const y=189+side*64;c.font='bold 35px monospace';c.fillStyle='#eee9ce';c.fillText(side?'FOUNDRY':'HARBOR',36,y);c.font='32px monospace';
+      const y=189+side*64;c.font='bold 35px monospace';c.fillStyle='#eee9ce';c.fillText(getRoster(side,state).abbrev,36,y);c.font='32px monospace';
       for(let inning=0;inning<9;inning++){c.fillStyle='#102b22';c.fillRect(323+inning*52,y-36,44,48);c.fillStyle='#eee9ce';c.fillText(String(state?.lineScore?.[side]?.[inning]??'·'),332+inning*52,y);}
       c.fillText(String(state?.score?.[side]??0),848,y);c.fillText(String(state?.hits?.[side]??0),926,y);
     }
@@ -239,8 +301,8 @@ export class CompatibilityRenderer {
   }
   line(a,b,color,width=1){const A=this.cameraPoint(a),B=this.cameraPoint(b);if(A.z<.15||B.z<.15)return;const p=this.screen(A),q=this.screen(B),c=this.ctx;c.strokeStyle=color;c.lineWidth=width;c.lineCap='round';c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.stroke();}
   paintEnvironment(state){
-    const c=this.ctx,w=this.width,h=this.height,sky=c.createLinearGradient(0,0,0,h*.7);sky.addColorStop(0,'#14243e');sky.addColorStop(.48,'#49566b');sky.addColorStop(.83,'#b3958a');sky.addColorStop(1,'#d1ac93');c.fillStyle=sky;c.fillRect(0,0,w,h);
-    for(let i=0;i<55;i++){const a=i*2.399963,q=this.project(Math.sin(a)*380,85+(i*47)%180,Math.cos(a)*380);if(q.visible){c.fillStyle='rgba(229,235,238,.48)';c.fillRect(q.x,q.y,i%6===0?1.5:1,i%6===0?1.5:1);}}
+    const c=this.ctx,w=this.width,h=this.height,palette=getPark(this.parkId).palette,sky=c.createLinearGradient(0,0,0,h*.7);sky.addColorStop(0,palette?.sky||'#14243e');sky.addColorStop(.48,palette?.sky||'#49566b');sky.addColorStop(.83,palette?.horizon||'#b3958a');sky.addColorStop(1,palette?.horizon||'#d1ac93');c.fillStyle=sky;c.fillRect(0,0,w,h);
+    for(let i=0;i<(palette?0:55);i++){const a=i*2.399963,q=this.project(Math.sin(a)*380,85+(i*47)%180,Math.cos(a)*380);if(q.visible){c.fillStyle='rgba(229,235,238,.48)';c.fillRect(q.x,q.y,i%6===0?1.5:1,i%6===0?1.5:1);}}
     // Coplanar paint follows construction order: grass, dirt, then chalk/bases.
     // Sorting a grass strip by its centre could otherwise erase the infield.
     for(const p of this.groundPolygons)this.drawPolygon(p.points,p.color,p.stroke);
@@ -252,8 +314,8 @@ export class CompatibilityRenderer {
     for(const p of this.crowd){const q=this.project(p.x,p.y,p.z);if(!q.visible)continue;const r=clamp(this.focal/q.depth*.28,.45,3.5);c.fillStyle='#23473f';c.fillRect(q.x-r*1.3,q.y-r*1.1,r*2.6,r*2.2);c.fillStyle=p.color;c.fillRect(q.x-r,q.y-r*1.4,r*2,r*2.5);c.fillStyle=p.skin;c.beginPath();c.arc(q.x,q.y-r*1.8,Math.max(.45,r*.60),0,TAU);c.fill();}
     for(const light of this.floodlights){const q=this.project(light.x,light.y,light.z);if(!q.visible)continue;const r=clamp(this.focal/q.depth*5,6,75),glow=c.createRadialGradient(q.x,q.y,0,q.x,q.y,r);glow.addColorStop(0,'rgba(255,239,194,.25)');glow.addColorStop(1,'rgba(255,239,194,0)');c.fillStyle=glow;c.fillRect(q.x-r,q.y-r,r*2,r*2);}
     this.drawParkSigns(state);
-    const board=this.project(0,12,122),boardWidth=this.focal*27/board.depth;
-    if(this.parkId!=='fenway'&&board.visible&&boardWidth>14){c.fillStyle='#0f3027';c.fillRect(board.x-boardWidth/2,board.y-boardWidth*.19,boardWidth,boardWidth*.38);c.textAlign='center';c.fillStyle='#f1dfae';c.font=`bold ${Math.max(4,boardWidth*.085)}px Georgia`;c.fillText('HARBOR FIELD',board.x,board.y-boardWidth*.065);c.font=`${Math.max(4,boardWidth*.07)}px monospace`;c.fillText(state?`HBR ${state.score[0]}   FDR ${state.score[1]}`:'GOOD EVENING, BASEBALL',board.x,board.y+boardWidth*.065);}
+    const position=this.boardPosition||{x:0,y:12,z:122,width:27},board=this.project(position.x,position.y,position.z),boardWidth=this.focal*position.width/board.depth;
+    if(this.parkId!=='fenway'&&board.visible&&boardWidth>14){c.fillStyle='#0f3027';c.fillRect(board.x-boardWidth/2,board.y-boardWidth*.19,boardWidth,boardWidth*.38);c.textAlign='center';c.fillStyle='#f1dfae';c.font=`bold ${Math.max(4,boardWidth*.085)}px Georgia`;c.fillText(getPark(this.parkId).shortName,board.x,board.y-boardWidth*.065);c.font=`${Math.max(4,boardWidth*.07)}px monospace`;c.fillText(state?`${getRoster(0,state).abbrev} ${state.score[0]}   ${getRoster(1,state).abbrev} ${state.score[1]}`:'GOOD EVENING, BASEBALL',board.x,board.y+boardWidth*.065);}
   }
   drawEnvironment(state){
     const view=[this.eye.x,this.eye.y,this.eye.z,this.look.x,this.look.y,this.look.z,this.fov,this.width,this.height,this.dpr];
@@ -285,18 +347,29 @@ export class CompatibilityRenderer {
     const moving=!!actor.moving||Math.hypot(actor.x-(actor.prevX??actor.x),actor.z-(actor.prevZ??actor.z))>.001;
     const p=samplePlayerMotion(state,role,{moving,actor,index:actor.number||0});
     const hand=presentationHand(state,role,actor),lefty=hand==='L',throwingHand=lefty?'left':'right',gloveHand=lefty?'right':'left';
-    const jersey=role==='umpire'?'#38454b':home?'#eee3c8':'#b74a46',cap=role==='umpire'?'#263239':home?'#234c3b':'#233c55',skin=['#c59167','#9e704c','#d4a47b','#b58057'][(actor.number||0)%4];
+    const appearance=playerAppearance(actor),jersey=role==='umpire'?'#38454b':appearance.jersey||(home?'#eee3c8':'#b74a46'),cap=role==='umpire'?'#263239':appearance.cap||(home?'#234c3b':'#233c55'),skin=appearance.skin;
     const rotateX=(v,a)=>vec(v.x,v.y*Math.cos(a)-v.z*Math.sin(a),v.y*Math.sin(a)+v.z*Math.cos(a));
     const rotateY=(v,a)=>vec(v.x*Math.cos(a)+v.z*Math.sin(a),v.y,v.z*Math.cos(a)-v.x*Math.sin(a));
     const rotateZ=(v,a)=>vec(v.x*Math.cos(a)-v.y*Math.sin(a),v.x*Math.sin(a)+v.y*Math.cos(a),v.z);
     const add=(a,b)=>vec(a.x+b.x,a.y+b.y,a.z+b.z);
     const world=v=>{v=rotateY(v,facing);return vec(actor.x-v.x,v.y,actor.z+v.z);};
-    const body=v=>world(add(rotateZ(rotateX(v,p.lean),p.roll||0),vec(p.hipX||0,.93+p.hipY,p.hipZ||0)));
+    const body=v=>world(add(rotateZ(rotateX(vec(v.x*appearance.build,v.y*appearance.height,v.z*appearance.build),p.lean),p.roll||0),vec(p.hipX||0,(.93+p.hipY)*appearance.height,p.hipZ||0)));
     const torso=v=>body(rotateY(v,p.twist));
     const pieces=[],stroke=(a,b,color,width)=>pieces.push({kind:'line',a,b,color,width,depth:(this.cameraPoint(a).z+this.cameraPoint(b).z)/2});
     const poly=(points,color)=>pieces.push({kind:'poly',points,color,depth:points.reduce((v,q)=>v+this.cameraPoint(q).z,0)/points.length});
     const shadowRadius=Math.max(2,scale*(p.slide?.70:.40));c.save();c.translate(foot.x,foot.y);c.scale(1,.32);const shadow=c.createRadialGradient(0,0,0,0,0,shadowRadius);shadow.addColorStop(0,'rgba(10,25,18,.31)');shadow.addColorStop(1,'rgba(10,25,18,0)');c.fillStyle=shadow;c.beginPath();c.arc(0,0,shadowRadius,0,TAU);c.fill();c.restore();
     if((role==='runner'||actor.brawlSide!==undefined)&&(p.slide||moving)){for(let i=0;i<(p.slide?7:3);i++){const age=((state?.time||0)*2.5+i*.29+(actor.number||1)*.37)%1,a=i*2.39996,q=this.project(actor.x+Math.sin(a)*age*(p.slide?.8:.22),.06+Math.sin(age*Math.PI)*.17,actor.z+Math.cos(a)*age*(p.slide?.8:.22)),radius=Math.max(1,scale*(.05+age*.11));c.fillStyle=`rgba(201,165,123,${(1-age)*.19})`;c.beginPath();c.ellipse(q.x,q.y,radius,radius*.55,0,0,TAU);c.fill();}}
+    if(appearance.wheelchair){
+      // The chair frame is fixed to the ground while the torso can wind up.
+      for(const side of[-1,1]){
+        const wheel=world(vec(side*.38,.41,.05)),q=this.project(wheel.x,wheel.y,wheel.z);
+        c.strokeStyle='#263539';c.lineWidth=Math.max(2,scale*.07);c.beginPath();c.ellipse(q.x,q.y,Math.max(2,scale*.19),Math.max(2,scale*.38),0,0,TAU);c.stroke();
+        c.strokeStyle='#a9b7ae';c.lineWidth=Math.max(.7,scale*.018);c.beginPath();c.ellipse(q.x,q.y,Math.max(1,scale*.14),Math.max(1,scale*.29),0,0,TAU);c.stroke();
+        this.line(world(vec(side*.29,.65,-.10)),world(vec(side*.29,.95,-.1)),'#7c919a',Math.max(1,scale*.05));
+      }
+      this.line(world(vec(-.28,.58,0)),world(vec(.28,.58,0)),'#305f8a',Math.max(2,scale*.13));
+      this.line(world(vec(-.28,.80,-.20)),world(vec(.28,.80,-.20)),'#305f8a',Math.max(2,scale*.32));
+    }
     const hands={};
     for(const side of[-1,1]){
       const name=side<0?'right':'left',hip=vec(side*.125,0,role==='batter'?side*.06*(lefty?-1:1):0);
@@ -334,7 +407,7 @@ export class CompatibilityRenderer {
     for(const item of pieces)if(item.kind==='poly')this.drawPolygon(item.points,item.color);else{this.line(item.a,item.b,'rgba(21,32,28,.32)',Math.max(1,item.width*scale+1.0));this.line(item.a,item.b,item.color,Math.max(1,item.width*scale));if(scale>16&&item.width>.10){this.line(item.a,item.b,shade(item.color,1.07),Math.max(.8,item.width*scale*.48));}}
     const label=this.project(...Object.values(torso(vec(0,.31,faceZ*1.08))));
     if(scale>22&&role!=='catcher'&&role!=='umpire'){
-      c.textAlign='center';c.fillStyle=home?'#244939':'#f3e7cc';c.font=`bold ${Math.max(4,scale*.075)}px Georgia`;c.fillText(home?'FOUNDRY':'HARBOR',label.x,label.y-scale*.075);
+      c.textAlign='center';c.fillStyle=appearance.trim||(home?'#244939':'#f3e7cc');c.font=`bold ${Math.max(4,scale*.075)}px Georgia`;c.fillText(String(actor.playerId||actor.id||'').startsWith('backyard-')?'BACKYARD':String(actor.playerId||actor.id||'').startsWith('harbor-')?'HARBOR':String(actor.playerId||actor.id||'').startsWith('foundry-')?'FOUNDRY':home?'FOUNDRY':'HARBOR',label.x,label.y-scale*.075);
       c.font=`bold ${Math.max(5,scale*.18)}px Arial`;c.fillText(String(actor.number||1),label.x,label.y+scale*.11);
       if(faceFront){const button=this.project(...Object.values(torso(vec(.018,.47,faceZ*1.08))));c.fillStyle=home?'#b0a98e':'#eadcc2';c.fillRect(button.x,button.y,Math.max(1,scale*.014),Math.max(1,scale*.014));}
     }
@@ -347,9 +420,22 @@ export class CompatibilityRenderer {
       const face=c.createRadialGradient(head.x-.045*scale,head.y-.04*scale,.015*scale,head.x,head.y,.18*scale);face.addColorStop(0,shade(skin,1.12));face.addColorStop(1,shade(skin,.79));c.fillStyle=face;c.beginPath();c.ellipse(head.x,head.y,Math.max(1,.125*scale),Math.max(1,.159*scale),0,0,TAU);c.fill();
       const nose=torso(vec(0,.742,.155)),n=this.project(nose.x,nose.y,nose.z);
       if(faceFront&&scale>15){c.fillStyle=skin;c.beginPath();c.ellipse(n.x,n.y,.028*scale,.042*scale,0,0,TAU);c.fill();for(const side of[-1,1]){const eye=torso(vec(side*.053,.79,.13)),q=this.project(eye.x,eye.y,eye.z);c.fillStyle='#352b25';c.fillRect(q.x-.011*scale,q.y,.022*scale,Math.max(1,.012*scale));}const mouth=torso(vec(0,.68,.13)),q=this.project(mouth.x,mouth.y,mouth.z);c.fillStyle='#674634';c.fillRect(q.x-.024*scale,q.y,.048*scale,Math.max(1,.009*scale));}
-      const helmet=c.createLinearGradient(head.x-.15*scale,head.y-.20*scale,head.x+.15*scale,head.y);helmet.addColorStop(0,shade(cap,1.38));helmet.addColorStop(.45,cap);helmet.addColorStop(1,shade(cap,.68));c.fillStyle=helmet;c.beginPath();c.ellipse(head.x,head.y-.115*scale,Math.max(1,.15*scale),Math.max(1,.083*scale),0,0,TAU);c.fill();if(scale>20){c.strokeStyle='rgba(231,233,212,.19)';c.lineWidth=Math.max(.7,scale*.008);c.beginPath();c.ellipse(head.x-.03*scale,head.y-.143*scale,.10*scale,.035*scale,-.25,Math.PI,TAU);c.stroke();}
-      const brim=torso(vec(0,.865,.22)),q=this.project(brim.x,brim.y,brim.z);this.line(torso(vec(-.115,.87,.20)),torso(vec(.115,.87,.20)),cap,Math.max(1,scale*.035));
-      if(role==='batter'||role==='runner'||role==='catcher'){c.fillStyle=cap;c.fillRect(head.x+(role==='batter'&&lefty?.105:-.15)*scale,head.y-.07*scale,.045*scale,.15*scale);}
+      const headwear=!appearance.noCap||role==='catcher',cover=headwear?cap:appearance.hair;
+      const helmet=c.createLinearGradient(head.x-.15*scale,head.y-.20*scale,head.x+.15*scale,head.y);helmet.addColorStop(0,shade(cover,1.38));helmet.addColorStop(.45,cover);helmet.addColorStop(1,shade(cover,.68));c.fillStyle=helmet;c.beginPath();c.ellipse(head.x,head.y-.115*scale,Math.max(1,.15*scale),Math.max(1,.083*scale),0,0,TAU);c.fill();if(scale>20){c.strokeStyle='rgba(231,233,212,.19)';c.lineWidth=Math.max(.7,scale*.008);c.beginPath();c.ellipse(head.x-.03*scale,head.y-.143*scale,.10*scale,.035*scale,-.25,Math.PI,TAU);c.stroke();}
+      if(headwear)this.line(torso(vec(-.115,.87,.20)),torso(vec(.115,.87,.20)),appearance.capTrim||cap,Math.max(1,scale*.035));
+      if(headwear&&(role==='batter'||role==='runner'||role==='catcher')){c.fillStyle=cap;c.fillRect(head.x+(role==='batter'&&lefty?.105:-.15)*scale,head.y-.07*scale,.045*scale,.15*scale);}
+      if(appearance.hairStyle==='curly'||appearance.hairBuns){
+        c.fillStyle=appearance.hair;
+        for(let i=0;i<(appearance.hairBuns?2:7);i++){const a=appearance.hairBuns?i*Math.PI:i/7*TAU;c.beginPath();c.arc(head.x+Math.cos(a)*scale*.12,head.y-.08*scale+Math.sin(a)*scale*.065,Math.max(1,scale*(appearance.hairBuns?.08:.055)),0,TAU);c.fill();}
+      }
+      if(appearance.hairStyle==='long'||appearance.hairStyle==='braids')for(const side of[-1,1])this.line(torso(vec(side*.12,.74,-.06)),torso(vec(side*.12,.52,-.06)),appearance.hair,Math.max(1,scale*.065));
+      if(appearance.pompadour){c.fillStyle=appearance.hair;c.beginPath();c.ellipse(head.x,head.y-.16*scale,.14*scale,.07*scale,0,0,TAU);c.fill();}
+      if(appearance.accessory==='headphones'){
+        for(const side of[-1,1]){c.fillStyle='#b73b32';c.beginPath();c.ellipse(head.x+side*.15*scale,head.y,.045*scale,.09*scale,0,0,TAU);c.fill();}
+        c.strokeStyle='#b73b32';c.lineWidth=Math.max(1,scale*.03);c.beginPath();c.arc(head.x,head.y-.025*scale,.17*scale,Math.PI,TAU);c.stroke();
+      }
+      if(appearance.glasses&&faceFront){c.strokeStyle='#263238';c.lineWidth=Math.max(.8,scale*.014);for(const side of[-1,1])c.strokeRect(head.x+side*.057*scale-.035*scale,head.y-.025*scale,.07*scale,.043*scale);this.line(torso(vec(-.02,.79,.14)),torso(vec(.02,.79,.14)),'#263238',Math.max(.8,scale*.014));}
+      if(appearance.freckles&&faceFront&&scale>22){c.fillStyle='#a56f49';for(const side of[-1,1])for(let i=0;i<3;i++)c.fillRect(head.x+side*(.05+i*.016)*scale,head.y+.01*scale+(i%2)*.012*scale,Math.max(.6,scale*.009),Math.max(.6,scale*.009));}
       if(role==='catcher'&&faceFront){for(const y of[.66,.73,.80,.87])this.line(torso(vec(-.12,y,.18)),torso(vec(.12,y,.18)),'#b8b9a8',Math.max(.7,scale*.012));for(const x of[-.11,.11])this.line(torso(vec(x,.65,.18)),torso(vec(x,.88,.18)),'#b8b9a8',Math.max(.7,scale*.012));}
     }
     if(role!=='batter'&&role!=='runner'&&role!=='umpire'){
@@ -406,7 +492,7 @@ export class CompatibilityRenderer {
     if(!fielding&&!brawl){
       const batter=presentationBatter(state),lefty=batter.hand==='L';
       this.person({...batter,x:lefty?1.02:-1.02,z:-.04},state,!homeDefense,'batter',(lefty?1:-1)*Math.PI/2);
-      if(!menu)this.person({x:0,z:-2.1,number:state?.fielders?.find(p=>p.id==='C')?.number||2},state,homeDefense,'catcher',0);
+      if(!menu)this.person({...state?.fielders?.find(p=>p.id==='C'),x:0,z:-2.1,number:state?.fielders?.find(p=>p.id==='C')?.number||2},state,homeDefense,'catcher',0);
     }
 
     if(ball?.visible&&!menu&&!brawl){

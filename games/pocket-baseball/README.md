@@ -1,8 +1,90 @@
-# Pocket Baseball — version 0.7.1
+# Pocket Baseball — version 0.8.0
 
 A solo and private-room 1v1 baseball game in the Daily Flyer repository, inspired
 by the readable pitching, timing and broadcast presentation of early-2000s
-baseball games. Original fictional clubs: Boston Harbor and Brooklyn Foundry.
+baseball games. Original fictional clubs Boston Harbor and Brooklyn Foundry, plus a selectable fan-made Backyard Kids roster.
+
+## Version 0.8: fielding, runners, pitch reads, and player identity
+
+The defensive simulation now distinguishes a ball reaching a base from a fielder
+receiving it and touching the bag. Force plays require possession and a foot at
+the base; plays without a force require a physical tag. Forces are recalculated
+after outs, and third-out force plays remain different from time plays.
+
+Every player has independent arm strength, throwing accuracy, glove work, and
+running speed. Long throws use gravity and lose energy on each bounce. A weak
+outfield arm may need several hops where a strong arm carries the ball. Small,
+seeded execution errors depend on difficulty of the pickup/receive, running and
+transfer pressure, accuracy, and glove skill. A bobble delays possession and an
+offline throw can pull a receiver away from the base. Errors appear in the final
+line score. Outcomes use the same authoritative simulation in solo and 1v1.
+
+Runners distinguish batted fly balls from defensive throws, physically retouch
+on catches, respect occupied bases and runner order, and take a head start with
+two outs. Assisted running judges visible ball position, defender possession,
+runner speed, and estimated defensive arrival. It takes clear extra bases and
+can retreat when an unforced attempt becomes unsafe. **HOLD** and **RETURN**
+remain explicit player instructions. Infielders begin covering a visible steal
+during the delivery rather than waiting until the catcher has the ball.
+
+### Aim line and CPU hitting
+
+The pitching marker is the initial **aim line**, before pitch movement. Curves
+and splitters drop below it; sliders and sweepers finish to its side. Left-handed
+pitchers reverse lateral break. Aim higher or to the opposite side to compensate.
+Release timing, pitcher command, fatigue, and knuckleball flutter add bounded
+uncertainty. Good releases still have a small execution margin.
+
+CPU hitters observe successive rendered ball positions. They estimate arrival
+and location, commit before the plate, and cannot adjust after commitment. Their
+read does not use the pitch's final target, type, exact contact time, hanging
+flag, or flutter parameters. Late break can defeat the initial read, and a prior
+visible speed influences their timing on the next pitch. Contact uses the same
+difficulty-dependent windows as a human batter. A stronger difficulty improves
+reading precision; it does not reveal the destination.
+
+### Clubs and character graphics
+
+Choose **YOUR CLUB** and **OPPONENT CLUB** on the home screen. The original Boston
+Harbor and Brooklyn Foundry remain, and **Backyard Kids** adds a fan-made playable
+roster: Pete Wheeler, Stephanie Morgan, Pablo Sanchez, Kiesha Phillips, Achmed
+Khan, Mikey Thomas, Tony Delvecchio, Ernie Steele, and Annie Frazier, with reserves
+and an eight-player pitching staff. Kenny Kawaguchi has a seated delivery and
+wheelchair representation. The room creator and guest bring their selected
+clubs; park and roster choices survive reconnects.
+
+The roster screen preserves the original 1997 **1–4 baseball** batting, running,
+pitching, and fielding categories. Pocket Baseball's contact/power multipliers,
+metres-per-second speed, arm/accuracy/glove values, command/endurance, positions,
+jersey numbers, handedness, and pitch repertoires are gameplay adaptations. These
+are not official professional statistics or an exact recreation of the original
+engine. Card and hidden-rating transcriptions are documented in `rosters.mjs`:
+[1997 cards](https://thegamehaus.com/gaming/all-backyard-baseball-1997-players-stats-steam-edition/2024/10/09/)
+and [reported hidden ratings](https://thegamehaus.com/sports/all-backyard-baseball-1997-players-secret-stats/2024/10/10/).
+The numeric sources are secondary transcriptions, not verified original source
+code. The [publisher's original roster description](https://www.backyardsports.com/games/baseball97)
+provides the character reference.
+
+Both WebGL and compatibility rendering use player-specific body proportions,
+skin, hair, caps, shirts, and character details. Pickup, bobble, receiving, tagging,
+throwing, running, and seated movement have distinct poses. Player rigs are
+prepared for the selected clubs before play and reused during live frames.
+
+### Four additional parks
+
+| Park | Character and playing difference |
+| --- | --- |
+| Wrigley-inspired | Ivy/brick, rooftop seats, center scoreboard; 355/368/400/368/353 ft anchors. |
+| Maple Yard | Houses, clothesline, shed, wooden fences; especially short right field. |
+| Railway Sandlot | Freight cars, warehouse, dusty outfield; a deep left-center pocket. |
+| Schoolyard Commons | School, basketball court, playground; a tall brick left wall and angled right side. |
+
+Fenway-inspired and Harbor Field remain selectable, making six parks. The same
+wall segments and heights drive both renderers and ball collisions. Wrigley's
+published distances come from the [Cubs' history page](https://www.mlb.com/cubs/ballpark/information/history);
+marker angles and wall height are gameplay approximations. Neighborhood fields
+are original designs. Special lodged-in-ivy rules are not simulated; the ivy
+surface behaves as a playable wall.
 
 ## Play
 
@@ -162,12 +244,13 @@ closing it only resumes a pause that the roster itself requested.
 
 Pitch counts reduce energy, then velocity and command. The CPU also uses its
 bullpen as a pitcher tires. Batting practice keeps the opponent fresh so it
-remains useful for learning a specific repertoire. The two 104 mph specialists
-are **Jace Navarro** for Boston and **Troy Vance** for Brooklyn. The top velocity
+remains useful for learning a specific repertoire. The 104 mph specialists
+are **Jace Navarro** for Boston, **Troy Vance** for Brooklyn, and the adapted
+**Ronny Dobbs** profile for Backyard Kids. The top velocity
 is a ceiling, not a promise for every release.
 
-Five deliveries have different poses, release heights and windup lengths:
-classic windup, high leg kick, compact stretch, sidearm and submarine. A lefty
+Six deliveries have different poses, release heights and windup lengths:
+classic windup, high leg kick, compact stretch, sidearm, submarine and seated. A lefty
 mirrors the throwing arm, glove, release position and lateral pitch movement.
 The ball leaves the rendered throwing hand at the simulated release time.
 
@@ -321,8 +404,8 @@ time of the home crossing.
 ## Private 1v1
 
 Choose your pitcher, then **Play a friend**. The creator shares a six-character
-room code and plays Boston Harbor; the guest brings their own pitcher and plays
-Brooklyn Foundry. The creator's innings and difficulty apply to both teams.
+room code and plays their selected visiting club; the guest brings their own club
+and pitcher as the home team. The creator's innings and difficulty apply to both teams.
 Each player can retain their preferred presentation guidance. Both press READY
 to start and acknowledge the result/half-inning card before the next play.
 
@@ -356,7 +439,7 @@ and submit their release-meter quality.
 - Thirteen pitch types across eight distinct repertoires. Pitch-meter execution
   affects location and effectiveness, including knuckleball control and hang risk.
 - Named lineups and bullpens, left/right/switch batting, left/right pitching,
-  five deliveries, pitcher fatigue, CPU pitching changes and a 104 mph specialist.
+  six deliveries, pitcher fatigue, CPU pitching changes and a 104 mph specialist.
 - Contact, power and bunt attempts, timing-dependent spray, spatial bat aim, grounders,
   line drives, fly balls, physical catches, ground pickups, throws to every base,
   wall rebounds, and fair home runs.
@@ -379,7 +462,8 @@ system. Ball four awards mandatory walk advancement and ends a concurrent steal;
 optional further advances on a live walk are not simulated. Tag-up controls
 automatically enforce retouching instead of allowing intentional missed-base
 appeals. This remains an arcade game rather than a full professional rules
-simulator. The clubs use fictional players, without real-world roster or rating claims.
+simulator. Harbor and Foundry use original fictional players; Backyard Kids uses
+recognizable game characters with the adaptations described above.
 
 Pitch speed labels describe the pitch profiles; visible pitch flight is slowed
 for readable arcade timing. Ball size is modestly exaggerated for phone screens.
@@ -507,6 +591,16 @@ lead runners and finite, non-mutating pose samples. The first-pass batting
 contract is also checked against recorded contact results. A browser check is needed for rendering, input,
 sound unlock and responsive layout; headless simulation tests do not measure
 real iPhone GPU performance or real network multiplayer behavior.
+
+The 0.8.0 release passed 251 automated checks and an independent 96-game CPU
+sweep across all six parks, four seeds, and four club pairings. That sweep
+covered 5,481 pitches and checked live-play completion, runner spacing and base
+occupancy, inning transitions, finite positions, and agreement between score and
+line score. Browser review covered the 375 × 667 and 430 × 932 portrait layouts,
+932 × 430 landscape controls, roster dialogs, and a 2560 × 1440 drawing buffer.
+The review browser had WebGL disabled, so visual checks used the compatibility
+renderer; automated mesh/pose/cache checks covered the 3D renderer. This is not
+a claim of testing on physical iPhones or measuring their GPU performance.
 
 `?debug=1` enables the explicit developer inspection hook. It is absent from
 ordinary sessions and is not an authorization boundary. Online commands are

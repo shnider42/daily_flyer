@@ -17,7 +17,7 @@ function patch(game, mutate) {
 }
 function pitchAt(game, target) {
   advance(game, s => s.phase === 'pitch');
-  patch(game, s => { s.pitch.target = { ...target, z: 0 }; s.pitch.aiSwing = null; });
+  patch(game, s => { s.pitch.target = { ...target, z: 0 }; s.pitch.aimTarget = null; s.pitch.aiSwing = null; s.pitch.aiRead = null; });
 }
 function knownContact(game, { power = false, offset = -0.01, aim = { x: 0, y: 0 } } = {}) {
   pitchAt(game, { x: 0, y: 1 });
@@ -174,7 +174,7 @@ test('a tied final bottom sends the game to extra innings', () => {
   const game = new BaseballGame({ innings: 3 });
   patch(game, s => { s.inning = 3; s.half = 'bottom'; s.battingSide = 1; s.score = [2, 2]; s.outs = 2; s.strikes = 2; });
   assert.equal(game.command({ type: 'pitch', pitchType: 'fastball', aim: { x: 0, y: 0 }, quality: 1 }), true);
-  patch(game, s => { s.pitch.aiSwing = null; }); advance(game, s => s.phase === 'result');
+  patch(game, s => { s.pitch.aiSwing = null; s.pitch.aiRead = null; }); advance(game, s => s.phase === 'result');
   assert.equal(game.state.pending, 'half'); game.command({ type: 'next' }); game.command({ type: 'next' });
   assert.equal(game.state.inning, 4); assert.equal(game.state.half, 'top');
   assert.equal(game.state.lineScore[0].length, 4);
@@ -184,7 +184,7 @@ test('a walkoff walk ends the game immediately after the winning run', () => {
   const game = new BaseballGame({ innings: 3 });
   patch(game, s => { s.inning = 3; s.half = 'bottom'; s.battingSide = 1; s.score = [2, 2]; s.balls = 3; s.bases = [runner(11), runner(12), runner(13)]; });
   game.command({ type: 'pitch', pitchType: 'fastball', aim: { x: 1, y: 0 }, quality: 1 });
-  patch(game, s => { s.pitch.aiSwing = null; }); advance(game, s => s.phase === 'result');
+  patch(game, s => { s.pitch.aiSwing = null; s.pitch.aiRead = null; }); advance(game, s => s.phase === 'result');
   assert.equal(game.state.score[1], 3); assert.equal(game.state.pending, 'final');
   game.command({ type: 'next' }); assert.equal(game.state.phase, 'final');
 });

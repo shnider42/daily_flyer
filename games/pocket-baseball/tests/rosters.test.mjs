@@ -15,9 +15,9 @@ function bodyPitch(g) { pitch(g, getBatterBody(g.state).x); }
 function baseRunner(id, side = 0) { return { id, number: id, name: `Runner ${id}`, side, speed: 7 }; }
 function loaded(g) { g.state.bases = [baseRunner(21, g.state.battingSide), baseRunner(22, g.state.battingSide), baseRunner(23, g.state.battingSide)]; g._ready(); }
 
-test('both clubs have unique named lineups and eight usable pitchers with distinct profiles', () => {
+test('all selectable clubs have unique named lineups and eight usable pitchers with distinct profiles', () => {
   const names = new Set();
-  for (const [side, roster] of TEAM_ROSTERS.entries()) {
+  for (const roster of TEAM_ROSTERS) {
     assert.equal(roster.lineup.length, 9); assert.equal(roster.pitchers.length, 8);
     const numbers = new Set();
     for (const player of [...roster.lineup, ...roster.pitchers]) {
@@ -29,8 +29,11 @@ test('both clubs have unique named lineups and eight usable pitchers with distin
     assert.ok(roster.lineup.some(p => p.bats === 'R'));
     assert.ok(roster.lineup.some(p => p.bats === 'S'));
     for (const person of roster.pitchers) {
-      const g = game({ [side === 0 ? 'pitcher' : 'opponentPitcher']: person.profileId });
-      assert.equal(getPitcher(g.state, side).id, person.id);
+      for (const side of [0,1]) {
+        const g = game({ [side === 0 ? 'team' : 'opponentTeam']: roster.id,
+          [side === 0 ? 'pitcher' : 'opponentPitcher']: person.profileId });
+        assert.equal(getPitcher(g.state, side).id, person.id);
+      }
       assert.ok(DELIVERIES[person.delivery]);
     }
   }
@@ -241,8 +244,12 @@ test('left-handed early contact pulls right while right-handed early contact pul
 
 test('a swing miss waits for a glancing body impact just behind the plate before any steal throw', () => {
   const g = game(); loaded(g); bodyPitch(g);
+  const body=getBatterBody(g.state),radius=body.radius+BALL_RADIUS;
+  // At z=0 the ball is 2 mm outside the capsule, then its angled path clips
+  // the body behind home. Account for the batter's -0.04 m longitudinal offset.
+  const edgeX=body.x+Math.sqrt((radius+.002)**2-body.z**2);
   Object.assign(g.state, { time: 5, tick: 600, phase: 'pitch', phaseStartedAt: 4, phaseTime: 1 });
-  Object.assign(g.state.pitch, { target: { x: -.765, y: 1, z: 0 }, start: { x: -.32, y: 1.88, z: 18.44 },
+  Object.assign(g.state.pitch, { aimTarget: null, target: { x: edgeX, y: 1, z: 0 }, start: { x: -.32, y: 1.88, z: 18.44 },
     breakX: 0, breakY: 0, releaseAt: 4, contactAt: 5, duration: 1, hitByPitch: null });
   const runner = g.state.runners[0]; runner.stealing = true; runner.targetBase = 2;
   assert.equal(g.command({ type: 'swing', side: 0, time: 5, aim: { x: 0, y: 0 } }), true);

@@ -1,6 +1,6 @@
 /** Private, ephemeral two-player rooms. The server owns every baseball outcome. */
 import { randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
-import { BaseballGame, PITCHERS, DEFENSIVE_ALIGNMENTS, resolveParkId } from './public/engine.mjs';
+import { BaseballGame, PITCHERS, DEFENSIVE_ALIGNMENTS, resolveParkId, resolveTeamId } from './public/engine.mjs';
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -23,6 +23,7 @@ function optionsFor(input = {}) {
   return {
     seed: randomBytes(4).readUInt32LE(0) || 2003,
     park: resolveParkId(input.park),
+    team: resolveTeamId(input.team, 'harbor'), opponentTeam: resolveTeamId(input.opponentTeam, 'foundry'),
     mode: 'exhibition', humanSides: [0, 1], localSide: 0, inputWindow: MAX_REWIND,
     innings: [3, 6, 9].includes(+input.innings) ? +input.innings : 3,
     difficulty: ['rookie', 'club', 'pro'].includes(input.difficulty) ? input.difficulty : 'rookie',
@@ -69,6 +70,7 @@ export class RoomHub {
     if (room.started || room.players[1]) fail(409, 'That field already has two players.', 'room_full');
     const pitcher = Object.hasOwn(PITCHERS, input.pitcher) ? input.pitcher : 'balanced';
     room.players[1] = newPlayer(1, pitcher, now);
+    if (input.team !== undefined) room.game.setStartingTeam(1, input.team);
     room.game.setStartingPitcher(1, pitcher);
     room.touchedAt = now; this.broadcast(room);
     return this.credentials(room, room.players[1]);
@@ -105,7 +107,7 @@ export class RoomHub {
       readySides: room.players.filter(p => p?.ready).map(p => p.side), pauseSides: [...room.pauseSides],
       players: room.players.map((p, side) => p ? { side, pitcher: p.pitcher, connected: p.connected, ready: p.ready } : { side, connected: false, ready: false, pitcher: null }),
       disconnectDeadline: room.started && deadlines.length ? Math.min(...deadlines) : null,
-      reason, options: { park: room.game.options.park, innings: room.game.options.innings, difficulty: room.game.options.difficulty, guidance: room.game.options.guidance } };
+      reason, options: { park: room.game.options.park, team: room.game.options.team, opponentTeam: room.game.options.opponentTeam, innings: room.game.options.innings, difficulty: room.game.options.difficulty, guidance: room.game.options.guidance } };
   }
   packet(room, player) {
     return { type: 'state', sentAt: this.now(), revision: room.revision, ack: player?.lastSeq ?? 0,
