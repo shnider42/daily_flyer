@@ -324,7 +324,7 @@
     "mission": "Cordon",
     "detachmentSize": 3,
     "deploymentsPerOperation": 1,
-    "request": "Mobile Squad or desktop Squad orders > Request support here > select a map location; either living co-op player can request the same finite reserve",
+    "request": "Mobile Squad / Radio or desktop orders panel > Request support here > select a map location; either living co-op player can request the same finite reserve",
     "response": "Prepositioned soldiers physically travel to reachable cover, report delays, cover and aid nearby wounded, then return to staging; emergency friendly requests share this reserve",
     "recoveryWindowSeconds": 70,
     "treatment": "Finite medical supply; 3 seconds for a medic, 4.5 for others; partial health recovery and group withdrawal",

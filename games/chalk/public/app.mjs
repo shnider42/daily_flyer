@@ -394,7 +394,7 @@ function startMission(index = selectedMission, { restart = false, fresh = false 
   syncMapUI(); closeOrders();
   clearTimeout(toastTimer); $('toast').hidden = true;
   startGuidance();
-  if (touch && preferences.guidance === 'simple') toast('Gear: grenades · Squad: orders and ping · Objective arrow: details');
+  if (touch && preferences.guidance === 'simple') toast(`Gear: grenades · ${game.role === 'leader' ? 'Squad: orders' : 'Radio: requests'} and ping · Objective arrow: details`);
 }
 function returnToMenu() {
   if (online()) coop.leave();
@@ -1096,7 +1096,7 @@ function updateHUD() {
   let hint = interactText || assistHint;
   if (!hint && p && objective?.interaction && Math.hypot(p.x - objective.x, p.y - objective.y) < (objective.radius || 60) + 20 && hasLineOfSight(game, p, objective)) hint = touch ? 'Hold ASSIST to work on the objective.' : `Hold ${bind('interact')} to work on the objective.`;
   if (!hint && !touch && preferences.guidance === 'simple' && game.time < 13) hint = game.role === 'leader' ? `Follow the amber marker. ${bind('moveOrder')} sends the squad there.` : 'Stay near Hale. He will lead you to the objective.';
-  if (touch) hint = minimalGuidance ? '' : assist ? assist.detail : preferences.guidance === 'simple' && game.role === 'leader' && game.time < 8 ? 'Tap ground: move squad · Squad: orders / ping' : '';
+  if (touch) hint = minimalGuidance ? '' : assist ? assist.detail : preferences.guidance === 'simple' && game.role === 'leader' && game.time < 8 ? 'Squad: choose Move, then tap a destination' : '';
   if (!hint && observing && !(touch && minimalGuidance)) hint = touch ? 'Binoculars · Aim stick scans · Tap Lower to fight' : `Binoculars · Mouse to scan · ${bind('observe')} to lower`;
   const house = p ? buildingAt(game.world, p) : null;
   const scene = `${game.seed}:${game.missionIndex}:${game.playerId}`;
