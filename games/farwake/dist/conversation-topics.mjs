@@ -90,7 +90,20 @@ const PLACES = {
   kettle: topic('place-kettle', 'What can I do at Kettle?', 'Kettle is the starting port in Hearth. You can find ship fittings, local jobs, passenger services and story contacts here. Morrow and Tinbell are in the same system, so reaching them does not require a fold drive.'),
   morrow: topic('place-morrow', 'What can I do on Morrow?', 'Morrow is in Hearth, the same system as Kettle. Check the clinic, passenger services and the people marked on the local map. Keep track of which port your ship is actually docked at before booking passage.'),
   glimmer: topic('place-glimmer', 'Where are the games on Glimmer?', 'Glimmer is the city world in Voltage. Look for marked venues and tables on the local map. Walk to the actual table to play; each game explains its own stake and controls before you commit.'),
-  listening: topic('place-listening', 'What is Listening House for?', 'Listening House is on Vesper. Its archive and maintenance relay are part of the Earth investigation. Check your current story step before working on the relay or returning to the archivist.')
+  listening: topic('place-listening', 'What is Listening House for?', 'Listening House is on Vesper. Its archive and maintenance relay are part of the Earth investigation. Check your current story step before working on the relay or returning to the archivist.'),
+  stillwater: topic('place-stillwater', 'What does the Witness route change?', 'Sol was already reachable by fold drive. The approach log is a route the patrols recognize, so a prepared expedition can pass the cordon. It does not clear an Earth landing or prove that the planet is safe.'),
+  threshold: topic('place-threshold', 'What can I do safely at Threshold?', 'Threshold is the screened refuge for ships leaving inspection or turning away from Earth. Refuel and prepare here. Release from Last Accord returns your ship; it does not supply the investigation’s evidence or Earth’s landing permission.'),
+  earth: topic('place-earth', 'How far does this landing permission go?', 'This is a protected district with its own people, records and boundaries. A successful landing does not establish conditions elsewhere on the planet. Follow the current investigation and ask before entering another community.')
+};
+
+const SOL_VOICES = {
+  'earth-vale': topic('sol-relief', 'Why prepare before trying Sol?', 'A ship can jump early and glimpse Earth’s damaged surface. Small unauthorized hulls risk a tractor tow into Last Accord; larger or aggressive ships face armed interdiction. Keep return fuel. I need relief pilots who come back with the people they took.'),
+  tiva: topic('sol-observation', 'Does an orbital image settle what happened?', 'It shows the region the camera actually saw. The dark bands and broken structures are real observations. Their cause needs evidence. Witness keeps the screened approach record; it does not contain a promise that all of Earth can be restored.'),
+  'commissioner-ryn': topic('sol-contract', 'Does a transport contract cover the cordon?', 'A fuel invoice cannot turn a patrol aside. Read what the sponsor has actually agreed to cover: an inspection, a defined approach and a return plan. Some brokers sell hope using much less specific words.'),
+  'earth-ryn': topic('sol-orders', 'Can quarantine and abusive orders both be real?', 'Yes. A physical hazard can justify screening without justifying every fee, seizure or evacuation order attached to it. I want the signatures checked separately. A captain’s entry into Sol settles neither argument.'),
+  'doctor-sef': topic('sol-patients', 'What do the returning crews need?', 'First a safe berth and treatment. An orbital photograph may show terrible damage; it cannot tell me the condition of everyone below. Relief still needs screened passage and real receiving beds.'),
+  ferryman: topic('sol-salvage', 'Would you take an unscreened Sol crossing?', 'The clans keep old salvage prohibitions for a reason. A small hull can get through a jump and still be hauled into a capital’s hangar. A ship that gets out again may have learned a useful limit. It has not bought a claim on Earth.'),
+  'earth-sol': topic('sol-inspection', 'What happens after a tractor capture?', 'Last Accord holds the ship in its secure hangar and the people in its brig during inspection. A petition or service task can shorten the hold. Release returns the same hull and its people to Threshold. It grants no Earth clearance.')
 };
 
 export function conversationTopics(game, entity, role, response = {}) {
@@ -105,11 +118,12 @@ export function conversationTopics(game, entity, role, response = {}) {
   const personId = data.contactId || String(entity.id || '').replace(/^quest:/, '');
   const person = PEOPLE[personId], help = ROLE_TOPICS[person?.helpRole || role] || ROLE_TOPICS.refugee;
   const topics = person ? [person.subject, help[0]] : [...help];
+  if (SOL_VOICES[personId]) topics.push(SOL_VOICES[personId]);
   if (['recovery', 'homecoming'].includes(response.context) && response.rumor) topics.unshift(topic('voyage-recovery', response.updateLabel || 'About what happened', response.rumor));
   const aftermath = localAftermathTopic(game, personId); if (aftermath) topics.unshift(aftermath);
   const currentBody = state.exploration?.bodyId || state.interior?.location?.parentId || state.locationId;
   const bodyId = data.homeLocationId || data.bodyId || currentBody;
   if (bodyId === currentBody && (!data.systemId || data.systemId === state.systemId) && PLACES[bodyId]) topics.push(PLACES[bodyId]);
-  const bulletin = frontierConversationTopic(game, entity, role); if (bulletin && !person && !aftermath) topics.unshift(bulletin);
+  const bulletin = frontierConversationTopic(game, entity, role); if (bulletin && !person && !aftermath && !SOL_VOICES[personId]) topics.unshift(bulletin);
   return topics.slice(0, 3).map(value => ({ ...value }));
 }

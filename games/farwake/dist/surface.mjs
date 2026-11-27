@@ -35,6 +35,7 @@ import {isWildlifeSpecies,chooseNpcSpecies,normalizeSpecies,speciesName} from '.
 import {SPECIES_DISTRICT_NAMES,SPECIES_DISTRICT_RESIDENTS,SPECIES_INTERIOR_RESIDENTS} from './species-content.mjs';
 import {militaryInterior} from './military-sites.mjs';
 import {detentionSurface} from './military-recovery.mjs';
+import {quarantineBrigSurface} from './sol-custody.mjs';
 import {stationTypeFor,planetTypeFor} from './world-types.mjs';
 import {stationPlan,planetSurfaceDimensions,planetTerrainSample} from './place-geometry.mjs';
 import {PLANET_LAYOUT_VERSION,planetSettlementPlan,settlementLandformAt} from './planet-layout.mjs';
@@ -834,6 +835,7 @@ function addQuestEntities(m,location){
 export function generateSurface(location={},seed='farwake',flags=[]){
  location=resolveLocation(location);
  if(location.kind==='detention')return detentionSurface(location,seed);
+ if(location.kind==='brig')return quarantineBrigSurface(location,seed);
  const kind=kindOf(location),outdoorWarzone=location.id==='crosswind-vey'&&kind==='planet';const m=outdoorWarzone?expeditionSurface({...location,parentId:location.id,site:explorationSites(location,seed).find(site=>site.warzone)},seed,true):isNeonCity(location)?createNeonCity(location,seed,{makeMap,rect,line,room,point,entity,personEntity,prop,label,addArchive,addLocalWork,TILE}):kind==='eva'?evaSurface(location,seed):kind==='site'?expeditionSurface(location,seed):kind==='station'?(ringHabitatFor(location)?createRingHabitatSurface(location,seed,{makeMap,rect,line,room,point,entity,personEntity,prop,label,addStoryResident,addArchive,addLocalWork,TILE}):station(location,seed)):kind==='ship'?ship(location,seed):kind==='derelict'?derelict(location,seed):planet(location,seed);
  if(m.kind==='planet'&&!m.authoredCity&&!m.outdoorWarzone)scalePlanetRegion(m,location);
  m.faction=location.faction||null;m.systemId=location.systemId;m.systemName=location.systemName;m.localLore=location.localLore;m.loreId=location.loreId;m.flags=Array.isArray(flags)?[...flags]:[];

@@ -21,7 +21,7 @@ export function solClearance(game) {
 export function solEntryAccess(game, destinationId) {
   if(destinationId!==SOL_SYSTEM_ID)return {ok:true};
   const cleared=solClearance(game).entry;
-  return {ok:true,cleared,quarantine:!cleared,...(!cleared?{warning:'Sol is reachable, but quarantine interceptors will fire on an unauthorized ship. Earth’s orbital batteries cover the landing approach. Keep fuel for the return jump.'}:{})};
+  return {ok:true,cleared,quarantine:!cleared,...(!cleared?{warning:'Sol is reachable. Quarantine interceptors may tractor a small unauthorized ship into the flagship’s holding deck; larger or aggressive ships draw fire. Earth’s orbital batteries cover descent. Keep fuel for the return jump.'}:{})};
 }
 
 export function solLandingAccess(game, body) {
@@ -33,7 +33,7 @@ export function solLandingAccess(game, body) {
   const screenDestroyed=Array.from({length:6},(_,index)=>`sol:cordon:battery:${index+2}`).every(id=>destroyed.includes(id));
   if(!permission.landing&&screenDestroyed)return {ok:true,breach:true};
   if(!permission.entry)return {ok:false,code:'cordon',attemptable:true,
-    reason:'Orbital batteries control the descent to Earth. An unauthorized approach will draw overwhelming fire.'};
+    reason:'The quarantine controls Earth’s descent. A small unauthorized ship may be tractored into the flagship; larger or aggressive hulls draw overwhelming fire.'};
   if(!permission.landing)return {ok:false,code:'permission',reason:'Your screened approach is recognized. Answer Threshold’s arrival hail to arrange the landing.'};
   return { ok: true };
 }

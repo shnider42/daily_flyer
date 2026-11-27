@@ -35,11 +35,11 @@ test('earned route and arrival answer still permit the ordinary protected landin
   game.state.pendingEncounter=null;game._flag('threshold_answered');assert.equal(game.dock('earth').ok,true);
 });
 
-test('an early ship has time to withdraw, while lingering ends in real ship loss and screened recovery',()=>{
+test('an early ship has time to withdraw, while armed resistance ends in real ship loss and screened recovery',()=>{
   const retreat=ready();retreat.travel('sol');const fuel=retreat.state.ship.fuel;
   advance(retreat,7.5);assert.equal(retreat.state.ship.hull,retreat.state.ship.maxHull);assert.equal(retreat.state.ship.shield,retreat.state.ship.maxShield);
   assert.equal(retreat.travel('witness').ok,true);assert.ok(retreat.state.ship.fuel<fuel);assert.equal(retreat.state.stats.rescues,0);
-  const linger=ready();linger.travel('sol');const originalId=linger.state.ship.id;advance(linger,13);
+  const linger=ready();linger.travel('sol');linger.system.solCordon.visits[linger.state.ship.id].aggressive=true;const originalId=linger.state.ship.id;advance(linger,13);
   assert.equal(linger.ownsShip,false);assert.ok(linger.state.fleet.history.some(row=>row.type==='loss'&&row.vesselId===originalId));
   assert.equal(linger.state.shipRecovery.destination.bodyId,'threshold');assert.equal(linger.state.mode,'person');
   assert.equal(linger.hasFlag('landed_earth'),false);assert.deepEqual(solClearance(linger),{entry:false,landing:false});
@@ -58,7 +58,7 @@ test('attempting Earth is a live interception with no surface transition or stor
   const before=game.state.stats.dockings,result=game.dock('earth');
   assert.equal(result.ok,true);assert.equal(result.approach,true);assert.equal(game.state.mode,'ship');assert.equal(game.state.locationId,null);
   assert.equal(game.state.stats.dockings,before);assert.equal(game.hasFlag('landed_earth'),false);
-  advance(game,3.5);assert.ok(game.system.bullets.some(bullet=>bullet.solCordon)||game.state.stats.rescues>0);
+  advance(game,3.5);assert.equal(game.custodyStatus()?.phase,'locking');assert.equal(game.state.stats.rescues,0);
   assert.equal(game.hasFlag('threshold_answered'),false);
 });
 
@@ -74,7 +74,7 @@ test('saving, loading and revisiting preserve challenge time, damage and defense
 });
 
 test('cordon volleys target only the intruding physical hull and cannot hit a cleared neighbor',()=>{
-  const intruder=ready();intruder.travel('sol');intruder.state.ship.hull=10000;
+  const intruder=ready();intruder.travel('sol');intruder.state.ship.hull=10000;intruder.system.solCordon.visits[intruder.state.ship.id].aggressive=true;
   const friend=new Game('cleared-neighbor',{startMode:'casual'});friend.state.systemId='sol';friend._runtime=intruder.system;
   for(const flag of ['vault_recovered','homeward_signal','threshold_answered'])friend._flag(flag);
   Object.assign(friend.state.ship,{x:intruder.state.ship.x+5,y:intruder.state.ship.y,shield:friend.state.ship.maxShield});

@@ -1,3 +1,5 @@
+import {SUPERCAPITAL_VISUALS,drawFactionSupercapitalHull} from './faction-supercapital-art.mjs';
+import {supercapitalTelegraphs} from './faction-supercapitals.mjs';
 import {pixelRect,pixelLine,pixelRing,labelSink} from './pixel-art.mjs';
 import {resolveCabinClass,FACTION_HULL_OUTLINES} from './interior-layouts.mjs';
 import {getShipClass} from './fleet.mjs';
@@ -14,6 +16,20 @@ import {solCordonStatus} from './sol-cordon.mjs';
 import {solCordonArrivalFrame,drawSolCordonOverlay} from './sol-cordon-art.mjs';
 import {WARZONE_FACTION_STYLE,WARZONE_HULL_TACTICS} from './warzone-content.mjs';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+/** Only the warned hull sees its live defensive firing lanes. */
+export function drawFactionSupercapitalTelegraphs(ctx,world,{to=(x,y)=>({x,y}),targetVesselId,pixelRatio=1,width=Infinity,height=Infinity,emit}={}){
+ if(!targetVesselId)return;const r=Math.max(.5,pixelRatio);
+ for(const actor of (world?.traffic||[]).filter(actor=>actor.factionSupercapital&&actor.active===true).slice(0,5)){
+  const rays=supercapitalTelegraphs(actor).filter(ray=>ray.targetVesselId===targetVesselId).slice(0,48);if(!rays.length)continue;
+  ctx.save();ctx.strokeStyle='#edb58b';ctx.lineWidth=r;ctx.setLineDash?.([5*r,6*r]);ctx.beginPath();let visible=0;
+  for(const ray of rays){const a=to(ray.origin.x,ray.origin.y),b=to(ray.origin.x+Math.cos(ray.angle)*ray.length,ray.origin.y+Math.sin(ray.angle)*ray.length);
+   if(![a.x,a.y,b.x,b.y].every(Number.isFinite)||Math.max(a.x,b.x)<0||Math.min(a.x,b.x)>width||Math.max(a.y,b.y)<0||Math.min(a.y,b.y)>height)continue;
+   ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);visible++;
+  }
+  if(visible){ctx.stroke();const p=to(actor.x,actor.y);if(p.x>=0&&p.x<=width&&p.y>=0&&p.y<=height)emit?.('BATTERIES LOCKING',p.x,p.y-24*r,'#f2c7a4',12,'center',105,'flagship-lock');}
+  ctx.restore();
+ }
+}
 // Chart coverage follows the system extent; ship and world sprites keep their
 // physical size, so more space never silently zooms out the flight camera.
 export const systemRadarRange=system=>1900*(Number.isFinite(system?.radius)&&system.radius>0?system.radius:WORLD_RADIUS)/LEGACY_WORLD_RADIUS;
@@ -27,6 +43,7 @@ function polygon(ctx,points,color){
 }
 function lobe(ctx,x,y,rx,ry,color){polygon(ctx,Array.from({length:16},(_,i)=>{const a=i/16*TAU;return[x+Math.cos(a)*rx,y+Math.sin(a)*ry];}),color);}
 export const SHIP_VISUALS={
+ ...SUPERCAPITAL_VISUALS,
  sparrow:{length:64,width:42,thrusters:[[-30,-14],[-30,14]]},
  hauler:{length:104,width:66,thrusters:[[-50,-21],[-50,0],[-50,21]]},
  frigate:{length:154,width:72,thrusters:[[-74,-27],[-69,-10],[-69,10],[-74,27]]},
@@ -81,7 +98,8 @@ function hazardBoundary(ctx,x,y,radius,color,{width,height,rasterScale=1,dashed=
 function hullSprite(shipClass,color,damage=0){
  const key=`${shipClass}:${color}:${Math.floor(damage*4)}`;if(shipCache.has(key))return shipCache.get(key);
  const profile=SHIP_VISUALS[shipClass],c=makeCanvas(profile.length+14,profile.width+14),ctx=c.getContext('2d');ctx.translate(c.width/2,c.height/2);const p=(col,x,y,w,h)=>pixelRect(ctx,col,x,y,w,h),dark='#152b38',edge='#526e7a',light=mix(color,1.13),shade=mix(color,.62);
- if(shipClass==='sparrow'){
+ if(drawFactionSupercapitalHull(ctx,{shipClass,color,damage})){}
+ else if(shipClass==='sparrow'){
   polygon(ctx,[[-31,-12],[-20,-21],[-5,-20],[8,-12],[31,-4],[33,0],[31,4],[8,12],[-5,20],[-20,21],[-31,12]],dark);
   p(edge,-28,-19,22,11);p(edge,-28,8,22,11);p(color,-25,-18,16,8);p(color,-25,10,16,8);p(light,-24,-18,16,2);p(light,-24,10,16,2);
   polygon(ctx,[[-22,-10],[7,-10],[31,-3],[31,3],[7,10],[-22,10]],shade);polygon(ctx,[[-19,-9],[7,-9],[27,-3],[27,2],[5,7],[-19,7]],color);
@@ -403,12 +421,12 @@ function hullSprite(shipClass,color,damage=0){
   for(const[x,y]of SHIP_VISUALS.capital.thrusters)p('#132e3e',x-3,y-4,9,8);
  }
  // Readable habitation windows and a docking hatch distinguish crew hulls from fighters.
- if(shipClass!=='needle'&&shipClass!=='kite'){
+ if(!SUPERCAPITAL_VISUALS[shipClass]&&shipClass!=='needle'&&shipClass!=='kite'){
  const berths=getShipClass(shipClass).berths,windows=Math.ceil(berths/2),spacing=shipClass==='sparrow'?8:Math.min(16,profile.length*.075),start=shipClass==='mender'?-24:-profile.length*.29;
  for(let i=0;i<windows;i++)for(const side of[-1,1]){const x=start+i*spacing,y=side*profile.width*.19;p('#19313e',x-1,y-1,5,4);p('#b9d7c7',x,y,3,2);}
  const hatchX=-profile.length*.12,hatchY=profile.width*.28;p('#112d3a',hatchX-5,hatchY-4,10,8);p('#94a9a6',hatchX-4,hatchY-3,8,6);p('#294a57',hatchX-2,hatchY-2,4,4);p('#d8c18b',hatchX-5,hatchY-4,3,2);p('#d8c18b',hatchX+2,hatchY+2,3,2);
  }
- if(damage>.2){const r=random(hash(key));for(let i=0;i<Math.floor(damage*14);i++){const x=(r()-.5)*profile.length*.65,y=(r()-.5)*profile.width*.45;p('#273c43',x,y,5+r()*8,2+r()*4);if(damage>.6)p('#c8916f',x+1,y,2,1);}}
+ if(damage>.2&&!SUPERCAPITAL_VISUALS[shipClass]){const r=random(hash(key));for(let i=0;i<Math.floor(damage*14);i++){const x=(r()-.5)*profile.length*.65,y=(r()-.5)*profile.width*.45;p('#273c43',x,y,5+r()*8,2+r()*4);if(damage>.6)p('#c8916f',x+1,y,2,1);}}
  const sprite={canvas:c,length:profile.length,width:profile.width};shipCache.set(key,sprite);if(shipCache.size>120)shipCache.delete(shipCache.keys().next().value);return sprite;
 }
 function warzoneHullEquipment(ctx,shipClass,ox,oy){
@@ -676,7 +694,7 @@ export class SpaceRenderer{
     drawWarzoneEffect(ctx,effect,{x:p.x,y:p.y,clock:warzone.clock,zoom:z,rasterScale:r,motion});
    }
   }
-  if(!welcome)drawShipBossTelegraphs(ctx,sys,{to,scale:z,pixelRatio:r,reducedMotion:!motion,emit});
+  if(!welcome){drawShipBossTelegraphs(ctx,sys,{to,scale:z,pixelRatio:r,reducedMotion:!motion,emit});drawFactionSupercapitalTelegraphs(ctx,sys,{to,targetVesselId:ship.id,pixelRatio:r,width:w,height:h,emit});}
   // A boarding party leaves two physical hulls in the system. Draw their tether
   // from stable vessel IDs, including when the target is a shared vessel actor.
   const vessels=[ship,...remoteShips,...parkedShips,...(sys.enemies||[]).map(normalizeShip)],findVessel=id=>vessels.find(v=>v.id===id||v.vesselId===id||v.ship?.id===id),links=new Map();
@@ -720,7 +738,7 @@ export class SpaceRenderer{
     if(disabled||data.occupation?.contested||data.capturedBy){const status=data.occupation?.contested?'CONTESTED':data.capturedBy?'SECURED':data.boardable===false?'DISABLED':'BOARD';emit(`${status} · ${data.berths} BERTHS · ${data.subtitle.toUpperCase()}`,p.x,labelY+13*r,data.capturedBy?'#a8d7c9':'#c9b995',12,'center',85,'boarding');}
    }
    if(remote)emit(data.name||data.displayName||'Independent captain',p.x,p.y+(data.renderWidth||pr.width)*z*.6+10*r,'#add9d7',14,'center',70,'remote');
-   if(traffic&&data.peacekeeper&&!welcome){const labelY=p.y+data.renderWidth*z*.6+11*r;emit(data.name||'Peacekeeping vessel',p.x,labelY,'#c1d5ce',14,'center',58,'peacekeeper');emit(`${data.faction==='freewake'?'FREEWAKE':String(data.faction||'LOCAL').toUpperCase()} · PEACEKEEPING`,p.x,labelY+14*r,'#8fafa9',12,'center',42,'peacekeeper-role');}
+   if(traffic&&(data.peacekeeper||data.factionSupercapital)&&!welcome){const labelY=p.y+data.renderWidth*z*.6+11*r;emit(data.name||(data.factionSupercapital?'Faction flagship':'Peacekeeping vessel'),p.x,labelY,'#c1d5ce',14,'center',58,'peacekeeper');emit(`${data.faction==='concord'?'TERRAN CONTINUITY':data.faction==='freewake'?'FREEWAKE':String(data.faction||'LOCAL').toUpperCase()} · ${data.factionSupercapital?'FACTION FLAGSHIP':'PEACEKEEPING'}`,p.x,labelY+14*r,'#8fafa9',12,'center',42,'peacekeeper-role');}
    if(parked){emit(data.name||'Parked vessel',p.x,p.y+data.renderWidth*z*.6+10*r,'#b7d2c6',14,'center',72,'parked');emit('PARKED · BOARD',p.x,p.y+data.renderWidth*z*.6+23*r,'#93b7b3',12,'center',65,'boarding');}
    const old=this.health.get(data.id|| (self?'player':null));if(old!==undefined&&hull<old&&motion)for(let i=0;i<7;i++)this.particles.push({x:data.x,y:data.y,vx:Math.cos(i*1.8+time)*35,vy:Math.sin(i*1.8+time)*35,ttl:.3+i*.035,color:i%2?'#d9b77f':'#97c0bd'});this.health.set(data.id||(self?'player':null),hull);
   };

@@ -11,6 +11,7 @@ import { conversationTopics } from './conversation-topics.mjs';
 import { campaignStageText } from './local-campaigns.mjs';
 import { storyStatus } from './expedition-story-rules.mjs';
 import { voyageReaction } from './voyage-reactions.mjs';
+import { peopleEventFor, peopleEventResponse } from './people-event-rules.mjs';
 
 export const CONVERSATION_LIMIT = 96;
 const REMEMBER_AFTER = 30;
@@ -383,7 +384,7 @@ export function conversation(game, entity = {}, { record = true, time, storyTime
   const activity = text(entity.life?.label || (entity.data?.automated ? 'Service terminal' : ''), 40), data = DIALOGUE[role] || DIALOGUE.refugee;
   const social = socialConversation(state, entity, at, { record, storyTime });
   const news = entity.data?.socialOnly ? null : localNews(game, entity, role);
-  let response = urgent(game, entity, role) || voyageReaction(game, entity, { known, role }) || expeditionConversation(game,entity) || militaryMember(game,entity,role) || opening(game, entity) || narrative(game, entity) || mainStory(game, entity) || localSiteResponse(state,entity) || social;
+  let response = urgent(game, entity, role) || voyageReaction(game, entity, { known, role }) || expeditionConversation(game,entity) || militaryMember(game,entity,role) || opening(game, entity) || narrative(game, entity) || mainStory(game, entity) || peopleEventResponse(game,entity) || localSiteResponse(state,entity) || social;
   if (!response && relation.trust <= -2) response = { context: 'relationship', greeting: relation.trust <= -6 ? 'I remember what happened. Keep this conversation to what you need.' : 'We can talk. That doesn’t mean I’m easy with how things turned out.' };
   if (!response && relation.trust >= 3) response = { context: 'relationship', greeting: relation.trust >= 8 ? 'You’ve earned my trust. Sit with me a moment.' : 'Good to see you. I haven’t forgotten what you did.' };
   if (!response && relation.standing <= -20) response = { context: 'relationship', greeting: role === 'medic' ? 'I know where you stand with the port. If you need care, say so.' : 'Your reputation gets here before you do. What do you need?' };
@@ -400,6 +401,7 @@ export function conversation(game, entity = {}, { record = true, time, storyTime
   const remembered = rememberedUpdate(response, previous, entity, role, clock, key);
   response = remembered.response;
   const result = { ...response, greeting: text(response.greeting), rumor: text(rumor), topics, ...(response.updateText ? { updateText: text(response.updateText, 900) } : {}), newsContext: response.context === 'local-expedition' ? response.context : news?.newsContext || response.context, activity, relationship: social?.relationship || relation.label, trust: relation.trust, standing: relation.standing, known, name: text(entity.name, 80), role: text(entity.data?.roleLabel || entity.role || role, 80), clock: clock.text, localHour: clock.hour, species, speciesLabel:speciesLabel(species), background:species!=='human'&&response.context!=='urgent'?text(speciesBackground(species,entity.data?.crewId||entity.data?.guestId||id,localBody(game,entity))):'' };
+  if (!['urgent', 'mission', 'local-expedition', 'recovery'].includes(response.context)) result.peopleEvent = peopleEventFor(game, entity);
   if (record && id && !entity.data?.automated && !['__proto__', 'prototype', 'constructor'].includes(id)) {
     const details = { ...(remembered.updateKey ? { updateKey: remembered.updateKey } : {}), rumorKey: `rumor:${hash(rumor)}` };
     if (!previous) memory.people.push({ id, count: 1, lastAt: at, context: result.context, ...details });

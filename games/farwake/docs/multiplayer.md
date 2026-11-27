@@ -4,15 +4,15 @@ Public game: https://dfe-farwake.onrender.com/
 
 Authority and direct game: https://dfe-farwake-universe.onrender.com/
 
-Farwake supports a shared invitation realm with up to **ten simultaneously connected captains**. A captain can explore a separate system, work on a planet, or join a permitted friend's ship. Hull capacity ranges from one to twenty-four berths; living hired NPC crew, rescued passengers, and human crew share those places. The realm still permits at most ten online human captains. The server maintains one vessel and one world simulation, regardless of how many people are aboard.
+Farwake supports a shared invitation realm with up to **ten simultaneously connected captains**. A captain can explore a separate system, work on a planet, or join a permitted friend's ship. Hull capacity ranges from one to forty-eight operational berths, including five faction supercapital classes; living hired NPC crew, rescued passengers, and human crew share those places. The realm still permits at most ten online human captains. The server maintains one vessel and one world simulation, regardless of how many people are aboard.
 
 This is a small-group authoritative multiplayer implementation. It is not a distributed MMO service. The current deployment model is one Node process, with durable realm records behind an authenticated storage gateway.
 
 ## Playing together
 
-Version 0.38 starts the compact 26-system chart with galaxy epoch `compact-v1`. Create a new shared galaxy and use its new invitation code. Browser passports use a new storage key, and old realm documents are rejected before any captain or world state is restored. The server returns a clear new-galaxy-required response; it does not reinterpret old locations or delete the historical record. New realm documents and captain saves carry the epoch and restore normally. Client and server world content revision 14 must match.
+Version 0.41.0 retains the compact 26-system chart and galaxy epoch `quiet-earth-v2`. Supported Quiet Earth voyages and invitation codes continue; this release does not require a new galaxy. Incompatible records from older epochs are rejected clearly before captain or world state is restored, without deleting historical records. Client and server world content revision 17 must match, so a browser with older game content must refresh.
 
-Open **Crew / Online**, create a realm, and share its invitation code. A joining player receives a separate captain and starter ship. Joining does not import or overwrite a solo save.
+Open **Play together** from the game menu or **Crew & comms**, create a realm, and share its invitation code. A joining player receives a separate captain and starter ship. Joining does not import or overwrite a solo save.
 
 For a new Regular galaxy, **Start together** opens a departure lobby at Kettle. Connected waiting captains unlock Lark at two, Puffin at four, and Osprey at seven. The selected hull must have room for the entire connected departure crew. Each guest marks Ready; changing the selection clears guest readiness. The host's **Board together** action places everyone on one docked vessel, with personal piloting/station grants and installed bunks. A pilot then launches through the existing deck controls. Guest compact hulls remain docked at Kettle.
 
@@ -21,6 +21,14 @@ The start is optional and one-time. Its status, hull choice, and participants ar
 The browser stores a **captain passport** containing the realm code, captain identifier, and a random authentication token. Export that passport before changing browser, clearing site data, or moving to another device. Importing it resumes that captain. Treat its file as a credential: anyone with the token can operate that captain. The authority stores only its SHA-256 hash. There is no email account, password reset, or external identity provider in this release.
 
 Only ten passports can be online in one realm at the same time. More captains can have saved records and play at different times. A second connection using the same passport replaces its earlier connection rather than creating a duplicate character.
+
+### Crew, nearby conversations and current situations
+
+**Crew & comms** brings together the crew manifest, shared boarding controls, channels currently within reach and the existing recent-message history. Its conversation entries use the same physical proximity and visibility checks as ordinary interaction. It does not expose distant pending speakers or provide remote story actions. The current-situation control gives direct access to tractor/custody status, available responses and release conditions; existing military and Crosswind situations remain available in their own contexts. Shared time continues while these panels are open.
+
+Fourteen optional interpersonal scenes use existing NPCs at Kettle, Morrow, Weighhouse, Ledger, Bastion, Listening House and Glimmer. A stable galaxy-seed choice selects one of two scenes at each port. The existing encounter history makes each selected scene once-only for each captain. The authority validates the actual nearby participant when opening the conversation and again when a choice is made. Costs and trust changes use the captain's purse and existing personal People record; another captain does not inherit that choice, payment, evidence or reputation. No background scene timer or automatic notice queue is added, and the opening mission retains priority.
+
+Settings save **Steering / walk stick** and **Strafe / aim stick** sizes independently of touch-button size. They change control presentation without changing authority input rules. In flight the second stick remains horizontal strafe, with a separate Fire control; on foot it retains its aim behavior.
 
 ### Shared ships and stations
 
@@ -39,6 +47,14 @@ Walk to a console to take its station. One captain controls the helm. Other huma
 Station permission and proximity are checked by the authority. Changing a browser variable does not grant a role or move a vessel. The owner can revoke access; an occupant already in space becomes a passenger and can disembark at a port.
 
 NPC grapples start a shared defensive boarding fight. The helmsman is brought onto the actual crew deck, where the humans and hired crew fight the same hostile actors. A disabled enemy ship can be assaulted by the helmsman's boarding party; other people remaining on the friendly deck do not appear on that enemy deck or shoot its enemies remotely. A boarding leader can retreat through the entry airlock. Incapacitated humans cannot move; they recover when the boarding outcome resolves. Hired crew deaths and the vessel's memorial remain recorded.
+
+### Sol interception and shared custody
+
+Sol remains reachable with ordinary fold range and fuel. Its five-faction setting now includes distinct Bastion, Commonwealth, Dominion, Palimpsest and Crucible supercapital classes, with TCS Last Accord commanding the physical quarantine in Sol. Small, nonaggressive unauthorized ships can be locked by its tractor and towed into its secure hangar. Larger or aggressive hulls face armed interdiction. Capture eligibility and resistance use the actual hull, fittings, working crew, power and commander's standing; an absent owner cannot lend the party private clearance or capabilities. Independent PvP and boarding conflicts do not become shortcuts into protective custody.
+
+Capture secures the original vessel, cargo and hired crew and moves its human occupants into the flagship's actual brig room. A canonical impound record belongs to the captured vessel. Its inspection uses a 120-second base and starts within 30–180 seconds according to standing, affiliation and compliance. The authority advances it once per vessel while at least one detained party member is connected. Each party can complete one nearby liaison review and one supervised service task, each reducing the remaining time by 45 seconds. The liaison checks the actual petitioner's payment when a bond is required. Simultaneous requests cannot duplicate a reduction or charge.
+
+Custody, party membership, the remaining timer and both used reductions persist through reconnect and restart. Finishing inspection automatically returns the party and the same original hull to Threshold. Ownership, cargo and hired crew remain attached to that hull, and Earth landing permission and private investigation flags remain unchanged. Before physical capture, outward flight, an available counterpulse, compliance and the ordinary return jump remain distinct responses. Ordinary drive, fuel and independent-combat rules still apply.
 
 ### Military careers, ranks, and shared operations
 
@@ -213,12 +229,15 @@ Authority commands include flight transitions (`dock`, `launch`, `travel`), inte
 | `server/index.mjs` | HTTP/static serving, WS sessions, heartbeat, fixed tick scheduling, compact snapshots, lifecycle. |
 | `server/realm.mjs` | Captain/vessel authority, canonical rooms, permissions, surface validation, homes, command persistence. |
 | `server/military-operations.mjs` | Realm-owned musters, rank-aware leadership, shared deployments, canonical carrier contracts, per-captain settlement. |
+| `server/sol-custody.mjs` | One impound record and inspection clock per captured hull, shared brig occupants, guarded reductions and original-vessel release. |
 | `server/persistence.mjs` | Versioned development files and authenticated gateway adapter. |
 | `server/protocol.mjs` | Protocol constants, input sanitization, random credentials, token hashing, rate limits. |
 | `dist/network.mjs` | Browser transport, passport storage, reconciliation, interpolation, compact snapshot reconstruction. |
 | `dist/snapshot-delta.mjs` | Negotiated incremental snapshot encoding and immutable reconstruction. |
 | `server/performance.mjs` | Bounded aggregate simulation, scheduling and transport measurements. |
 | `dist/engine.mjs`, `dist/fleet.mjs` | Shared game rules, per-vessel simulation, once-per-system world simulation, pure flight physics. |
+| `dist/sol-custody.mjs`, `dist/faction-supercapitals.mjs` | Physical tractor response, capture profile, brig rules and faction flagships. |
+| `dist/people-event-content.mjs`, `dist/people-event-rules.mjs` | Seed-selected local scenes, live speaker validation and personal relationship consequences through existing encounters. |
 | `dist/surface.mjs`, `dist/interior-layouts.mjs` | Shared collision and authoritative entity/console/bunk coordinates. |
 | `dist/military-career.mjs`, `dist/military-content.mjs`, `dist/military-sites.mjs` | Authored career/standing orders, personal evidence and debriefs, Army sites and transport. |
 | `dist/military-ranks.mjs`, `dist/navy-service.mjs`, `dist/navy-duty.mjs` | Individual service ranks and permissions; common solo/shared Navy station access, duty, and receipt rules. |

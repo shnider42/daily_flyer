@@ -48,7 +48,7 @@ test('four faction hulls commission, save, capture, and keep actual cabin and eq
   assert.equal(enemy.boardable,hull.berths>=3);
  }
  assert.deepEqual(STARTER_SHIP_IDS,['sparrow','kestrel','mule']);
- assert.deepEqual(testEnemyChoices().map(hull=>hull.id),['kestrel','needle','sparrow','mule','tern','kite','petrel','swift','lark','quill','hauler','kingfisher','lamprey']);
+ assert.deepEqual(testEnemyChoices().map(hull=>hull.id),['kestrel','needle','sparrow','mule','tern','kite','petrel','swift','lark','quill','hauler','kingfisher','lamprey','mender','marten','puffin']);
 });
 
 test('fighters and Meridian capitals render four unclipped native silhouettes and reuse buffers',()=>withCanvas(()=>{

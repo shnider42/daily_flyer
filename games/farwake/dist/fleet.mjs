@@ -2,6 +2,7 @@
 import { powerProfile } from './ship-power.mjs';
 import { getHullSystems } from './hull-systems.mjs';
 import { WORLD_RADIUS } from './system-space.mjs';
+import { FACTION_SUPERCAPITAL_HULLS } from './faction-supercapital-content.mjs';
 export { cabinLayout, isCabinWalkable } from './interior-layouts.mjs';
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -62,7 +63,7 @@ export const SHIP_CLASSES = Object.freeze([
     stats:{mass:35, radius:116, renderLength:440, renderWidth:216, maxHull:1100, maxShield:400, maxEnergy:390, maxFuel:110, cargoCap:145, speed:125, thrustAcceleration:35, strafeAcceleration:22, angularAcceleration:.28, maxAngularVelocity:.34, angularDamping:.63, damage:58, range:1520, scanRange:430, mining:.7} },
   { id:'ark', name:'Ark', subtitle:'Meridian fleet carrier', description:'An asymmetric flight deck and a long engineering spine carry sixteen berths, two recessed launch galleries, and a broad command prow. A Meridian carrier sustains fighter wings with repair stores and spare reactors; its exposed galleries need a screening escort.', faction:'meridian', military:true, berths:16, cost:17200, ore:104, requiresClass:'capital', requires:['fold_3'], conditions:{flags:['ally_chosen']},
     stats:{mass:28, radius:106, renderLength:400, renderWidth:196, maxHull:920, maxShield:270, maxEnergy:360, maxFuel:104, cargoCap:195, speed:135, thrustAcceleration:41, strafeAcceleration:26, angularAcceleration:.34, maxAngularVelocity:.4, angularDamping:.68, damage:40, range:1350, scanRange:420, mining:1} }
-].map(c => Object.freeze({...c, systems:getHullSystems(c.id), stats:Object.freeze(c.stats)})));
+,...FACTION_SUPERCAPITAL_HULLS].map(c => Object.freeze({...c, systems:getHullSystems(c.id), stats:Object.freeze(c.stats)})));
 
 /** Public new-captain choices; later hulls are never included in this catalog. */
 export const STARTER_SHIP_IDS = Object.freeze(['sparrow','kestrel','mule']);

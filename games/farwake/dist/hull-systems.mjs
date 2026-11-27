@@ -1,4 +1,5 @@
 /** Native hull equipment. The same rules drive solo, authority and prediction. */
+import { SUPERCAPITAL_SYSTEMS } from './faction-supercapital-content.mjs';
 const defaults={
  energyRecharge:11,boostMultiplier:1.7,boostDrain:18,
  miningReach:225,salvagePullRange:90,salvageReach:150,
@@ -8,6 +9,7 @@ const defaults={
  healPerson:12,healCrew:8,healEnergy:15,healCooldown:6,damageControlMultiplier:1
 };
 const definitions={
+ ...SUPERCAPITAL_SYSTEMS,
  sparrow:{name:'Reserve bus',description:'Recovers 14 reactor charge per second while cruising, keeping working systems ready between bursts.',tradeoff:'Balanced equipment; no specialist weapon or cargo rig.',energyRecharge:14},
  kestrel:{name:'Vector overdrive',description:'BOOST delivers 1.95× thrust for a fast escape or course correction.',tradeoff:'Overdrive draws 24 reactor charge per second; coast between bursts.',boostMultiplier:1.95,boostDrain:24},
  mule:{name:'Tractor rig',description:'The mining beam reaches 315 metres beyond a rock’s edge. Loose salvage is drawn in from 210 metres and can be collected within 230 metres.',tradeoff:'The tug still needs time to turn and build speed.',miningReach:315,salvagePullRange:210,salvageReach:230},

@@ -2,9 +2,25 @@
 
 Authoring direction recorded 2026-11-26 and implemented in Farwake 0.39.0 / Nightglass 0.4.0. The earlier source audit remains below as implementation history.
 
-## Current Sol approach · 0.40
+## Current Sol approach · 0.41.0
 
-The user replaced the menu lock with a physical cordon. Any ship with ordinary fold range and fuel can attempt Sol. An unscreened arrival sees damaged Earth and orbital wreckage while a short radio challenge leaves the controls free. Continuing into the defended approach draws overwhelming physical fire from interceptors and orbital batteries. The visible damage is an observation, not the late explanation.
+The user replaced the menu lock with a physical cordon. Any ship with ordinary fold range and fuel can attempt Sol. An unscreened arrival sees damaged Earth and orbital wreckage while a short radio challenge leaves the controls free. Small, nonaggressive hulls can be caught by TCS Last Accord's tractor and towed into its secure hangar. Larger or aggressive hulls face armed interdiction from the defenses. Ship mass, fittings, working crew, power routing and faction standing affect the encounter. The visible damage is an observation, not the late explanation.
+
+Before capture, the captain can burn out of tractor range, use the available engine counterpulse, comply or make the ordinary return jump. Physical capture puts the captain and any human crewmates in the flagship's brig, with the original hull, cargo and hired crew secured in its hangar. Inspection starts from a 120-second base, bounded to 30–180 seconds after standing, affiliation and compliance. A nearby liaison petition and a supervised ventilation task can each remove 45 seconds once per captured vessel. When the timer ends, the party and original ship return to Threshold. Release creates neither Earth landing permission nor private investigation evidence.
+
+In shared play, one canonical vessel record owns the inspection clock and both reductions. Adding crewmates cannot accelerate the clock or repeat a benefit. The timer advances once while a detained party member is connected, and custody, remaining time and used reductions survive restart. The actual occupants are detained together; an absent owner's skills, standing or private flags do not substitute for those aboard.
+
+Five physical faction flagships use distinct 48-berth supercapital classes:
+
+| Faction | Class | Flagship |
+| --- | --- | --- |
+| Terran Continuity | Bastion | TCS Last Accord |
+| Freewake Union | Commonwealth | FWS Common Cause |
+| Meridian Combine | Dominion | MCS Long Dividend |
+| Lantern Assembly | Palimpsest | LAS Unbroken Record |
+| Cinder Clans | Crucible | CCS Firekeeper |
+
+Last Accord operates the playable Sol inspection. The other flagships retain their own relief, convoy, archive and foundry roles; their existence does not establish a shared explanation for Earth's disaster.
 
 The chart must keep the risky jump available and identify its fuel cost, return-fuel risk and military response. Earth has an enabled approach attempt: it provokes the inner defenses while the ship remains in space. The defenses control the descent until they are overcome or the captain earns the recognized route and arrival answer. Physical presence, rescue, a completed breach or an empty interior snapshot must never manufacture permission or evidence.
 
@@ -21,7 +37,7 @@ Sources checked: Farwake `feat/farwake-galaxy` at `f057e535a3ff548f112f4d0b0bb3c
 - The first eight story chapters preserve real local relief and point into the longer investigation. Late physical evidence establishes the final facts, followed by separate choices of account and allegiance. Follow-up threads continue after every route. Keep the actual findings out of early summaries and release notes.
 - Ledger Ring and Still Berth use existing destination IDs and have playable inner districts, services, local work, space silhouettes and a rising far landscape. Still Berth’s sealed damage does not alter the Empty Ward evacuation.
 - Nightglass is an incident witnessed in the first person, 93 years earlier. Its three local puzzles have explicit prerequisites and separate ambiguous last moments. Each witness’s scope is their own facility, with no claim to know the fate of an entire world.
-- Farwake uses `quiet-earth-v2` and content revision 15; Nightglass uses its own new prequel save boundary. The user waived old WIP compatibility. Supported new progress still persists correctly.
+- Farwake 0.41.0 uses `quiet-earth-v2` and content revision 17; Nightglass uses its own prequel save boundary. The user waived older WIP compatibility. Supported Quiet Earth voyages and shared invitations continue without a new epoch.
 
 ## Decisions and their limits
 
@@ -224,6 +240,8 @@ Part of the galaxy has been affected; this does not make every alien species, cr
 Farwake's central hope is that people might safely return and make Earth a home again. The existence of a dangerous infestation does not by itself prove that this hope is impossible. Evidence of local containment, surviving people or a viable pocket can support hope without promising planetary recovery. The eventual impossibility must follow from evidence about Earth, not an unexplained rule that nothing the player does matters.
 
 ## The Sol cordon and the factions
+
+The implementation-gap notes in this subsection preserve the earlier design discussion. The current physical approach and custody rules above supersede its proposed travel restrictions.
 
 The cordon covers Sol as a system, including ordinary approaches to Luna and Earth. Its operation must match the travel rules. A line of ominous dialogue cannot coexist with unrestricted routine jumps and unrestricted Sol starts.
 

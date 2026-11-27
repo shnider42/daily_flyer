@@ -7,6 +7,7 @@ import { createSystemTraffic, advanceTraffic, captureTraffic, restoreTraffic, ca
 import { WorldPresentation } from '../dist/world-presentation.mjs';
 import { CROSSWIND_SYSTEM_ID, WARZONE_FACTION_HULLS } from '../dist/warzone-content.mjs';
 import { stepWarzoneSpace } from '../dist/warzone-space.mjs';
+import { factionSupercapitalPlan,findFactionSupercapital } from '../dist/faction-supercapitals.mjs';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const close = (a, b, tolerance = 1e-7) => assert.ok(Math.abs(a - b) < tolerance, `${a} differs from ${b}`);
@@ -45,7 +46,7 @@ test('untyped released port inputs retain the complete pre-expansion scheduled h
   assert.deepEqual([...seen].sort(),[...LEGACY_SCHEDULED_TRAFFIC_HULL_IDS].sort());
 });
 
-test('military-only hulls are physically encountered with their own faction fleets and carrier launches',()=>{
+test('military-only hulls are physically encountered with faction fleets, carrier launches and flagship anchorages',()=>{
   const game=new Game('military-encounter-homes'),seen=new Map();game.state.systemId=CROSSWIND_SYSTEM_ID;game._loadSystem(CROSSWIND_SYSTEM_ID);
   assert.deepEqual(game.system.traffic,[],'Crosswind does not substitute commuter routes for its military battle');
   const observe=()=>{for(const ship of game.system.enemies){
@@ -61,7 +62,16 @@ test('military-only hulls are physically encountered with their own faction flee
   observe();for(let tick=0;tick<80;tick++){stepWarzoneSpace(game.system,.1);observe();}
   for(const [faction,classes]of Object.entries(WARZONE_FACTION_HULLS))for(const classId of Object.values(classes))assert.deepEqual([...(seen.get(classId)||[])],[faction],`${classId} is encountered in the correct faction's fleet`);
   const encountered=new Set([...SCHEDULED_TRAFFIC_HULL_IDS,...seen.keys()]);
-  assert.deepEqual([...encountered].sort(),SHIP_CLASSES.map(ship=>ship.id).sort(),'all hulls remain observable through scheduled service or actual fleet combat');
+  for(const planned of factionSupercapitalPlan(game.state.seed)){
+    game.state.systemId=planned.systemId;game._loadSystem(planned.systemId);
+    const flagship=findFactionSupercapital(game.system,planned.faction);
+    assert.ok(flagship,`${planned.name} is a real physical contact in its home system`);
+    assert.equal(flagship.classId,planned.classId);assert.equal(flagship.faction,planned.faction);
+    assert.equal(SCHEDULED_TRAFFIC_HULL_IDS.includes(flagship.classId),false);
+    assert.equal(flagship.route,undefined,'The fleet anchorage does not invent a commuter schedule.');
+    encountered.add(flagship.classId);
+  }
+  assert.deepEqual([...encountered].sort(),SHIP_CLASSES.map(ship=>ship.id).sort(),'all hulls remain observable through scheduled service, fleet combat or a physical faction anchorage');
   assert.equal(game.state.fleet.owned.length,1,'military sightings do not unlock or award the new hulls');
 });
 

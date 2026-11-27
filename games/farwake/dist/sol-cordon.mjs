@@ -1,6 +1,7 @@
 /** Sol is reachable. Its quarantine is enforced by physical, persistent defenses. */
 import {enemyHullProfile} from './fleet.mjs';
 import {solClearance} from './sol-access.mjs';
+import {restoreSolTractor,stepSolTractor} from './sol-custody.mjs';
 
 export const SOL_CORDON_VERSION=1;
 export const SOL_CHALLENGE_SECONDS=8;
@@ -23,7 +24,7 @@ export function installSolCordon(world,record={}) {
   const visits={};
   for(const [id,visit] of Object.entries(saved.visits||{}).slice(-64)){
     if(!safeId(id)||!visit||typeof visit!=='object')continue;
-    visits[id]={originSystemId:safeId(visit.originSystemId),elapsed:clamp(finite(visit.elapsed),0,3600),approach:visit.approach===true,aggressive:visit.aggressive===true};
+    visits[id]={originSystemId:safeId(visit.originSystemId),elapsed:clamp(finite(visit.elapsed),0,3600),approach:visit.approach===true,aggressive:visit.aggressive===true,tractor:restoreSolTractor(visit.tractor),counterUsed:visit.counterUsed===true,tractorSuppressed:clamp(finite(visit.tractorSuppressed),0,12)};
   }
   const batteryIds=Array.from({length:6},(_,index)=>`sol:cordon:battery:${index+2}`);
   world.solCordon={version:SOL_CORDON_VERSION,earthId:'earth',arrival:{x:earth.x,y:earth.y+640},outerRadius:1450,innerRadius:480,visits,
@@ -74,9 +75,12 @@ export function beginSolVisit(game,originSystemId) {
   if(game?.state?.systemId!=='sol')return null;
   const visit=visitFor(game,true,originSystemId);
   if(!visit)return null;
+  // A real fold breaks a physical tether. The remembered quarantine challenge
+  // remains spent, but a new visit has a fresh, energy-funded counterpulse.
+  visit.tractor=null;visit.tractorSuppressed=0;visit.counterUsed=false;
   if(!solClearance(game).entry){
     game._event?.('sol-cordon-warning',{systemId:'sol',targetVesselId:solCordonVesselId(game),
-      text:visit.elapsed>=SOL_CHALLENGE_SECONDS?'Sol cordon: your ship is still unauthorized. Turn away or jump back now.':`Sol cordon: unidentified ship. Turn away now. Interceptors will open fire in ${Math.ceil(SOL_CHALLENGE_SECONDS-visit.elapsed)} seconds.`});
+      text:visit.elapsed>=SOL_CHALLENGE_SECONDS?'Sol cordon: your ship is still unauthorized. Turn away or jump back now.':`Sol cordon: unidentified ship. Turn away now. Interception begins in ${Math.ceil(SOL_CHALLENGE_SECONDS-visit.elapsed)} seconds. Small ships may be tractored aboard the flagship; large or aggressive hulls draw fire.`});
     if(!game.hasFlag?.('observed_sol_cordon')){
       game._flag?.('observed_sol_cordon');
       game._log?.('Earth from the quarantine line','Dark bands cross Earth beneath broken orbital traffic. A few isolated landing lights remain. The cordon orders your ship to withdraw. These are observations from orbit; the cause and the condition of individual settlements are still unknown.','discovery');
@@ -91,8 +95,8 @@ export function beginEarthApproach(game) {
   const already=visit.approach;
   visit.approach=true;visit.elapsed=Math.max(visit.elapsed,SOL_CHALLENGE_SECONDS-2);
   if(!already)game._event?.('sol-cordon-warning',{systemId:'sol',targetVesselId:solCordonVesselId(game),
-    text:'Earth approach started. Orbital batteries are acquiring your ship. Break away from Earth or jump back.'});
-  return {ok:true,approach:true,text:'Approaching Earth under orbital fire. The batteries control the descent; your flight controls remain active.'};
+    text:'Earth approach started. The cordon is acquiring your ship for interception. Break away from Earth or jump back.'});
+  return {ok:true,approach:true,text:'Approaching Earth under quarantine interception. The cordon controls descent; your flight controls remain active.'};
 }
 
 export function solCordonRetreat(game,destinationId) {
@@ -107,13 +111,13 @@ export function solCordonStatus(game) {
   const approach=!!visit?.approach&&!permission.landing,cleared=permission.entry&&!approach&&!visit?.aggressive;
   const outside=!earth||distance(ship,earth)>cordon.outerRadius;
   const seconds=Math.max(0,SOL_CHALLENGE_SECONDS-finite(visit?.elapsed));
-  const phase=cleared?'cleared':outside?'outside':approach?'approach':seconds>0?'warning':'interdiction';
+  const phase=visit?.tractor?.phase||(cleared?'cleared':outside?'outside':approach?'approach':seconds>0?'warning':'interdiction');
   const origin=visit?.originSystemId;
   const returnName=game.galaxy?.find(system=>system.id===origin)?.name||'your previous system';
-  const text=cleared?'Cordon clearance recognized. Follow Threshold’s screened landing route.':outside?'Outside the firing perimeter. Keep clear of Earth; Threshold is the screened refuge.':
+  const text=visit?.tractor?`${visit.tractor.phase==='locking'?'Tractor lock acquiring':'Being towed to the flagship'}. Burn away, counterpulse, or jump back to ${returnName}.`:cleared?'Cordon clearance recognized. Follow Threshold’s screened landing route.':outside?'Outside the firing perimeter. Keep clear of Earth; Threshold is the screened refuge.':
     seconds>0?`Cordon warning · ${Math.ceil(seconds)}s. Turn away from Earth or jump back to ${returnName}.`:
-    approach?`Orbital batteries block descent. Break away or jump back to ${returnName}.`:`Interceptors are firing. Turn away from Earth or jump back to ${returnName}.`;
-  return {active:!cleared&&!outside,phase,seconds,originSystemId:origin||null,text,cleared,approach};
+    approach?`Orbital batteries block descent. Break away or jump back to ${returnName}.`:`Cordon interception active. Turn away from Earth or jump back to ${returnName}.`;
+  return {active:!!visit?.tractor||!cleared&&!outside,phase,seconds,originSystemId:origin||null,text,cleared,approach,tractor:visit?.tractor||null};
 }
 
 export function recordSolCordonAggression(world,enemy,game) {
@@ -144,22 +148,27 @@ function participantsByHull(participants) {
 }
 
 /** One clock per physical hull, and one simulation pass per occupied Sol room. */
-export function stepSolCordon(world,delta,{participants=[],onEvent}={}) {
+export function stepSolCordon(world,delta,{participants=[],onEvent,onCapture}={}) {
   const cordon=world?.solCordon,earth=world?.bodies?.find(body=>body.id==='earth');
   if(!cordon||!earth)return;
   const dt=clamp(finite(delta),0,.1),targets=participantsByHull(participants),intruders=[];
+  const present=new Set(targets.map(target=>target.vesselId));
+  for(const [id,visit] of Object.entries(cordon.visits))if(visit.tractor&&!present.has(id))visit.tractor=null;
   for(const participant of targets){
     const permission=solClearance(participant.game),visit=visitFor(participant.game,true);
     if(!visit)continue;
     const gap=distance(participant.ship,earth),breach=!permission.landing&&gap<cordon.innerRadius&&(!permission.entry||visit.approach);
     if(breach)visit.approach=true;
     if(permission.landing)visit.approach=false;
-    if(gap>cordon.outerRadius){visit.approach=false;visit.aggressive=false;continue;}
-    if(permission.entry&&!visit.approach&&!visit.aggressive)continue;
+    if(gap>cordon.outerRadius&&!visit.tractor&&!visit.tractorSuppressed){visit.approach=false;visit.aggressive=false;continue;}
+    if(permission.entry&&!visit.approach&&!visit.aggressive){visit.tractor=null;continue;}
     const before=visit.elapsed;visit.elapsed=Math.min(3600,visit.elapsed+dt);
     if(before<SOL_CHALLENGE_SECONDS&&visit.elapsed>=SOL_CHALLENGE_SECONDS)onEvent?.('sol-cordon-warning',{
-      systemId:'sol',targetVesselId:participant.vesselId,targetId:participant.id,text:'Cordon weapons live. Turn away from Earth or jump back now.'});
-    if(visit.elapsed>=SOL_CHALLENGE_SECONDS)intruders.push({...participant,visit,permission,gap});
+      systemId:'sol',targetVesselId:participant.vesselId,targetId:participant.id,text:'Cordon interception active. Turn away from Earth or jump back now.'});
+    if(visit.elapsed>=SOL_CHALLENGE_SECONDS){
+      if(stepSolTractor(world,participant,visit,dt,{onEvent,onCapture}))continue;
+      if(gap<=cordon.outerRadius)intruders.push({...participant,visit,permission,gap});
+    }
   }
   for(const enemy of world.enemies.filter(actor=>actor.solCordon&&actor.hp>0)){
     const state=enemy.cordonState;state.clock+=dt;

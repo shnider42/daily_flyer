@@ -1,8 +1,24 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.40.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.41.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.41.0 — Flagships, tractor custody and people with lives
+
+Sol remains reachable. After the eight-second challenge, a small nonaggressive ship can be acquired by **TCS Last Accord’s tractor**, physically towed to its secure hangar and held in its brig. Large ships and ships that attack the cordon face the existing warned weapons. The same actual flagship supplies the visible beam, attachment point and prison; destroying it removes its tractor.
+
+Fitted thrusters, current shield strength, reactor priority, living working specialists, ship size and loaded mass affect resistance. Concord standing and affiliation affect inspection terms. Flight controls stay active: burn beyond the source’s real range, spend 60 energy on a once-per-visit counterpulse, use a normally affordable return jump, or comply. A fold breaks the tether; it does not renew the full eight-second quarantine challenge.
+
+Capture keeps the original hull, cargo, upgrades and hired crew. The captain can walk the holding deck, speak to its liaison, complete a supervised ventilation task and read the transfer desk. Inspection is bounded at 30–180 seconds of active play; the base is 120 seconds, with compliance and standing affecting the term. Liaison review and service each remove 45 seconds once per captured ship. Transfer returns that same vessel and its detained people to Threshold, with no Earth permit or investigation evidence. Shared galaxies keep one physical impound record and clock: guests’ own ships and an absent owner’s location remain unchanged, and reconnects retain detention.
+
+Each faction gains one original **supercapital class** and one persistent flagship in its seeded fleet anchorage. Concord fields the Bastion-class Last Accord; Freewake the Commonwealth-class Common Cause; Meridian the Dominion-class Long Dividend; Lantern the Palimpsest-class Unbroken Record; Cinder the Crucible-class Firekeeper. These enormous hulls have distinct native silhouettes, real armor, shields, firing lanes and bounded 48-berth interiors. Their classes can be commissioned through the late fleet progression. Peaceful flagships do not attack merely because a visitor approaches.
+
+Fourteen optional **interpersonal scenes** add shift disagreements, borrowed tools, privacy, shared meals, volunteer credit and other local concerns at seven existing ports. The galaxy seed picks one of two scenes at each port. Speak to a nearby participant to join in; choices use the existing purse, journal, history and relationship memories, and cannot be repeated. One Bastion scene questions what an early picture of Earth actually proves. Public lore throughout the chart, dialogue and campaign now agrees with physical Sol access and custody, while the final explanation remains evidence-gated.
+
+The **Crew & Comms** hub brings crew, nearby flagship contact, notices and custody together on demand. A compact situation control shows the immediate risk and available action, including in Expert guidance. Steering and strafe controls now have separate saved size settings. Farwake retains its steering/inertia, horizontal strafe and separate FIRE controls; the layout borrows CHALK’s compact interaction patterns.
+
+Current Quiet Earth saves and shared galaxies continue on `quiet-earth-v2` with content revision **17**. Refresh existing clients before reconnecting. Older release entries below describe their original behavior.
 
 ## 0.40.0 — Attempt the Sol cordon
 

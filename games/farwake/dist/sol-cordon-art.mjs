@@ -5,6 +5,23 @@ import {solCordonTelegraph} from './sol-cordon.mjs';
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
 const TAU=Math.PI*2;
 
+/** Beam endpoints come from the authority's actual emitter and target positions. */
+export function drawSolTractors(ctx,world,{to=(x,y)=>({x,y}),pixelRatio=1,ship,status,emit}={}){
+ const beams=new Map(),r=Math.max(.5,pixelRatio);
+ for(const tractor of [status?.tractor,...Object.values(world?.solCordon?.visits||{}).map(visit=>visit.tractor)]){
+  if(!tractor||!['locking','towing'].includes(tractor.phase)||![tractor.source?.x,tractor.source?.y,tractor.target?.x,tractor.target?.y].every(Number.isFinite))continue;
+  const key=tractor.sourceId+':'+tractor.targetVesselId;if(!beams.has(key))beams.set(key,tractor);
+ }
+ for(const beam of beams.values()){
+  const a=to(beam.source.x,beam.source.y),b=to(beam.target.x,beam.target.y),towing=beam.phase==='towing';
+  ctx.save();ctx.strokeStyle=towing?'#9ac8d586':'#c6b17b8a';ctx.lineWidth=(towing?5:1)*r;ctx.setLineDash?.(towing?[]:[5*r,7*r]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  if(towing){ctx.strokeStyle='#d2eff0';ctx.lineWidth=r;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+  ctx.setLineDash?.([]);
+  for(const x of [-1,1])for(const y of [-1,1]){pixelLine(ctx,b.x+x*13*r,b.y+y*13*r,b.x+x*7*r,b.y+y*13*r,'#c6dedd',r);pixelLine(ctx,b.x+x*13*r,b.y+y*13*r,b.x+x*13*r,b.y+y*7*r,'#c6dedd',r);}
+  if(beam.targetVesselId===ship?.id)emit?.(towing?'TRACTOR ATTACHED':'TRACTOR LOCK',b.x,b.y-28*r,towing?'#d0e8e7':'#ecd2a0',12,'center',115,'tractor');ctx.restore();
+ }
+}
+
 /** Briefly frame the ship and Earth together during the actual arrival challenge.
  * Flight inputs, aim coordinates and the captain's saved zoom remain unchanged. */
 export function solCordonArrivalFrame(world,ship,status,{width,height,zoom}={}){
@@ -53,12 +70,14 @@ export function drawSolCordonOverlay(ctx,world,{to=(x,y)=>({x,y}),scale=1,pixelR
  if(ship&&status?.active){
   const angle=Math.atan2(ship.y-earth.y,ship.x-earth.x),point=to(earth.x+Math.cos(angle)*cordon.innerRadius,earth.y+Math.sin(angle)*cordon.innerRadius);
   if(visible(point,20*r))emit?.('EARTH APPROACH · DEFENSE LINE',point.x,point.y-15*r,'#e7b78c',12,'center',85,'cordon-boundary');
-  const current=to(ship.x,ship.y),out={x:Math.cos(angle),y:Math.sin(angle)};
+  const source=status.tractor?.source,away=source?Math.atan2(ship.y-source.y,ship.x-source.x):angle;
+  const current=to(ship.x,ship.y),out={x:Math.cos(away),y:Math.sin(away)};
   const from={x:current.x+out.x*45*r,y:current.y+out.y*45*r},end={x:current.x+out.x*82*r,y:current.y+out.y*82*r};
   pixelLine(ctx,from.x,from.y,end.x,end.y,'#a6d1bd',2*r);
   for(const side of [-1,1])pixelLine(ctx,end.x,end.y,end.x-out.x*11*r-out.y*side*7*r,end.y-out.y*11*r+out.x*side*7*r,'#a6d1bd',2*r);
-  if(visible(end,10*r))emit?.('WITHDRAW',end.x,end.y+10*r,'#bddac9',12,'center',100,'cordon-retreat');
+  if(visible(end,10*r))emit?.(source?'BREAK AWAY':'WITHDRAW',end.x,end.y+10*r,'#bddac9',12,'center',100,'cordon-retreat');
  }
+ drawSolTractors(ctx,world,{to,pixelRatio:r,ship,status,emit});
  for(const enemy of world.enemies||[]){
   const telegraph=solCordonTelegraph(enemy);if(!telegraph)continue;
   const origin=to(enemy.x,enemy.y);

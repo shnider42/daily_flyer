@@ -21,7 +21,7 @@ function fixture(){
  const prompt={id:'board-friend',title:'Board Cinder',body:'Open Crew, then board Cinder at Kettle.',compactBody:'Crew → Board Cinder',flow:'route',controlTarget:'onlineButton'};
  const game={state:{systemId:'hearth',mode:'person',locationId:'kettle',multiplayer:{captainId:'ada',aboardVesselId:'cinder',dockedAt:'kettle'}},galaxy:[{id:'hearth',name:'Hearth',bodies:[{id:'kettle',name:'Kettle Station'},{id:'morrow',name:'Morrow'}]}],militaryRecoveryStatus:()=>null};
  const snapshot={realm:{name:'Test galaxy',online:2},fleet:[{id:'cinder',name:'Cinder',systemId:'hearth',dockedAt:'kettle'}],presence:[{captainId:'ada',name:'Ada',online:true,systemId:'hearth',vesselId:'cinder'},{captainId:'jade',name:'Jade',online:true,systemId:'hearth',roomKind:'surface',locationId:'morrow',vesselId:null}]};
- const context=vm.createContext({playing:true,chooseGuidancePrompt:(_,prompt)=>prompt,crewAwareness,game,onlineSnapshot:snapshot,network:{connected:true},$:element,document:{body},window:{innerHeight:926},touchLayout:true,settings:{compactTips:true,textScale:1,guidance:'simple'},coachPrompt:null,coachExpanded:false,labelLayoutDirty:false,highlightedControl:null,toolTrayOpen:false,
+ const context=vm.createContext({playing:true,testSession:null,chooseGuidancePrompt:(_,prompt)=>prompt,crewAwareness,game,onlineSnapshot:snapshot,network:{connected:true},$:element,document:{body},window:{innerHeight:926},touchLayout:true,settings:{compactTips:true,textScale:1,guidance:'simple'},coachPrompt:null,coachExpanded:false,labelLayoutDirty:false,highlightedControl:null,toolTrayOpen:false,
   hudText(target,value){const changed=target.textContent!==value;target.textContent=value;return changed;},setToolTray(){},dialog:{close(){}},selectGuide(){},guidanceContext:()=>({}),activeMilitaryCareer:()=>null,getGunneryView:()=>({active:false}),routePrompt:()=>prompt,tutorial:{update(){},present:(prompt,context,options)=>({...prompt,requested:!!options?.requested}),controller:{requestHelp:()=>prompt,repeat:()=>prompt}},dismissedRoute:'',dismissedGuideEpisode:'',hudDirty:false,
  });
  vm.runInContext(code,context);return{context,element,body,prompt,snapshot};
@@ -46,6 +46,8 @@ test('reconnecting and departure states replace stale crew claims without losing
  assert.equal(f.element('networkLabel').textContent,'Departure');
  f.context.network=null;f.context.updateConnectionHUD();
  assert.equal(f.element('networkLabel').textContent,'Crew');
+ assert.match(f.element('onlineButton').attributes['aria-label'],/Crew manifest, nearby contacts and recent messages/);
+ f.context.playing=false;f.context.updateConnectionHUD();
  assert.match(f.element('onlineButton').attributes['aria-label'],/Create or join a shared galaxy/);
 });
 

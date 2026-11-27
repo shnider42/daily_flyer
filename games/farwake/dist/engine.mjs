@@ -76,6 +76,9 @@ import { STATION_GEOGRAPHY_VERSION } from './station-geography.mjs';
 import { GALAXY_EPOCH, requireCurrentGalaxy } from './galaxy-epoch.mjs';
 import { isPublicOrigin, solEntryAccess, solLandingAccess } from './sol-access.mjs';
 import {installSolCordon,captureSolCordon,stepSolCordon,beginSolVisit,beginEarthApproach,recordSolCordonAggression,recordSolCordonDefeat} from './sol-cordon.mjs';
+import {SolCustodyRules} from './sol-custody.mjs';
+import {installFactionSupercapitals,captureFactionSupercapitals,stepFactionSupercapitals,damageFactionSupercapital,factionSupercapitalHit,supercapitalHullHit} from './faction-supercapitals.mjs';
+import {peopleEventSource,recordPeopleEvent} from './people-event-rules.mjs';
 import { applySystemIdentityContext } from './system-identity.mjs';
 import { installShipBossEncounter, stepShipBosses, captureShipBosses, shipBossDamage, isShipBossActor } from './ship-bosses.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
@@ -230,6 +233,7 @@ export class Game {
     this.initializeMilitaryCareer();
     this.issueServiceWeapon();
     this.initializeMilitaryRecovery();
+    this.initializeSolCustody();
     this.initializeWarzone();
     if(this.state.interior?.location?.site?.military)this._restoreExploration();
     this.initializeRescueOccupants();
@@ -450,6 +454,7 @@ export class Game {
     record.trafficStates = captureTraffic(this.system.traffic);
     record.shipBosses = captureShipBosses(this.system);
     record.solCordon = captureSolCordon(this.system);
+    record.factionSupercapitals = captureFactionSupercapitals(this.system);
     if(this.system.warzone){record.warzoneSpace=captureWarzoneSpace(this.system);record.warzoneLastVisit=this.state.stats.time;}
     record.pickups = this.system.pickups.map(x => clone(x));
     record.enemyHealth ||= {};
@@ -562,6 +567,7 @@ export class Game {
     this.system.identityRole=data.identityRole;this.system.localActivities=data.localActivities;
     installShipBossEncounter(this.system,{seed:this.state.seed,system:data,record});
     installSolCordon(this.system,record);
+    installFactionSupercapitals(this.system,{seed:this.state.seed,record});
     if(id===CROSSWIND_SYSTEM_ID)installWarzoneSpace(this.system,{seed:this.state.seed,saved:record.warzoneSpace,elapsed:Math.max(0,this.state.stats.time-(record.warzoneLastVisit??this.state.stats.time))});
     else materializeEncounterContacts(this);
     for(const ship of [...this.system.parkedShips,...this.system.enemies])relocateHullOccupants(ship);
@@ -649,20 +655,20 @@ export class Game {
     }
     this.state.stats.time+=dt;
     if(!this._sharedWorld&&this.medicalRecoveryActive())input={};
-    if(!this._sharedWorld){this.stepMilitaryRecovery(dt);if(this.militaryRecoveryStatus()?.detained)input={...input,fire:false,mine:false,boost:false};}
+    if(!this._sharedWorld){this.stepMilitaryRecovery(dt);this.stepSolCustody(dt);if(this.militaryRecoveryStatus()?.detained||this.state.custody?.phase==='detained')input={...input,fire:false,mine:false,boost:false};}
     for(const key of ['_shotTimer','_hitTimer','_recoveryTimer','_boardingShotTimer','_repairTimer','_crewHealTimer','_damageControlTimer'])this[key]=Math.max(0,finite(this[key])-dt);
     advanceGunneryCooldowns(this.state.ship,dt);
     this.stepNpcContract(dt,input);
     const sh=this.state.ship;
     sh.powerRerouteRemaining=Math.max(0,Math.min(2,finite(sh.powerRerouteRemaining))-dt);
-    if(this.hasActiveVessel){this.stepInteriorDamage(dt);this.stepRescueOccupants(dt);}
+    if(this.hasActiveVessel&&!sh.impoundedBy){this.stepInteriorDamage(dt);this.stepRescueOccupants(dt);}
     this.system.miningBeams ||= {};delete this.system.miningBeams[this.playerId];
     this.system.miningTarget=null;this.system.mining=null;
     if(this.state.boarding?.phase==='active')this._stepBoarding(dt,input,options.boardingParticipants);
     if(this.state.exploration && !this._sharedWorld) this.stepExploration(dt, input);
     if(!this._sharedWorld)this.stepPersonalFreeFire(dt,input);
     if(!this._sharedWorld&&!this.state.exploration&&(!this.state.person.interiorDown||this.state.boarding?.phase==='active')&&(this.state.person.health<=0||this.state.person.down)){this._medicalDownTime=(this._medicalDownTime||0)+dt;if(this._medicalDownTime>=2.5){if(this.state.boarding?.phase==='active')this._finishBoarding('lost');else if(!this.state.npcContract?.active||!this.recoverNpcContract())this.recoverOnFoot();}}else this._medicalDownTime=0;
-    const operate=this.hasActiveVessel&&(this.state.mode==='ship'||['ship','eva'].includes(this.state.interior?.kind));
+    const operate=this.hasActiveVessel&&!sh.impoundedBy&&(this.state.mode==='ship'||['ship','eva'].includes(this.state.interior?.kind));
     if(!operate){this.state.cosmicWarning=null;sh.energy=Math.min(sh.maxEnergy,sh.energy+dt*14);this._checkChapters();return;}
     const pilotConscious=this._damageHumans!==undefined||this.state.person.health>0&&!this.state.person.down;
     const helmInput=this.npcContractPilot()||(pilotConscious&&(this.state.mode==='ship'||options.operateShip)?input:{});
@@ -720,18 +726,21 @@ export class Game {
     stepSolCordon(this.system,dt,{
       participants:targets.map(game=>({id:game.playerId,vesselId:game.netVesselId||game.state.ship.id,ship:game.state.ship,game,targetEligible:game.netTargetEligible!==false,parked:!!game._parkedVessel})),
       // Shared vessel actors distribute their events to the actual crew once.
-      onEvent:(type,event)=>{for(const game of games)if((game.netVesselId||game.state.multiplayer?.aboardVesselId||game.state.ship.id)===event.targetVesselId)game._event(type,event);}
+      onEvent:(type,event)=>{for(const game of games)if((game.netVesselId||game.state.multiplayer?.aboardVesselId||game.state.ship.id)===event.targetVesselId)game._event(type,event);},
+      onCapture:(participant,details)=>participant.game.netOnCordonCapture?participant.game.netOnCordonCapture(details):participant.game.enterQuarantineCustody(details)
     });
-    this._updateEnemies(dt,targets);
-    stepPeacekeeperDefense(this.system,dt,targets,(type,event)=>this._worldEvent(type,event));
-    this._updateBullets(dt,targets);
+    stepFactionSupercapitals(this.system,dt,{participants:targets.map(game=>({id:game.playerId,vesselId:game.netVesselId||game.state.ship.id,ship:game.state.ship,game,targetEligible:game.netTargetEligible!==false,parked:!!game._parkedVessel})),onEvent:(type,event)=>{for(const game of games)if((game.netVesselId||game.state.ship.id)===event.targetVesselId)game._event(type,event);}});
+    const exposedTargets=targets.filter(game=>!game.state.ship.impoundedBy);
+    this._updateEnemies(dt,exposedTargets);
+    stepPeacekeeperDefense(this.system,dt,exposedTargets,(type,event)=>this._worldEvent(type,event));
+    this._updateBullets(dt,exposedTargets);
     for(const ship of [...(this.system.parkedShips||[]),...this.system.enemies.filter(enemy=>!enemy.promotedVesselId&&!enemy.canonicalVesselId)]){
       if(!ship.damageControl)continue;
       stepShipDamage(ship,dt);
       const occupant=games.find(game=>game.state.interior?.kind==='enemy'&&game.currentDamageHull()?.id===ship.id);
       (occupant||this)._hurtInteriorOccupants(ship,{delta:dt});
     }
-    this._updatePickups(dt,targets.filter(g=>!g._parkedVessel));
+    this._updatePickups(dt,exposedTargets.filter(g=>!g._parkedVessel));
     for(const game of games)game._syncBoardedVessel();
     this.system.parkedShips=(this.system.parkedShips||[]).filter(sh=>sh.hull>0);
     advanceTraffic(this.system.traffic,dt,{radius:this.system.radius});
@@ -926,6 +935,7 @@ export class Game {
       b.x+=b.vx*travelTime;b.y+=b.vy*travelTime;b.ttl-=dt;
       if(!travelTime)continue;
       if(b.cosmetic===true&&b.owner===PEACEKEEPER_ID)continue;
+      const hitsHull=(ship,padding=0)=>getShipClass(ship.classId).supercapital?supercapitalHullHit(ship,fromX,fromY,b.x,b.y,(b.radius||4)+padding):segmentDistance(ship,fromX,fromY,b.x,b.y)<=ship.radius+(b.radius||4)+padding;
       if(b.owner==='player'){
         const shooter=targets.find(g=>(g.netVesselId||g.state.ship.id)===b.vesselId)||this._worldGames?.find(g=>g.playerId===b.ownerId);
         const hostileVessel=g=>{
@@ -935,10 +945,18 @@ export class Game {
           return !!(shooter?.netHostileTo?.has(targetId)&&g.netHostileTo?.has(sourceId));
         };
         const hits=[
-          ...this.system.enemies.filter(e=>e.hp>0&&!e.promotedVesselId&&!e.canonicalVesselId&&e.capturedBy!==b.ownerId&&(!e.warzone||(shooter||this).warzoneRelation(e.faction)!=='ally')&&segmentDistance(e,fromX,fromY,b.x,b.y)<=e.radius+(b.radius||4)+4).map(e=>({point:e,enemy:e})),
-          ...targets.filter(g=>g.state.ship.hull>0&&hostileVessel(g)&&segmentDistance(g.state.ship,fromX,fromY,b.x,b.y)<=g.state.ship.radius+(b.radius||4)).map(g=>({point:g.state.ship,game:g}))
+          ...this.system.enemies.filter(e=>e.hp>0&&!e.promotedVesselId&&!e.canonicalVesselId&&e.capturedBy!==b.ownerId&&(!e.warzone||(shooter||this).warzoneRelation(e.faction)!=='ally')&&hitsHull(e,4)).map(e=>({point:e,enemy:e})),
+          ...this.system.traffic.filter(e=>e.factionSupercapital&&e.hp>0&&factionSupercapitalHit(e,fromX,fromY,b.x,b.y,b.radius||4)).map(e=>({point:e,supercapital:e})),
+          ...targets.filter(g=>g.state.ship.hull>0&&hostileVessel(g)&&hitsHull(g.state.ship)).map(g=>({point:g.state.ship,game:g}))
         ].sort((a,c)=>Math.hypot(a.point.x-fromX,a.point.y-fromY)-Math.hypot(c.point.x-fromX,c.point.y-fromY));
         const collision=hits[0];if(!collision)continue;b.ttl=0;
+        if(collision.supercapital){
+          const capital=collision.supercapital,result=damageFactionSupercapital(capital,b.damage,{sourceVesselId:b.vesselId});
+          if(this.system.solCordon&&shooter)recordSolCordonAggression(this.system,{solCordon:true},shooter);
+          this._worldEvent('hit',{id:`${b.id}:hit`,systemId:this.state.systemId,attackerId:b.ownerId,sourceVesselId:b.vesselId,x:b.x,y:b.y,target:'enemy',targetId:capital.id,vesselId:capital.id,damage:result.damage});
+          if(result.destroyed&&!this._record().defeated.includes(capital.id))this._record().defeated.push(capital.id);
+          continue;
+        }
         if(collision.game){const hit=collision.game;hit._damageShip(b.damage,{sourceId:b.ownerId,sourceVesselId:b.vesselId,bullet:b});this._worldEvent('hit',{id:`${b.id}:hit`,systemId:this.state.systemId,attackerId:b.ownerId,sourceVesselId:b.vesselId,x:collision.point.x,y:collision.point.y,target:'player',playerId:hit.playerId,vesselId:hit.netVesselId||collision.point.id,damage:b.damage});continue;}
         const hit=collision.enemy,applied=shipBossDamage(hit,b.damage,this.system),damage=Math.min(hit.hp,applied);ensureDamageControl(hit);hit.hp=Math.max(0,hit.hp-applied);hit.active=true;
         if(hit.solCordon)recordSolCordonAggression(this.system,hit,shooter||this._rewardGames?.get(b.ownerId));
@@ -962,7 +980,7 @@ export class Game {
         if(hit.hp<=0){const owner=this._rewardGames?.get(b.ownerId)||this._worldGames?.find(g=>(g.netVesselId||g.state.ship.id)===b.vesselId)||this;if(hit.warzone)notifyWarzoneDestroyed(this.system,hit,{sourceId:b.ownerId,byPlayer:true});else this._defeat(hit,owner);this._boardedTargetDestroyed(hit);}
         else if(hit.hp<=hit.maxHp*.4&&!hit.disabled&&!hit.solCordon&&!isShipBossActor(hit)){hit.disabled=true;hit.active=false;hit.vx=0;hit.vy=0;this._worldEvent('disabled',{enemyId:hit.id,text:hit.trainingTarget?`${hit.name} disabled. Continue the gunnery exercise.`:hit.militaryOperationId?`${hit.name} disabled. The marked contact is neutralized.`:`${hit.name} disabled. Close to board, or finish the hull.`});}
       }else{
-        const hit=targets.filter(g=>g.state.ship.hull>0&&(!b.solCordon||(g.netVesselId||g.state.ship.id)===b.targetVesselId)&&segmentDistance(g.state.ship,fromX,fromY,b.x,b.y)<=g.state.ship.radius+(b.radius||4)).sort((a,c)=>Math.hypot(a.state.ship.x-fromX,a.state.ship.y-fromY)-Math.hypot(c.state.ship.x-fromX,c.state.ship.y-fromY))[0];
+        const hit=targets.filter(g=>g.state.ship.hull>0&&!g.state.ship.impoundedBy&&(!(b.solCordon||b.factionSupercapital)||(g.netVesselId||g.state.ship.id)===b.targetVesselId)&&hitsHull(g.state.ship)).sort((a,c)=>Math.hypot(a.state.ship.x-fromX,a.state.ship.y-fromY)-Math.hypot(c.state.ship.x-fromX,c.state.ship.y-fromY))[0];
         if(hit){hit._damageShip(b.damage,{sourceId:b.ownerId,sourceVesselId:b.vesselId||b.ownerId,bullet:b,...(b.solCordon?{solCordon:true,cause:'Sol quarantine fire'}:{})});b.ttl=0;this._worldEvent('hit',{x:hit.state.ship.x,y:hit.state.ship.y,target:'player',playerId:hit.playerId,vesselId:hit.netVesselId||hit.state.ship.id,damage:b.damage});}
       }
     }
@@ -974,7 +992,7 @@ export class Game {
     if(!this.hasActiveVessel)return;
     if (this._recoveryTimer) return;
     const sh = this.state.ship;
-    if(sh.destroyed||sh.hull<=0)return;
+    if(sh.destroyed||sh.hull<=0||sh.impoundedBy)return;
     const absorbed = Math.min(sh.shield, amount);
     const hullDamage=Math.min(sh.hull,Math.max(0,amount-absorbed));
     sh.shield -= absorbed; sh.hull = Math.max(0,sh.hull-hullDamage);
@@ -1311,7 +1329,7 @@ export class Game {
       const open = ENCOUNTERS.find(e => e.id === this.state.pendingEncounter.id);
       return id && id !== open?.id ? this._fail('A conversation is already open.', 'encounter') : this._ok({ encounter: open, existing: true });
     }
-    const origin=this.state.mode==='ship'?encounterSource(this,source,id):null;
+    let origin=this.state.mode==='ship'?encounterSource(this,source,id):{sourceType:'person',entityId:source.entityId,sourceId:source.entityId};
     let list = this.availableEncounters(this.state.mode,origin);
     if (id) list = list.filter(e => e.id === id);
     if (!list.length) return this._fail('No new transmission is waiting.', 'no-encounter');
@@ -1319,6 +1337,7 @@ export class Game {
     list = list.filter(e => e.id !== 'earth_arrival' || this.state.systemId === 'sol');
     if (!list.length) return this._fail('No new transmission is waiting.', 'no-encounter');
     const encounter = id ? list[0] : pick(() => this._rand(),list);
+    if(encounter.peopleEvent){origin=peopleEventSource(this,encounter,source.entityId);if(!origin)return this._fail('Approach one of the people involved before joining this conversation.','distance');}
     this.state.pendingEncounter = { ...origin,id: encounter.id, sourceId: origin?.sourceId || null, sourceType: origin?.sourceType || this.state.mode, shipId:this.state.ship.id,locationId: this.state.locationId, systemId: this.state.systemId };
     return this._ok({ encounter });
   }
@@ -1338,6 +1357,7 @@ export class Game {
     if (this.state.pendingEncounter?.id !== encounterId) return this._fail('That conversation is no longer open.', 'encounter');
     const encounter = ENCOUNTERS.find(e => e.id === encounterId);
     if (!encounter || encounter.once && this.state.encounterHistory.includes(encounter.id)) return this._fail('This choice has already been made.', 'resolved');
+    if(encounter.peopleEvent&&!pendingSourceAvailable(this,this.state.pendingEncounter))return this._fail('Return to the person you were speaking with before making this choice.','distance');
     const choice = typeof index === 'number' ? encounter.choices[index] : encounter.choices.find(c => c.id === index);
     if (!choice || !this.choiceAvailable(encounterId, index)) return this._fail('You do not have what this choice requires.', 'requirements');
     const pending = this.state.pendingEncounter;
@@ -1345,6 +1365,7 @@ export class Game {
     if(this.rescueAdmissionCheck(encounterId,choice.id).count){const rescue=this.takeRescueOccupants(encounterId,choice.id,pending);if(!rescue.ok)return rescue;}
     const hostileContact=resolvePhysicalEncounter(this,pending,choice);
     this._effects(choice.effects || {});
+    recordPeopleEvent(this,encounter,choice);
     const allied = (choice.effects?.flags || []).find(flag => flag.startsWith('allied_'));
     if (allied) this.state.alliance = allied.slice(7);
     const future = (choice.effects?.flags || []).find(flag => flag.startsWith('earth_future_'));
@@ -2391,5 +2412,5 @@ export class Game {
 
 Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, MilitaryCareerRules, RescueRules, ShipRecoveryRules, InteriorDamageRules, LivelihoodRules, NpcContractRules, OpeningMissionRules, PersonalGearRules);
 Object.assign(Game.prototype,GunneryRules,GamblingRules,FieldWorkRules,PersonalFireRules);
-Object.assign(Game.prototype,MilitaryRecoveryRules,WarzoneRules,MedicalRecoveryRules,VoyageMemoryRules);
+Object.assign(Game.prototype,MilitaryRecoveryRules,WarzoneRules,MedicalRecoveryRules,VoyageMemoryRules,SolCustodyRules);
 export default Game;

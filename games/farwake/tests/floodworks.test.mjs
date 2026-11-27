@@ -39,7 +39,12 @@ test('Field expeditions preserve Hearth outside the authored Relay Nine upgrade'
  // sample. Direct 0.38 comparisons preserve the original geometry and services.
  // The creature pass changes only Relay hostiles in that embedded catalog and
  // interior metadata: clean 0.35 maps match after removing only that exact field.
- const expected={"kettle":["4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945","c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb","4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"],"morrow":["849a59c52285a0c0f4058ccb9a043a119551e9a56f3106d21dbbfe83ad5c1c36","68337f585cc064754edb8dbc82394b98506194f91a4eadd52911093be9d5c60b","4bf8dfa98a04c627cb482a6ba0e6b153ae01172200970e5805aa02658dc73fee"],"tinbell":["6b7c83bf437997e23766921e4c8cab0af4f4f230fd7438adeec38043332835cf","024de84b793eabd1bd054e25ef48b8ab7e4291ea20e5695f106737e3682efd3b","934e7a7b56d0afefcff893f1046b219d39cea013299730cc6d6d30bdec2d2f28"]};
+ // 0.41 was independently compared with read-only 1dc5717 imports in farwake,
+ // hearth-preservation and floodworks. Only outdoor data.rumors changes: Kettle visitor-pilot [1],
+ // Morrow courier [1] and military-recruiter [2] describe the physical Sol cordon.
+ // Exact bodies, entity IDs/order, geometry, services, site catalogs and every
+ // interior are unchanged. Update only the two outdoor hashes, retaining all others.
+ const expected={"kettle":["4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945","95c8dc18fb629037135eabc078918b70926e3e8559c05ffbf41570678f9b7090","4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"],"morrow":["849a59c52285a0c0f4058ccb9a043a119551e9a56f3106d21dbbfe83ad5c1c36","974b3b94f5f326a8f76512894872f4a4edbfd720a8e2a19ebed9fa49aff3eef4","4bf8dfa98a04c627cb482a6ba0e6b153ae01172200970e5805aa02658dc73fee"],"tinbell":["6b7c83bf437997e23766921e4c8cab0af4f4f230fd7438adeec38043332835cf","024de84b793eabd1bd054e25ef48b8ab7e4291ea20e5695f106737e3682efd3b","934e7a7b56d0afefcff893f1046b219d39cea013299730cc6d6d30bdec2d2f28"]};
  const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
  for(const value of NAMED_SYSTEMS.find(system=>system.id==='hearth').bodies){const sites=explorationSites(value,'farwake');assert.deepEqual([digest(sites),digest(generateSurface(value,'farwake')),digest(sites.map(site=>generateSurface(explorationLocation(value,site.id,'farwake'),'farwake')))],expected[value.id]);assert.deepEqual(fieldSites(value),[]);}
  assert.deepEqual(fieldSites({id:'orchard',kind:'planet',systemId:'hearth'}),[]);

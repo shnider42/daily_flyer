@@ -1,0 +1,42 @@
+/* One crew / comms desk, opened on demand. Critical state reuses Situation. */
+.crew-comms{max-width:680px;margin:0 auto}
+.comms-row{display:flex;align-items:center;gap:14px;width:100%;min-height:62px;padding:12px 4px;text-align:left;border:0;border-bottom:1px solid #45616c80;border-radius:0;background:transparent;color:#e4ece3;box-shadow:none}
+.comms-row:hover{background:#16303c}.comms-row-copy{flex:1;min-width:0}.comms-row strong,.comms-row small{display:block;overflow-wrap:anywhere}.comms-row strong{font-size:1rem;font-weight:600}.comms-row small{font-size:.88rem;color:#adc3c9;line-height:1.4;margin-top:4px}.comms-arrow{color:#b5d0c5;font-size:1.5rem}.comms-section-title{margin:22px 0 3px!important;color:#b9d2c9;font-size:.84rem!important;text-transform:uppercase;letter-spacing:.08em}
+.comms-status{border-left:3px solid #9bcab1;padding:10px 12px;background:#142b34;margin:0 0 13px}.comms-status>strong{display:block;color:#eff0de;font-size:1.03rem}.comms-status>p{margin:.45rem 0 0!important;font-size:.95rem!important}.comms-warning{border-left-color:#edba82;background:#302c2c}.comms-location{color:#c1d4d3;font-size:.9rem!important}.comms-live-note{margin:16px 0 0!important;font-size:.83rem!important;line-height:1.45!important;color:#96afb9!important}.comms-pending{color:#e5cf9b;font-size:.9rem!important}
+.comms-factors{margin:16px 0;border-top:1px solid #405d67;border-bottom:1px solid #405d67;padding:3px 0}.comms-factors summary{min-height:44px;cursor:pointer;display:flex;align-items:center;font-size:.93rem}.comms-factors dl{display:grid;grid-template-columns:minmax(100px,1fr) minmax(110px,1.5fr);gap:8px 16px;font-size:.9rem;line-height:1.4}.comms-factors dt{color:#a9c3c9}.comms-factors dd{margin:0;color:#d4dfd9;overflow-wrap:anywhere}
+.situation-button[data-custody="true"]{border-left-color:#ebba82;background:#302b2bec}.situation-button[data-custody="true"] strong{color:#ffdfb8}.situation-button[data-custody="true"] small{color:#e1ccc0}
+.touch-layout .crew-comms .comms-row{min-height:56px;padding:10px 3px}.touch-layout .crew-comms .comms-status{padding:8px 11px}.touch-layout .crew-comms .comms-row small{font-size:.87rem}
+.touch-layout:not(.welcome-active) #onlineButton{min-width:62px}.touch-layout:not(.welcome-active) #networkLabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Safety stays readable; the full record is one tap away in Crew & comms. */
+.touch-layout:not(.welcome-active) #situationButton[data-custody="true"]{min-height:48px;padding-top:5px;padding-bottom:5px}.touch-layout:not(.welcome-active) #situationButton[data-custody="true"] strong{font-size:.88rem}.touch-layout:not(.welcome-active) #situationButton[data-custody="true"] small{font-size:.82rem;line-height:1.35}
+.touch-layout:not(.welcome-active) #toastStack .toast{min-height:46px;padding:0 1px 0 9px;border-radius:4px;font-size:max(14px,.88rem)}
+
+/* Measured thumb geometry adapts CHALK's independent sizes to Farwake's
+   horizontal strafe strip and separate FIRE. No input mapping is changed. */
+body.touch-layout{--fw-current-deck:var(--fw-flight-deck,160px);--deck-base:calc(var(--fw-current-deck) - var(--deck-bottom));--fw-situation-left:var(--fw-flight-center-safe-left);--fw-situation-width:var(--fw-flight-center-safe-width)}
+body.touch-layout.person-mode.combat-active{--fw-current-deck:var(--fw-combat-deck,178px);--fw-situation-left:var(--fw-combat-center-safe-left);--fw-situation-width:var(--fw-combat-center-safe-width)}
+body.touch-layout.gunnery-view{--fw-current-deck:var(--fw-gunnery-deck,160px);--fw-situation-left:var(--fw-gunnery-center-safe-left);--fw-situation-width:var(--fw-gunnery-center-safe-width)}
+body.touch-layout #controlDeck{height:var(--fw-current-deck);min-height:var(--fw-current-deck);padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right));padding-bottom:env(safe-area-inset-bottom,0px)}
+body.touch-layout.touch-landscape #controlDeck{padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right));--deck-base:calc(var(--fw-current-deck) - var(--deck-bottom))}
+body.touch-layout:not(.welcome-active) #stick{left:var(--fw-flight-move-left);right:auto;bottom:var(--fw-flight-move-bottom);width:var(--fw-flight-move-width);height:var(--fw-flight-move-height)}
+body.touch-layout:not(.welcome-active) #aimStick{left:var(--fw-flight-aim-left);right:auto;bottom:var(--fw-flight-aim-bottom);width:var(--fw-flight-aim-width);height:var(--fw-flight-aim-height)}
+body.touch-layout:not(.welcome-active) #aimStick .stick-knob{--fw-knob:min(40px,calc(var(--fw-flight-aim-height) * .68));width:var(--fw-knob);height:var(--fw-knob);margin:calc(var(--fw-knob) * -.5);top:50%;max-width:none;max-height:none;transform-origin:center}
+body.touch-layout:not(.welcome-active) #fireButton{left:var(--fw-flight-fire-left);right:auto;bottom:var(--fw-flight-fire-bottom);width:var(--fw-flight-fire-width);height:var(--fw-flight-fire-height)}
+body.touch-layout:not(.welcome-active) #brakeButton,body.touch-layout:not(.welcome-active) #toolsButton{left:var(--fw-flight-center-left);right:auto;transform:none;width:var(--fw-flight-center-width);min-width:44px}
+body.touch-layout:not(.welcome-active) #brakeButton{bottom:var(--fw-flight-center-brake-bottom)}
+body.touch-layout:not(.welcome-active) #toolsButton{bottom:var(--fw-flight-center-bottom)}
+body.touch-layout.person-mode:not(.welcome-active) #boostButton{left:var(--fw-flight-center-left);right:auto;bottom:var(--fw-flight-center-bottom);width:var(--fw-flight-center-width);transform:none}
+body.touch-layout.person-mode.combat-active:not(.welcome-active) #stick{left:var(--fw-combat-move-left);width:var(--fw-combat-move-width);height:var(--fw-combat-move-height)}
+body.touch-layout.person-mode.combat-active:not(.welcome-active) #aimStick{left:var(--fw-combat-aim-left);right:auto;bottom:var(--fw-combat-aim-bottom);width:var(--fw-combat-aim-width);height:var(--fw-combat-aim-height)}
+body.touch-layout.person-mode.combat-active:not(.welcome-active) #aimStick .stick-knob{width:44%;height:44%;margin:-22%;max-width:none;max-height:none}
+body.touch-layout.person-mode.combat-active:not(.welcome-active) #fireButton{left:var(--fw-combat-fire-left);right:auto;bottom:var(--fw-combat-fire-bottom);width:var(--fw-combat-fire-width);height:var(--fw-combat-fire-height)}
+body.touch-layout.person-mode.combat-active:not(.welcome-active) #boostButton{left:var(--fw-combat-center-left);width:var(--fw-combat-center-width)}
+body.touch-layout.gunnery-view:not(.welcome-active) #stick{left:var(--fw-gunnery-move-left);width:var(--fw-gunnery-move-width);height:var(--fw-gunnery-move-height)}
+body.touch-layout.gunnery-view:not(.welcome-active) #controlDeck #fireButton{left:var(--fw-gunnery-fire-left);right:auto;bottom:var(--fw-gunnery-fire-bottom);width:var(--fw-gunnery-fire-width);height:var(--fw-gunnery-fire-height)}
+/* Scaled safety copy stays between the thumbs, including swapped controls. */
+body.touch-layout.touch-landscape:not(.welcome-active) #situationButton[data-custody="true"]{left:calc(var(--fw-situation-left) + (var(--fw-situation-width) - min(440px,var(--fw-situation-width))) / 2);right:auto;width:min(440px,var(--fw-situation-width));max-width:none;transform:none}
+body.touch-layout.touch-landscape:not(.welcome-active) #flightdeck .interaction-wrap{left:calc(var(--fw-flight-center-action-left) + var(--fw-flight-center-action-width) / 2);right:auto;max-width:var(--fw-flight-center-action-width);transform:translateX(-50%)}
+body.touch-layout.touch-landscape.person-mode.combat-active:not(.welcome-active) #flightdeck .interaction-wrap{left:calc(var(--fw-combat-center-action-left) + var(--fw-combat-center-action-width) / 2);max-width:var(--fw-combat-center-action-width)}
+/* A holding deck offers movement and nearby use, without weapon controls. */
+body.touch-layout.custody-detained:not(.welcome-active) #fireButton[data-custody-use="true"]{display:flex!important;bottom:var(--fw-flight-aim-bottom);background:#21403ded;border-color:#90bca4;color:#e7f0da}
+@media(max-width:350px){body.touch-layout #controlDeck{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}}

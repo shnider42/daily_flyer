@@ -5,11 +5,13 @@ Previous runtime audited: `feat/farwake-galaxy`, commit `756fee9ba7456b028fda0dc
 
 Later authoring clarification: [Nightglass, the Sol cordon, and ring habitats](nightglass-sol-direction.md). Farwake 0.39 implements the cordon, revised long campaign, separate public-account/allegiance decisions, continuing consequences, two ring districts and distinct system profiles. The original 0.38 audit below is retained as historical context.
 
+Current implementation: **Farwake 0.41.0**, content revision **17**, epoch **`quiet-earth-v2`**. The chart remains 26 systems. Early Sol attempts reveal damaged Earth and meet physical interdiction; eligible small hulls can be tractored into Last Accord for bounded inspection and returned with their original ship and crew to Threshold. Five distinct faction supercapital classes inhabit the existing chart. Fourteen optional interpersonal scenes supply one seed-selected situation at each of seven ports, with personal choices and remembered consequences. Crew & comms and the current-situation controls expose nearby actions, while independent saved joystick sizes improve mobile presentation. The current Sol section in the linked direction document supersedes the historical travel-gate and pending-implementation notes below; no late Earth explanation is exposed by these additions.
+
 ## Accepted direction
 
 The playable galaxy contains **26 star systems**. Thirty is the ceiling; additional systems must earn their place. Hearth, Sol and Crosswind are protected. Each destination needs a recognizable purpose and people, activities or consequences that make a return worthwhile.
 
-The user explicitly waived preservation of earlier WIP saves. Version 0.38 starts a fresh solo/shared galaxy epoch. This supersedes the migration requirements in the earlier design checkpoint. The rebuild retains meaningful authored content while retiring repetitive destinations.
+The user explicitly waived preservation of earlier WIP saves. Version 0.38 began a fresh solo/shared galaxy epoch, and the later Quiet Earth revision established the current `quiet-earth-v2` boundary. Version 0.41.0 continues supported voyages and invitations within that epoch. The rebuild retains meaningful authored content while retiring repetitive destinations.
 
 The writing should use plain language. A character can lack an answer, disagree, conceal information or hold a mistaken belief while still speaking clearly. Objectives should identify the place, action and immediate stakes. Do not make every speaker use the same metaphor-heavy voice.
 

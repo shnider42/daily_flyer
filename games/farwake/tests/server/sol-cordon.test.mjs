@@ -128,7 +128,7 @@ test('shared cordon time, targeting and warning snapshots use one hull and prese
  const {realm,captain:intruder,vessel,room}=await intruderFixture();
  const {captain:cleared,vessel:relief}=await pilotFixture({realm,name:'Relief',cleared:true});ok(realm._command(cleared,'travel',{id:'sol'}));cleared.game.state.pendingEncounter=null;
  Object.assign(relief.ship,{x:vessel.ship.x+60,y:vessel.ship.y});
- vessel.ship.shield=10000;vessel.ship.maxShield=10000;const visit=room.runtime.solCordon.visits[vessel.id];visit.elapsed=30;visit.approach=true;
+ vessel.ship.shield=10000;vessel.ship.maxShield=10000;const visit=room.runtime.solCordon.visits[vessel.id];visit.elapsed=30;visit.approach=true;visit.aggressive=true;
  const before=visit.elapsed;realm.step(.1,realm.tick+1,Date.now());assert.ok(Math.abs(visit.elapsed-before-.1)<1e-8,'Two captains advance one physical visit once.');
  const guards=room.runtime.enemies.filter(enemy=>enemy.solCordon),engaged=guards.filter(enemy=>enemy.active);assert.ok(engaged.length>0);
  for(const guard of engaged)assert.equal(guard.targetVesselId,vessel.id,'The cleared relief ship is not a cordon target.');

@@ -29,19 +29,25 @@ const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('h
 // 0.39 compares directly against 0.38 in both seeds: only public system
 // identity metadata, one Relay Nine record clarification, and Tinbell’s sealed
 // sample change. All outdoor tiles, solids, services, spawn and exits match.
+// 0.41 was compared with independently imported, read-only 1dc5717 modules in
+// farwake, hearth-preservation and floodworks, using raw and built Hearth data.
+// Only three outdoor rumor strings differ: kettle:visitor-pilot [1],
+// morrow:courier [1], and morrow:military-recruiter [2] now explain Sol's physical
+// cordon. Bodies, entity identities/order, geometry, services, every site catalog
+// and interior, and Tinbell's complete surface match. Only Kettle/Morrow hashes change.
 const baseline={
   "farwake": {
     "surfaces": {
-      "kettle": "c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb",
-      "morrow": "68337f585cc064754edb8dbc82394b98506194f91a4eadd52911093be9d5c60b",
+      "kettle": "95c8dc18fb629037135eabc078918b70926e3e8559c05ffbf41570678f9b7090",
+      "morrow": "974b3b94f5f326a8f76512894872f4a4edbfd720a8e2a19ebed9fa49aff3eef4",
       "tinbell": "024de84b793eabd1bd054e25ef48b8ab7e4291ea20e5695f106737e3682efd3b"
     },
     "sites": "843e25fc95e1cfb9cc73e43b601da478e84a59a82af02a37a5c9ad41a884c3a2"
   },
   "hearth-preservation": {
     "surfaces": {
-      "kettle": "c70a921cf8db4cdcde5ae6b1f47a2e26bde5b39c1ee84e2b2d2222059e43e45f",
-      "morrow": "ed41ab81e96ab6136d13b1bb77109633605b8add413e2738dfb41d5d75a481e0",
+      "kettle": "c38e5fc10d9fdbecb5bae28bbbf4e64b0c2ba8c0b8187b18263c599ed70f8b12",
+      "morrow": "91dd535422589135749ad7764bdb579adb21e82bd0cdd7eec9d0bbfbb66b2ab0",
       "tinbell": "fb31e0e0278d52e9b020513382af2846ac4048bae5fe22a058334979f9951907"
     },
     "sites": "eb9e5d3d1ef8ce03a90105d9a226381d77e5782a4cc9f5a3fb1a9f249d9308b8"

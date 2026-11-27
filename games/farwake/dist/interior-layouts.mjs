@@ -1,7 +1,9 @@
 /** Shared, DOM-free deck geometry. Fore is up; each plan follows its physical hull. */
+import { SUPERCAPITAL_OUTLINES } from './faction-supercapital-content.mjs';
+import { SUPERCAPITAL_CABIN_DEFINITIONS } from './faction-supercapital-cabins.mjs';
 export const CABIN_TILE=24;
 export const CABIN_REVISION=3;
-export const CABIN_CLASSES=['sparrow','hauler','frigate','capital','kestrel','mule','petrel','marten','atlas','tern','quill','mender','dipper','bulwark','cairn','lark','swift','kingfisher','lamprey','puffin','osprey','leviathan','judicator','needle','kite','confluence','ark'];
+export const CABIN_CLASSES=['sparrow','hauler','frigate','capital','kestrel','mule','petrel','marten','atlas','tern','quill','mender','dipper','bulwark','cairn','lark','swift','kingfisher','lamprey','puffin','osprey','leviathan','judicator','needle','kite','confluence','ark',...Object.keys(SUPERCAPITAL_OUTLINES)];
 const pt=(x,y)=>({x:(x+.5)*CABIN_TILE,y:(y+.5)*CABIN_TILE});
 const room=(id,name,x,y,w,h,color)=>({id,name,x,y,w,h,color});
 const fixture=(kind,x,y,w=1,h=1,color=null,solid=true)=>({kind,x,y,w,h,color,solid});
@@ -41,9 +43,10 @@ const silhouettes={
  osprey:[[-83,-27],[-70,-44],[-18,-47],[28,-34],[77,-12],[83,0],[77,12],[28,34],[-18,47],[-70,44],[-83,27]],
  leviathan:[[-165,-66],[-142,-88],[48,-88],[165,-66],[165,-41],[30,-35],[30,35],[165,41],[165,66],[48,88],[-142,88],[-165,66]],
  judicator:[[-250,-122],[-230,-140],[-165,-132],[245,-9],[250,0],[245,9],[-165,132],[-230,140],[-250,122]],
- ...FACTION_HULL_OUTLINES
+ ...FACTION_HULL_OUTLINES,...SUPERCAPITAL_OUTLINES
 };
 const definitions={
+ ...SUPERCAPITAL_CABIN_DEFINITIONS,
  sparrow:{name:'Sparrow',cols:14,rows:20,berths:2,plan:'A small cockpit opens directly into one shared work cabin with two fold-down bunks.',
   rooms:[room('bridge','COCKPIT',4,5,6,7,C.bridge),room('work','WORK CABIN',2,11,10,7,C.cargo)],
   corridors:[passage(6,8,2,9)],doors:[passage(6,11,2,2)],

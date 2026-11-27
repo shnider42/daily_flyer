@@ -9,12 +9,12 @@ export const BROWSER_DATA_KEYS = Object.freeze({
   cameraPrefix: 'dfe.farwake.camera-pending.v1:'
 });
 export const DEVICE_SETTING_FIELDS = Object.freeze([
-  'guidance', 'controlScale', 'textScale', 'shipZoom', 'personZoom',
+  'guidance', 'controlScale', 'steeringStickScale', 'strafeStickScale', 'textScale', 'shipZoom', 'personZoom',
   'immersiveHud', 'translucentHud', 'compactTips', 'sound', 'music',
   'musicVolume', 'musicPresence', 'musicSettingsVersion',
   'reduceMotion', 'leftHanded', 'flightAssist', 'showPerformance'
 ]);
-const numericSettings = new Set(['controlScale', 'textScale', 'shipZoom', 'personZoom', 'worldZoom', 'musicVolume', 'musicSettingsVersion']);
+const numericSettings = new Set(['controlScale', 'steeringStickScale', 'strafeStickScale', 'textScale', 'shipZoom', 'personZoom', 'worldZoom', 'musicVolume', 'musicSettingsVersion']);
 const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const credentialNames = new Set([

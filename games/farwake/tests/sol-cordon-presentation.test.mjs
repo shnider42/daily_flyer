@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {Game} from '../dist/engine.mjs';
 import {TutorialRuntime} from '../dist/tutorial-runtime.mjs';
 import {solCordonStatus,solCordonTelegraph} from '../dist/sol-cordon.mjs';
-import {solCordonArrivalFrame,drawSolCordonOverlay} from '../dist/sol-cordon-art.mjs';
+import {solCordonArrivalFrame,drawSolCordonOverlay,drawSolTractors} from '../dist/sol-cordon-art.mjs';
 
 // Execute the real UI boundary; fake only browser rendering and event sinks.
 const source=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
@@ -122,4 +122,15 @@ test('cordon warning rays use the simulation volley and the visible scars stay d
  const telegraph=solCordonTelegraph(enemy),rays=a.paths.find(path=>path.length===telegraph.angles.length*2);assert.ok(rays);
  telegraph.angles.forEach((angle,index)=>{const start=rays[index*2],end=rays[index*2+1];assert.ok(Math.abs(start[1]-(enemy.x+Math.cos(angle)*telegraph.muzzleOffset))<1e-9);assert.ok(Math.abs(start[2]-(enemy.y+Math.sin(angle)*telegraph.muzzleOffset))<1e-9);assert.ok(Math.abs(Math.hypot(end[1]-start[1],end[2]-start[2])-telegraph.length)<1e-9);});
  const empty=captureContext();drawSolCordonOverlay(empty,{bodies:world.bodies},options);assert.equal(empty.fills.length,0);assert.equal(empty.paths.length,0);
+});
+
+test('tractor art follows authoritative source and target coordinates once per physical beam',()=>{
+ const beam={phase:'locking',sourceId:'actual-flagship',source:{x:1660,y:1074},target:{x:1160,y:1260},targetVesselId:'local-ship'},world={solCordon:{visits:{'local-ship':{tractor:beam},'invalid':{tractor:{...beam,source:{x:NaN,y:0},targetVesselId:'bad'}}}}};
+ const original=JSON.stringify(world),labels=[],ctx=captureContext(),to=(x,y)=>({x:x*.5+10,y:y*.5+20});
+ drawSolTractors(ctx,world,{to,ship:{id:'local-ship'},status:{tractor:beam},emit:(...values)=>labels.push(values)});
+ assert.equal(ctx.paths.length,1,'The local status and world visit describe one acquisition beam.');
+ assert.deepEqual(ctx.paths[0],[['move',840,557],['line',590,650]]);assert.equal(labels.length,1);assert.equal(labels[0][0],'TRACTOR LOCK');
+ assert.equal(JSON.stringify(world),original);
+ const towing=captureContext();drawSolTractors(towing,{solCordon:{visits:{one:{tractor:{...beam,phase:'towing'}}}}},{to});
+ assert.equal(towing.paths.length,2);assert.deepEqual(towing.paths[0],towing.paths[1]);
 });

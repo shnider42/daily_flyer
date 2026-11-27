@@ -5,6 +5,7 @@ import { NAMED_SYSTEMS } from '../dist/content.mjs';
 import { FRONTIER_SYSTEMS } from '../dist/galaxy-expansion.mjs';
 import { PORT_KINDS, MILITARY_PORT_FACTIONS, TRAFFIC_ACQUISITION_RARITY, SCHEDULED_TRAFFIC_HULL_IDS, LEGACY_SCHEDULED_TRAFFIC_HULL_IDS, portProfile, trafficHullWeights, chooseTrafficHull, canHullUsePort } from '../dist/port-traffic.mjs';
 import { WARZONE_FACTION_HULLS } from '../dist/warzone-content.mjs';
+import { FACTION_SUPERCAPITALS } from '../dist/faction-supercapitals.mjs';
 
 const profile=kind=>({id:kind,kind,...PORT_KINDS[kind]});
 const samples=(kind,count=20000)=>{
@@ -31,6 +32,14 @@ test('every scheduled hull has a contextual route and every other hull has an au
   encounterHomes.add(classId);
   const hull=SHIP_CLASSES.find(hull=>hull.id===classId);assert.ok(hull,`${faction} has a real ${classId} encounter hull`);
   if(!covered.has(classId)){assert.equal(hull.military,true);assert.equal(hull.faction,faction);}
+ }
+ for(const flagship of FACTION_SUPERCAPITALS){
+  const hull=SHIP_CLASSES.find(hull=>hull.id===flagship.classId);
+  assert.equal(hull?.supercapital,true);assert.equal(hull.faction,flagship.faction);
+  assert.equal(covered.has(hull.id),false,'A permanent faction anchorage does not enter civilian schedules.');
+  assert.ok(flagship.systems.length>0);
+  for(const systemId of flagship.systems)assert.ok([...NAMED_SYSTEMS,...FRONTIER_SYSTEMS].some(system=>system.id===systemId),`${flagship.name} has a real authored anchorage at ${systemId}`);
+  encounterHomes.add(hull.id);
  }
  assert.deepEqual([...encounterHomes].sort(),SHIP_CLASSES.map(hull=>hull.id).sort(),'Every purchasable hull needs a scheduled route or an explicit faction encounter; adding a hull cannot silently skip coverage.');
  assert.ok(Object.isFrozen(SCHEDULED_TRAFFIC_HULL_IDS));assert.ok(Object.isFrozen(LEGACY_SCHEDULED_TRAFFIC_HULL_IDS));

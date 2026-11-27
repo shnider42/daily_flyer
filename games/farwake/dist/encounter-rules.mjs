@@ -1,6 +1,7 @@
 /** Encounters are conversations with a place or a physical contact, never a view-change roll. */
 import { systemContext } from './encounter-context.mjs';
 import { enemyHullProfile } from './fleet.mjs';
+import { peopleEventAvailable, peopleEventSourceAvailable } from './people-event-rules.mjs';
 
 const hash=value=>{let h=2166136261;for(const c of String(value))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;};
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -75,6 +76,7 @@ export function encounterSource(game,source={},id=null){
 }
 
 export function encounterFitsPlace(game,encounter,source=null){
+ if(encounter.peopleEvent)return peopleEventAvailable(game,encounter,source);
  const context=systemContext(game.currentSystem);
  if(encounter.mode==='person'){
   if(!game.atInhabitedPort)return !!encounter.conditions?.locationId&&game.state.locationId===encounter.conditions.locationId;
@@ -101,6 +103,7 @@ export function encounterFitsPlace(game,encounter,source=null){
 export function pendingSourceAvailable(game,pending){
  if(!pending||pending.systemId!==game.state.systemId)return false;
  if(pending.shipId&&pending.shipId!==game.state.ship.id)return false;
+ if(!peopleEventSourceAvailable(game,pending))return false;
  if(!pending.sourceType||!['signal','traffic'].includes(pending.sourceType))return true;
  if(game.state.mode!=='ship'&&game.state.interior?.kind!=='ship')return false;
  const origin=encounterSource(game,pending,pending.id);

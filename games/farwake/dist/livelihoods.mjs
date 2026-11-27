@@ -46,6 +46,7 @@ export const LivelihoodRules={
   return this.state.mode==='ship'||this.state.interior?.kind==='ship';
  },
  ownShipAccess({atPort=false}={}){
+  if(this.state.custody?.phase==='detained'||this.state.ship.impoundedBy)return this._fail('Your ship is secured aboard the quarantine flagship. Finish inspection at its holding deck.','custody');
   if(this.state.npcContract?.active)return this._fail('Finish your crew contract at the employer’s dock before using your own ship.','contract');
   // The shared authority sets this only inside a role-checked command against
   // the actual borrowed hull. Permission never changes personal ownership.
