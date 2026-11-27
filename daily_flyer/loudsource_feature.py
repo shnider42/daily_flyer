@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import fcntl
 import re
 import sqlite3
 import threading
@@ -23,8 +24,9 @@ SCOPES = (
 )
 QUEUE_AHEAD_SECONDS = int(os.getenv("LOUDSOURCE_QUEUE_AHEAD_SECONDS", "10"))
 POLL_SECONDS = max(2.5, float(os.getenv("LOUDSOURCE_POLL_SECONDS", "3")))
-AUTO_RESUME = os.getenv("LOUDSOURCE_AUTO_RESUME", "false").lower() == "true"
-PAUSE_GRACE_SECONDS = int(os.getenv("LOUDSOURCE_PAUSE_GRACE_SECONDS", "6"))
+# A paused Spotify player is an instruction to stay paused. Legacy AUTO_RESUME
+# environment variables intentionally no longer enable forced playback.
+CONTROL_TIMEOUT_SECONDS = 12 * 60 * 60
 START_COOLDOWN_SECONDS = float(os.getenv("LOUDSOURCE_START_COOLDOWN_SECONDS", "2"))
 DEBUG_VERBOSE = os.getenv("LOUDSOURCE_DEBUG_VERBOSE", "false").lower() == "true"
 
@@ -54,6 +56,46 @@ _PLAY_LOCK = threading.Lock()
 _CONNECTION_ERRORS: dict[str, str] = {}
 _SEARCH_CACHE: dict[str, tuple[float, dict]] = {}
 _SEARCH_LOCK = threading.Lock()
+_CONTROL_LOCK = threading.RLock()
+_CONTROL_LOCAL = threading.local()
+
+
+class SpotifySessionInactive(RuntimeError):
+    """No current host permission exists for a Spotify request."""
+
+    def __init__(self, message: str | None = None):
+        super().__init__(message or "Start a Spotify session from the host desk before using Spotify controls or song search.")
+
+
+@contextmanager
+def _control_lock():
+    """Serialize outgoing requests and consent changes, including across workers.
+
+    The file lock uses the same persistent disk as the room database. Holding it
+    across an outgoing request means End cannot acknowledge while that request
+    is still being dispatched. Reentrant calls reuse the outer lock descriptor.
+    """
+    with _CONTROL_LOCK:
+        if getattr(_CONTROL_LOCAL, "depth", 0):
+            _CONTROL_LOCAL.depth += 1
+            try:
+                yield
+            finally:
+                _CONTROL_LOCAL.depth -= 1
+            return
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        lock_path = DB_PATH.with_name(DB_PATH.name + ".spotify-control.lock")
+        fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            _CONTROL_LOCAL.depth = 1
+            try:
+                yield
+            finally:
+                _CONTROL_LOCAL.depth = 0
+                fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
 
 
 def log(msg: str) -> None:
@@ -93,6 +135,11 @@ def _connect():
 
 
 def init_storage() -> None:
+    with _control_lock():
+        _init_storage_locked()
+
+
+def _init_storage_locked() -> None:
     with _connect() as conn:
         conn.executescript(
             """
@@ -151,6 +198,20 @@ def init_storage() -> None:
             );
             """
         )
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(loudsource_sessions)")}
+        migrating = "control_expires_at" not in columns
+        for name, definition in {
+            "control_expires_at": "REAL NOT NULL DEFAULT 0",
+            "last_host_activity_at": "REAL",
+            "control_generation": "INTEGER NOT NULL DEFAULT 0",
+            "control_end_reason": "TEXT",
+        }.items():
+            if name not in columns:
+                conn.execute(f"ALTER TABLE loudsource_sessions ADD COLUMN {name} {definition}")
+        if migrating:
+            count = conn.execute("SELECT COUNT(*) FROM loudsource_sessions").fetchone()[0]
+            conn.execute("UPDATE loudsource_sessions SET auto_enabled=0, last_paused_ts=NULL, queued_next_for_uri=NULL")
+            log(f"Spotify control migration: {count} saved rooms inactive; explicit host permission required")
 
 
 def normalize_session_slug(raw: str | None) -> str:
@@ -173,6 +234,125 @@ def ensure_session(session_slug: str) -> str:
             (session_slug, int(time.time())),
         )
     return session_slug
+
+
+def _end_control_locked(session_slug: str, reason: str) -> None:
+    with _connect() as conn:
+        conn.execute(
+            """UPDATE loudsource_sessions SET control_expires_at=0,
+                control_generation=control_generation+1, control_end_reason=?,
+                auto_enabled=0, last_paused_ts=NULL, queued_next_for_uri=NULL,
+                current_uri=NULL, current_duration_sec=NULL, current_progress_sec=NULL,
+                current_is_playing=NULL, active_device_name=NULL WHERE session_slug=?""",
+            (reason, session_slug),
+        )
+    log(f"Spotify session ended for {session_slug}: {reason}")
+
+
+def _control_state_locked(session_slug: str) -> dict[str, Any]:
+    session_slug = ensure_session(session_slug)
+    with _connect() as conn:
+        row = dict(conn.execute(
+            """SELECT control_expires_at, last_host_activity_at, control_generation,
+                control_end_reason FROM loudsource_sessions WHERE session_slug=?""",
+            (session_slug,),
+        ).fetchone())
+    expires = float(row["control_expires_at"] or 0)
+    if expires and expires <= time.time():
+        _end_control_locked(session_slug, "expired")
+        row.update(control_expires_at=0, control_generation=row["control_generation"] + 1,
+                   control_end_reason="expired")
+    return row
+
+
+def control_session_payload(session_slug: str) -> dict[str, Any]:
+    with _control_lock():
+        state = _control_state_locked(session_slug)
+    return {
+        "active": state["control_expires_at"] > 0,
+        "expires_at": state["control_expires_at"] or None,
+        "last_host_activity_at": state["last_host_activity_at"],
+        "ended_reason": state["control_end_reason"],
+        "timeout_seconds": CONTROL_TIMEOUT_SECONDS,
+    }
+
+
+def start_control_session(session_slug: str) -> None:
+    """Only the authenticated host's explicit Start action calls this."""
+    with _control_lock():
+        state = _control_state_locked(session_slug)
+        if not _has_stored_token(session_slug) or state["control_end_reason"] == "connection-error":
+            raise ValueError("Connect Spotify from the host desk before starting a session.")
+        now = time.time()
+        with _connect() as conn:
+            conn.execute(
+                """UPDATE loudsource_sessions SET control_expires_at=?, last_host_activity_at=?,
+                    control_generation=control_generation+1, control_end_reason=NULL,
+                    auto_enabled=0, last_paused_ts=NULL, queued_next_for_uri=NULL
+                    WHERE session_slug=?""",
+                (now + CONTROL_TIMEOUT_SECONDS, now, session_slug),
+            )
+        log(f"Spotify session started for {session_slug}; expires_at={int(now + CONTROL_TIMEOUT_SECONDS)}")
+
+
+def end_control_session(session_slug: str, reason: str = "host-ended") -> None:
+    """Stop requests without sending Spotify a pause or deleting saved tokens."""
+    with _control_lock():
+        ensure_session(session_slug)
+        _end_control_locked(session_slug, reason)
+
+
+@contextmanager
+def spotify_operation(session_slug: str, generation: int | None = None, *, host_action: bool = False):
+    """Check consent at each network boundary; cached clients carry a generation.
+
+    Background work and passive status reads never renew permission. Only
+    explicitly selected host Spotify controls use host_action=True.
+    """
+    with _control_lock():
+        state = _control_state_locked(session_slug)
+        if not state["control_expires_at"] or (generation is not None and generation != state["control_generation"]):
+            raise SpotifySessionInactive()
+        if host_action:
+            now = time.time()
+            with _connect() as conn:
+                conn.execute(
+                    "UPDATE loudsource_sessions SET control_expires_at=?, last_host_activity_at=? WHERE session_slug=?",
+                    (now + CONTROL_TIMEOUT_SECONDS, now, session_slug),
+                )
+        yield state["control_generation"]
+
+
+class _ControlledSpotify:
+    """No client retained by an old loop iteration can outlive its permission."""
+
+    def __init__(self, session_slug: str, generation: int, client):
+        self._session_slug = session_slug
+        self._generation = generation
+        self._client = client
+
+    def __getattr__(self, name):
+        method = getattr(self._client, name)
+        if not callable(method):
+            raise AttributeError(name)
+
+        def call(*args, **kwargs):
+            with spotify_operation(self._session_slug, self._generation):
+                try:
+                    result = method(*args, **kwargs)
+                except spotipy.SpotifyException as exc:
+                    if exc.http_status == 401:
+                        _end_control_locked(self._session_slug, "connection-error")
+                        message = "Spotify needs to be reconnected from the host desk."
+                        _CONNECTION_ERRORS[self._session_slug] = message
+                        # Do not fall through to another playback endpoint using
+                        # credentials Spotify has just rejected.
+                        raise SpotifySessionInactive(message) from exc
+                    raise
+                if name in {"start_playback", "pause_playback", "transfer_playback"}:
+                    log(f"Host Spotify control for {self._session_slug}: {name}")
+                return result
+        return call
 
 
 def _session_defaults() -> dict[str, Any]:
@@ -280,8 +460,12 @@ def save_token(session_slug: str, token_info: dict[str, Any]) -> None:
 
 
 def get_token(session_slug: str) -> dict[str, Any] | None:
-    with _TOKEN_LOCK:
-        return _get_token_locked(session_slug)
+    try:
+        with spotify_operation(session_slug):
+            with _TOKEN_LOCK:
+                return _get_token_locked(session_slug)
+    except SpotifySessionInactive:
+        return None
 
 
 def _get_token_locked(session_slug: str) -> dict[str, Any] | None:
@@ -307,8 +491,8 @@ def _get_token_locked(session_slug: str) -> dict[str, Any] | None:
     if token_info["expires_at"] - int(time.time()) >= 60:
         return token_info
     if not token_info.get("refresh_token"):
-        return None
-    if _TOKEN_RETRY_AFTER.get(session_slug, 0) > time.time():
+        _end_control_locked(session_slug, "connection-error")
+        _CONNECTION_ERRORS[session_slug] = "Spotify needs to be reconnected from the host desk."
         return None
     try:
         refreshed = _oauth().refresh_access_token(token_info["refresh_token"])
@@ -317,8 +501,9 @@ def _get_token_locked(session_slug: str) -> dict[str, Any] | None:
         save_token(session_slug, refreshed)
         return refreshed
     except Exception as exc:
-        _TOKEN_RETRY_AFTER[session_slug] = time.time() + 300
         log(f"Token refresh failed for {session_slug} ({type(exc).__name__})")
+        _end_control_locked(session_slug, "connection-error")
+        _CONNECTION_ERRORS[session_slug] = "Spotify needs to be reconnected from the host desk."
         return None
 
 
@@ -333,6 +518,7 @@ def _oauth(state: str | None = None) -> SpotifyOAuth:
         cache_handler=None,
         show_dialog=False,
         open_browser=False,
+        requests_timeout=8,
         state=state,
     )
 
@@ -361,25 +547,45 @@ def get_authorize_url(session_slug: str, next_url: str | None = None) -> str:
 
 def handle_callback(code: str, state: str | None) -> tuple[str, str | None]:
     session_slug, next_url = _parse_signed_state(state)
-    token_info = _oauth().get_access_token(code=code, check_cache=False)
-    if not token_info.get("refresh_token"):
-        existing = get_token(session_slug)
-        if existing and existing.get("refresh_token"):
-            token_info["refresh_token"] = existing["refresh_token"]
-    save_token(session_slug, token_info)
+    # This exchange is explicitly requested by Connect Spotify. Connecting and
+    # retaining credentials does not authorize ongoing requests or playback.
+    with _control_lock():
+        ensure_session(session_slug)
+        _end_control_locked(session_slug, "reconnecting")
+        try:
+            token_info = _oauth().get_access_token(code=code, check_cache=False)
+            if not token_info.get("refresh_token"):
+                with _connect() as conn:
+                    existing = conn.execute("SELECT spotify_refresh_token FROM loudsource_sessions WHERE session_slug=?", (session_slug,)).fetchone()
+                if existing and existing[0]:
+                    token_info["refresh_token"] = existing[0]
+            save_token(session_slug, token_info)
+        except Exception as exc:
+            _end_control_locked(session_slug, "connection-error")
+            message = "Spotify could not connect. Reconnect from the host desk before starting a session."
+            _CONNECTION_ERRORS[session_slug] = message
+            raise ValueError(message) from exc
+        _end_control_locked(session_slug, "reconnected")
     return session_slug, next_url
 
 
 def _user_sp(session_slug: str):
-    token_info = get_token(session_slug)
-    if not token_info:
+    try:
+        with spotify_operation(session_slug) as generation:
+            token_info = get_token(session_slug)
+            if not token_info:
+                return None
+            client = spotipy.Spotify(auth=token_info["access_token"], requests_timeout=8, retries=0, status_retries=0)
+            return _ControlledSpotify(session_slug, generation, client)
+    except SpotifySessionInactive:
         return None
-    return spotipy.Spotify(auth=token_info["access_token"], requests_timeout=8, retries=0, status_retries=0)
 
 
 def _list_devices(sp_user) -> list[dict[str, Any]]:
     try:
         return sp_user.devices().get("devices", [])
+    except SpotifySessionInactive:
+        raise
     except Exception:
         return []
 
@@ -483,11 +689,14 @@ def _ensure_track_cached_by_tid(track_id: str, sp_user=None) -> None:
     if get_track(track_id):
         return
     try:
-        sp = sp_user or sp_search
+        # Background metadata lookup must use the same guarded room client.
+        sp = sp_user
         if sp is None:
             return
         info = sp.track(track_id)
         upsert_track(track_id, _track_dict_from_sp_item(info))
+    except SpotifySessionInactive:
+        raise
     except Exception as exc:
         log(f"Failed to cache track {track_id}: {exc}")
 
@@ -551,12 +760,22 @@ def get_ordered_votes(session_slug: str, exclude_tid: str | None = None) -> list
     return [(row["track_id"], int(row["vote_count"])) for row in rows]
 
 
-def list_auto_enabled_sessions() -> list[str]:
-    with _connect() as conn:
-        rows = conn.execute(
-            "SELECT session_slug FROM loudsource_sessions WHERE spotify_access_token IS NOT NULL"
-        ).fetchall()
-    return [row["session_slug"] for row in rows]
+def list_active_sessions() -> list[tuple[str, int]]:
+    with _control_lock():
+        with _connect() as conn:
+            expired = conn.execute(
+                "SELECT session_slug FROM loudsource_sessions WHERE control_expires_at>0 AND control_expires_at<=?",
+                (time.time(),),
+            ).fetchall()
+        for row in expired:
+            _end_control_locked(row["session_slug"], "expired")
+        with _connect() as conn:
+            rows = conn.execute(
+                """SELECT session_slug, control_generation FROM loudsource_sessions
+                    WHERE control_expires_at>? AND spotify_access_token IS NOT NULL""",
+                (time.time(),),
+            ).fetchall()
+    return [(row["session_slug"], row["control_generation"]) for row in rows]
 
 
 def _ordered_ids(session_slug: str, exclude_tid: str | None = None) -> list[str]:
@@ -576,6 +795,8 @@ def _is_valid_track_id(track_id: str) -> bool:
 def _snapshot_from_current_playback(session_slug: str, sp_user) -> dict[str, Any] | None:
     try:
         playback = sp_user.current_playback()
+    except SpotifySessionInactive:
+        raise
     except Exception as exc:
         log(f"current_playback() failed for {session_slug}: {exc}")
         return None
@@ -607,6 +828,8 @@ def _snapshot_from_current_playback(session_slug: str, sp_user) -> dict[str, Any
 def _snapshot_from_currently_playing(session_slug: str, sp_user) -> dict[str, Any] | None:
     try:
         current = sp_user.currently_playing()
+    except SpotifySessionInactive:
+        raise
     except Exception as exc:
         log(f"currently_playing() failed for {session_slug}: {exc}")
         return None
@@ -692,7 +915,14 @@ def _should_attempt_queue(snapshot: dict[str, Any] | None) -> bool:
     return snapshot["remaining_ms"] <= (QUEUE_AHEAD_SECONDS * 1000)
 
 
-def _queue_next_for_snapshot(session_slug: str, snapshot: dict[str, Any]) -> tuple[bool, str]:
+def _queue_next_for_snapshot(session_slug: str, snapshot: dict[str, Any], generation: int | None = None) -> tuple[bool, str]:
+    with spotify_operation(session_slug, generation) as current_generation:
+        if not get_state(session_slug)["auto_enabled"]:
+            return False, "auto_queue_disabled"
+        return _queue_next_locked(session_slug, snapshot, current_generation)
+
+
+def _queue_next_locked(session_slug: str, snapshot: dict[str, Any], generation: int) -> tuple[bool, str]:
     next_tid = _candidate_next_tid(session_slug, snapshot["uri"])
     if not next_tid:
         return False, "no_next_candidate"
@@ -711,65 +941,64 @@ def _queue_next_for_snapshot(session_slug: str, snapshot: dict[str, Any]) -> tup
         return False, "missing_token"
     headers = {"Authorization": f"Bearer {token_info['access_token']}"}
     try:
-        response = requests.post(
-            "https://api.spotify.com/v1/me/player/queue",
-            headers=headers,
-            params={"uri": next_uri},
-            timeout=15,
-            allow_redirects=False,
-        )
+        # Refreshing a token can take time; recheck immediately before the write.
+        with spotify_operation(session_slug, generation):
+            response = requests.post(
+                "https://api.spotify.com/v1/me/player/queue",
+                headers=headers,
+                params={"uri": next_uri},
+                timeout=8,
+                allow_redirects=False,
+            )
+        if response.status_code == 401:
+            _end_control_locked(session_slug, "connection-error")
+            message = "Spotify needs to be reconnected from the host desk."
+            _CONNECTION_ERRORS[session_slug] = message
+            raise SpotifySessionInactive(message)
         if response.status_code in (200, 204):
             mark_queued_for_snapshot(session_slug, snapshot["uri"], time.time() + 1.0)
+            log(f"Spotify auto queue for {session_slug}: added voted track")
             return True, next_uri
         return False, f"status={response.status_code} body={response.text}"
+    except SpotifySessionInactive:
+        raise
     except Exception as exc:
         return False, str(exc)
 
 
+def _monitor_once() -> None:
+    for session_slug, generation in list_active_sessions():
+        try:
+            with spotify_operation(session_slug, generation):
+                sp_user = _user_sp(session_slug)
+                if not sp_user:
+                    _CONNECTION_ERRORS[session_slug] = "Spotify needs to be reconnected from the host desk."
+                    continue
+                _CONNECTION_ERRORS.pop(session_slug, None)
+                snapshot = _playback_snapshot(session_slug, sp_user)
+                if not snapshot:
+                    _active_device(session_slug, sp_user)
+                    continue
+                _update_now_playing_from_snapshot(session_slug, sp_user, snapshot)
+                state = get_state(session_slug)
+                # A manual pause is always respected, including when a legacy
+                # LOUDSOURCE_AUTO_RESUME=true setting remains on the service.
+                if state["auto_enabled"] and time.time() >= (state["cooldown_until"] or 0) and _should_attempt_queue(snapshot):
+                    _queue_next_for_snapshot(session_slug, snapshot, generation)
+        except SpotifySessionInactive:
+            continue
+        except Exception as exc:
+            log(f"Monitor error for {session_slug} ({type(exc).__name__})")
+
+
 def _background_loop() -> None:
-    log("Background monitor started")
+    count = len(list_active_sessions())
+    log(f"Spotify monitor started: {count} active control sessions; inactive sessions make no Spotify requests")
     while True:
         try:
-            for session_slug in list_auto_enabled_sessions():
-                try:
-                    sp_user = _user_sp(session_slug)
-                    if not sp_user:
-                        _CONNECTION_ERRORS[session_slug] = "Spotify needs to be reconnected from the host desk."
-                        continue
-                    _CONNECTION_ERRORS.pop(session_slug, None)
-                    snapshot = _playback_snapshot(session_slug, sp_user)
-                    if snapshot:
-                        _update_now_playing_from_snapshot(session_slug, sp_user, snapshot)
-                    else:
-                        _active_device(session_slug, sp_user)
-                        continue
-                    state = get_state(session_slug)
-                    now = time.time()
-                    in_cooldown = now < (state["cooldown_until"] or 0)
-                    last_paused_ts = state["last_paused_ts"]
-                    if not snapshot["is_playing"]:
-                        if last_paused_ts is None:
-                            update_state(session_slug, last_paused_ts=now)
-                            last_paused_ts = now
-                    else:
-                        if last_paused_ts is not None:
-                            update_state(session_slug, last_paused_ts=None)
-                            last_paused_ts = None
-                    if in_cooldown:
-                        continue
-                    if state["auto_enabled"] and AUTO_RESUME and not snapshot["is_playing"] and last_paused_ts and (now - last_paused_ts) >= PAUSE_GRACE_SECONDS:
-                        try:
-                            sp_user.start_playback()
-                            update_state(session_slug, cooldown_until=time.time() + 1.0)
-                        except Exception:
-                            pass
-                        continue
-                    if state["auto_enabled"] and _should_attempt_queue(snapshot):
-                        _queue_next_for_snapshot(session_slug, snapshot)
-                except Exception as exc:
-                    log(f"Monitor error for {session_slug}: {exc}")
+            _monitor_once()
         except Exception as exc:
-            log(f"Background loop error: {exc}")
+            log(f"Background loop error ({type(exc).__name__})")
         time.sleep(POLL_SECONDS)
 
 
@@ -784,7 +1013,12 @@ def ensure_monitor_started() -> None:
         _BG_STARTED = True
 
 
-def search_tracks(query: str) -> dict[str, dict[str, Any]]:
+def search_tracks(query: str, session_slug: str) -> dict[str, dict[str, Any]]:
+    with spotify_operation(session_slug):
+        return _search_tracks_locked(query)
+
+
+def _search_tracks_locked(query: str) -> dict[str, dict[str, Any]]:
     query = (query or "").strip()[:150]
     if not query:
         return {}
@@ -816,7 +1050,8 @@ def play_first(session_slug: str) -> tuple[bool, str]:
     if not _PLAY_LOCK.acquire(blocking=False):
         return False, "Playback is already being changed. Give it a moment."
     try:
-        return _play_first_locked(session_slug)
+        with spotify_operation(session_slug, host_action=True):
+            return _play_first_locked(session_slug)
     finally:
         _PLAY_LOCK.release()
 
@@ -854,13 +1089,14 @@ def _play_first_locked(session_slug: str) -> tuple[bool, str]:
 
 def status_payload(session_slug: str) -> dict[str, Any]:
     session_slug = ensure_session(session_slug)
+    control = control_session_payload(session_slug)
     state = get_state(session_slug)
     uri = state["current_uri"]
     duration_sec = state["current_duration_sec"]
     progress_sec = state["current_progress_sec"]
     is_playing = state["current_is_playing"]
     now_playing = None
-    if uri and uri.startswith("spotify:track:"):
+    if control["active"] and uri and uri.startswith("spotify:track:"):
         track_id = uri.split(":")[-1]
         meta = get_track(track_id)
         if meta:
@@ -900,13 +1136,17 @@ def status_payload(session_slug: str) -> dict[str, Any]:
     return {
         "session_slug": session_slug,
         "authed": _has_stored_token(session_slug),
-        "connection_error": _CONNECTION_ERRORS.get(session_slug),
+        "connection_error": _CONNECTION_ERRORS.get(session_slug) or (
+            "Spotify needs to be reconnected from the host desk."
+            if control["ended_reason"] == "connection-error" else None
+        ),
         "ahead_seconds": QUEUE_AHEAD_SECONDS,
         "poll_seconds": POLL_SECONDS,
         "auto_enabled": state["auto_enabled"],
+        "control_session": control,
         "now_playing": now_playing,
         "queue": queue_payload,
-        "active_device_name": state["active_device_name"],
+        "active_device_name": state["active_device_name"] if control["active"] else None,
         "queued_next_for_uri": state["queued_next_for_uri"],
         "next_candidate_tid": _candidate_next_tid(session_slug, uri),
         "ts": int(time.time()),
@@ -920,6 +1160,11 @@ def _has_stored_token(session_slug: str) -> bool:
 
 
 def devices_payload(session_slug: str) -> dict[str, Any]:
+    with spotify_operation(session_slug, host_action=True):
+        return _devices_payload_locked(session_slug)
+
+
+def _devices_payload_locked(session_slug: str) -> dict[str, Any]:
     session_slug = ensure_session(session_slug)
     sp_user = _user_sp(session_slug)
     if not sp_user:

@@ -2,6 +2,24 @@
 
 .room-code{overflow-wrap:anywhere}
 
+/* Spotify control is explicit and separate from the room staying open. */
+.spotify-session{border:1px solid var(--line);border-left:4px solid var(--muted);padding:20px;margin-top:20px;background:var(--panel)}
+.spotify-session.session-active{border-left-color:var(--green)}
+.spotify-session.session-expired{border-left-color:var(--orange)}
+.session-heading{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.session-heading h3{margin:0;font-size:1.1rem;line-height:1.35}
+.session-light{width:9px;height:9px;flex-shrink:0;border-radius:50%;background:var(--muted)}
+.session-active .session-light{background:var(--green)}
+.session-expired .session-light{background:var(--orange)}
+.spotify-session>p{font-size:.9rem;line-height:1.6;margin-bottom:12px}
+.spotify-session .session-deadline{color:var(--green);font-size:.85rem;font-weight:700}
+.spotify-session>.note{font-size:.8rem;color:var(--muted)}
+.spotify-session>.note:last-child{margin-bottom:0}
+.session-note{padding:14px 0;line-height:1.6}
+.session-note strong{color:var(--paper)}
+#host-playback button:disabled,#check-devices:disabled,.spotify-session button:disabled,.add-song:disabled,#search-form button:disabled{cursor:not-allowed}
+@media(max-width:600px){.spotify-session{padding:17px}.spotify-session .controls button{font-size:.9rem;width:100%}.session-heading h3{font-size:1.05rem}}
+
 /* Voting is the front door; setup stays in the host desk. */
 .room-picker{margin:0 0 16px;font-size:.85rem}.room-picker summary{cursor:pointer;padding:8px 0;color:#535c4b}.room-picker label{margin-top:10px}.music-note{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:.85rem;padding-bottom:8px}.live-dot{color:var(--green)}.now-compact{padding-bottom:20px;gap:16px}.now-compact .cover{width:64px;height:64px}.now-compact h2{font-size:1.25rem;margin:4px 0}.now-compact p{font-size:.8rem}.now-compact .spotify-link{margin-top:4px}.vote-heading{align-items:center;margin-top:22px}.vote-heading h2{font-size:1.65rem;line-height:1.15}.add-song{font-size:.85rem;white-space:nowrap}.vote{min-width:96px;min-height:52px;padding:12px 10px;display:block;font-size:.9rem;white-space:nowrap}.vote:disabled{opacity:.8;cursor:wait}.track-meta{display:flex;align-items:center;gap:12px;margin-top:6px;font-size:.72rem;color:var(--muted)}.spotify-source{color:var(--muted);font-size:.68rem;text-underline-offset:3px}.track-title{cursor:default}.music-relationship{margin:20px 0}.search-block{border-top:1px solid var(--line);scroll-margin-top:80px}.search-block>.section-title{margin-top:0}.spotify-settings{margin-top:18px}.spotify-settings summary{cursor:pointer;padding:12px 0;font-weight:700}.spotify-settings .note{margin:10px 0}.track-copy{overflow-wrap:anywhere}
 @media(max-width:600px){.vote-heading{gap:12px;align-items:flex-start}.vote-heading h2{font-size:1.45rem;max-width:190px}.add-song{padding:10px;min-height:46px}.track{gap:9px}.track img{width:42px;height:42px}.track .rank{display:none}.vote{min-width:88px;font-size:.84rem;min-height:52px}.track-remove{min-width:24px;padding:4px}.music-note{line-height:1.5}.workspace{padding-top:18px}.topline{padding:18px 0}.topline h1{font-size:1.75rem}.landing h1{font-size:3.7rem}}

@@ -33,6 +33,9 @@ class PartyTests(unittest.TestCase):
         return self.client.post(f'/api/party/{room}'+path,json=data,headers={'X-Party-Token':token or self.guest})
     def state(self,token=None,room='main'):
         return self.client.get(f'/api/party/{room}/state',headers={'X-Party-Token':token or self.guest}).json
+    def allow_spotify(self):
+        ls.save_token('main',{'access_token':'test-only','refresh_token':'test-refresh','expires_at':9999999999})
+        ls.start_control_session('main')
     def test_duplicate_music_votes_are_idempotent_and_request_cap_is_three(self):
         for i in range(3):
             for _ in range(2):
@@ -143,24 +146,31 @@ class PartyTests(unittest.TestCase):
         self.post('/poll',{'poll':1,'choice':2});ls.init_storage();party.init_party()
         self.assertEqual(self.state()['polls'][1]['mine'],2)
     def test_pause_does_not_enable_auto_resume(self):
+        self.allow_spotify()
         fake=Mock();ls.update_state('main',auto_enabled=True)
         with patch.object(ls,'_user_sp',return_value=fake):
             self.assertEqual(self.post('/host',{'action':'pause'},self.host).status_code,200)
         fake.pause_playback.assert_called_once();self.assertFalse(ls.get_state('main')['auto_enabled'])
     def test_spotify_link_search_and_cache(self):
+        self.allow_spotify()
         fake=Mock();fake.track.return_value={'id':'a'*22,'name':'Song','artists':[{'name':'Artist'}],'album':{'images':[]}}
         ls._SEARCH_CACHE.clear()
         with patch.object(ls,'sp_search',fake):
-            for _ in range(2):self.assertIn('a'*22,ls.search_tracks('https://open.spotify.com/track/'+'a'*22+'?si=abc'))
+            for _ in range(2):self.assertIn('a'*22,ls.search_tracks('https://open.spotify.com/track/'+'a'*22+'?si=abc','main'))
         fake.track.assert_called_once_with('a'*22)
 
-    def test_invalid_refresh_backs_off_and_reconnection_recovers(self):
+    def test_invalid_refresh_ends_permission_and_reconnection_recovers(self):
         ls.save_token('main',{'access_token':'expired-test','refresh_token':'invalid-test','expires_at':1})
+        ls.start_control_session('main')
         fake=Mock();fake.refresh_access_token.side_effect=RuntimeError('invalid_grant')
         with patch.object(ls,'_oauth',return_value=fake):
             for _ in range(5):self.assertIsNone(ls.get_token('main'))
             fake.refresh_access_token.assert_called_once()
+        self.assertFalse(ls.control_session_payload('main')['active'])
+        self.assertEqual(ls.control_session_payload('main')['ended_reason'],'connection-error')
         ls.save_token('main',{'access_token':'fresh-test','refresh_token':'fresh-refresh','expires_at':9999999999})
+        ls.end_control_session('main','reconnected')
+        ls.start_control_session('main')
         self.assertEqual(ls.get_token('main')['access_token'],'fresh-test')
         self.assertNotIn('main',ls._TOKEN_RETRY_AFTER)
 
@@ -183,13 +193,14 @@ class PartyTests(unittest.TestCase):
             f.seek((root-1)*size);f.write(b'\x00')
         check_storage(ls.DB_PATH)
         self.assertEqual(self.state(),before)
-        self.assertEqual(ls.get_token('main')['refresh_token'],'test-refresh')
+        with ls._connect() as db:
+            self.assertEqual(db.execute('SELECT spotify_refresh_token FROM loudsource_sessions WHERE session_slug=?',('main',)).fetchone()[0],'test-refresh')
         self.assertEqual(self.post('/vote',{'track_id':'1'*22,'active':True}).status_code,200)
 
     def test_preload_import_does_not_start_background_thread(self):
         env=dict(os.environ,LOUDSOURCE_DATABASE_PATH=str(Path(self.temp.name)/'preload.db'))
         env.pop('LOUDSOURCE_DISABLE_MONITOR',None)
         result=subprocess.check_output([sys.executable,'-c','import web; from daily_flyer import loudsource_feature as ls; print(ls._BG_STARTED)'],env=env,text=True)
-        self.assertEqual(result.strip(),'False')
+        self.assertEqual(result.strip().splitlines()[-1],'False')
 
 if __name__=='__main__':unittest.main()

@@ -242,7 +242,11 @@ def host_action(room):
     p = require_host(room)
     data = body()
     action = data.get('action')
-    if action == 'prompt':
+    if action == 'session-start':
+        ls.start_control_session(room)
+    elif action == 'session-end':
+        ls.end_control_session(room)
+    elif action == 'prompt':
         with ls._connect() as db:
             db.execute('UPDATE party_rooms SET prompt=prompt+1 WHERE slug=?', (room,))
     elif action == 'title':
@@ -259,26 +263,30 @@ def host_action(room):
     elif action == 'auto':
         if type(data.get('enabled')) is not bool:
             abort(400, description='Choose on or off.')
-        ls.update_state(room, auto_enabled=data['enabled'])
+        with ls.spotify_operation(room, host_action=True):
+            ls.update_state(room, auto_enabled=data['enabled'])
     elif action in ('pause','resume','device'):
-        sp = ls._user_sp(room)
-        if not sp:
-            abort(400, description='Connect the host Spotify account first.')
-        try:
-            if action == 'pause':
-                ls.update_state(room, auto_enabled=False)
-                sp.pause_playback()
-            elif action == 'resume':
-                sp.start_playback()
-            else:
-                device = data.get('device_id')
-                if not isinstance(device,str) or device not in [d['id'] for d in ls._list_devices(sp) if not d.get('is_restricted')]:
-                    abort(400, description='Choose an available Spotify device.')
-                sp.transfer_playback(device, force_play=False)
-        except Exception as exc:
-            if hasattr(exc, 'code'):
+        with ls.spotify_operation(room, host_action=True):
+            sp = ls._user_sp(room)
+            if not sp:
+                abort(400, description='Connect the host Spotify account first.')
+            try:
+                if action == 'pause':
+                    ls.update_state(room, auto_enabled=False)
+                    sp.pause_playback()
+                elif action == 'resume':
+                    sp.start_playback()
+                else:
+                    device = data.get('device_id')
+                    if not isinstance(device,str) or device not in [d['id'] for d in ls._list_devices(sp) if not d.get('is_restricted')]:
+                        abort(400, description='Choose an available Spotify device.')
+                    sp.transfer_playback(device, force_play=False)
+            except ls.SpotifySessionInactive:
                 raise
-            abort(400, description='Spotify could not do that. Open Spotify on the speaker device and try again.')
+            except Exception as exc:
+                if hasattr(exc, 'code'):
+                    raise
+                abort(400, description='Spotify could not do that. Open Spotify on the speaker device and try again.')
     elif action == 'transfer':
         target = data.get('person_id')
         with ls._connect() as db:

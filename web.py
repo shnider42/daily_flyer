@@ -72,6 +72,11 @@ def value_error(exc):
     return jsonify(error=str(exc)), 400
 
 
+@app.errorhandler(ls.SpotifySessionInactive)
+def spotify_session_inactive(exc):
+    return jsonify(error=str(exc)), 409
+
+
 @app.before_request
 def same_origin_writes():
     if request.method == 'POST' and request.path.startswith('/api/'):
@@ -169,7 +174,9 @@ def loudsource_search(session_slug: str):
         return jsonify({"results": {}})
 
     try:
-        results = search_tracks(query)
+        results = search_tracks(query, session_slug)
+    except ls.SpotifySessionInactive:
+        raise
     except Exception:
         abort(503, description='Song search is temporarily unavailable. You can still vote for songs on the list. You do not need to sign into Spotify.')
     return jsonify({"results": results})
