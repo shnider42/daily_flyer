@@ -5,7 +5,7 @@ import {Controls} from './input.js?v=6';
 import {DEFAULT_GAME_PACE, normalizeGamePace} from './pace.js?v=6';
 import {controlContext} from './control-context.js?v=5';
 import {TOUCH_SLOTS, normalizeTouchLayout, assignTouchAction, touchButtonFor} from './touch-layout.js?v=5';
-import {HoopsAudio} from './audio.js';
+import {HoopsAudio, normalizeAudioMix} from './audio.js?v=8';
 import {LocalStore, createCup, advanceCup, cupMatch, validCup, roundName} from './season.js';
 import {FixedClock} from './vendor/math.js';
 import {bindGameButton} from './vendor/pgi-controls.js';
@@ -27,6 +27,7 @@ if (!['full','follow'].includes(settings.camera)) settings.camera = 'full';
 settings.controlSize = Math.max(.8, Math.min(1.25, Number(settings.controlSize) || 1));
 settings.controlOpacity = Math.max(.1, Math.min(1, Number(settings.controlOpacity) || .45));
 settings.gamePace = normalizeGamePace(settings.gamePace);
+settings.audioMix = normalizeAudioMix(settings.audioMix);
 settings.touchLayout = normalizeTouchLayout(settings.touchLayout);
 const touchActions = {
   pass: {name:'Pass / Switch', label:'pass, J'},
@@ -39,8 +40,11 @@ let cup = store.read('cup', null); if (!validCup(cup)) cup = null;
 let mode = 'quick', game = null, previewGame, paused = false, replay = null, lastReplay = null;
 let history = [], replayAccumulator = 0, matchFinished = false, lastPhase = '', messageUntil = 0, lastEventId = 0;
 let lastStamp = performance.now(), uiAccumulator = 0, matchMode = 'quick', pendingCupResult = false;
+let pendingBreak = null;
 const dialogStack = [];
 const audio = new HoopsAudio(), view = new CourtView($('court')), previewView = new CourtView($('preview'));
+audio.setMix(settings.audioMix);
+audio.setScene('menu');
 audio.setEnabled(!!settings.sound);
 
 function persist() {
@@ -63,7 +67,7 @@ function anyDialog() { return !!document.querySelector('dialog[open]'); }
 function isActive() { return !!game && !paused && !replay && !document.hidden && game.phase !== 'finished' && game.phase !== 'halftime'; }
 function syncPause() {
   const value = anyDialog() || (mobileBook() && $('playbook').classList.contains('open'));
-  if (value !== paused) { paused = value; controls.clear(); fixed.reset(); paused ? audio.pause() : audio.resume(); }
+  if (value !== paused) { paused = value; controls.clear(); fixed.reset(); paused || replay ? audio.pause() : audio.resume(); }
 }
 function showDialog(dialog) {
   controls.clear(); audio.pause(); paused = true;
@@ -85,6 +89,12 @@ function applySettings() {
     $(`${id}Value`).textContent = `${percent}%`;
   }
   $('leftHanded').checked = !!settings.leftHanded; $('namesSetting').checked = !!settings.showNames;
+  $('audioEnabled').checked = !!settings.sound;
+  for (const part of ['music','crowd','effects']) {
+    const percent = Math.round(settings.audioMix[part] * 100), input = $(`${part}Level`);
+    if (Number(input.value) !== percent) input.value = percent;
+    $(`${part}LevelValue`).textContent = `${percent}%`;
+  }
   $('soundSetting').checked = !!settings.sound; $('soundToggle').setAttribute('aria-pressed', String(!!settings.sound));
   $('soundToggle').textContent = settings.sound ? 'Sound on' : 'Sound off';
   $('viewToggle').textContent = settings.camera === 'full' ? 'Follow play' : 'Full court';
@@ -117,7 +127,7 @@ function showTouchControls() {
 }
 function toggleSound(value = !settings.sound) {
   settings.sound = !!value; audio.setEnabled(settings.sound);
-  if (settings.sound && game && !paused) audio.resume();
+  if (settings.sound && !paused && !replay) audio.resume();
   applySettings(); persist();
 }
 function resetPreview() {
@@ -195,24 +205,24 @@ function startMatch({resume = false, next = false} = {}) {
     halfSeconds = cup.halfSeconds; difficulty = cup.difficulty;
   }
   game = new Match({home,away,halfSeconds,difficulty,practice:matchMode === 'practice',human:0,seed:Date.now() >>> 0});
-  paused = false; replay = null; lastReplay = null; history = []; replayAccumulator = 0; matchFinished = false; pendingCupResult = false; lastEventId = 0; lastPhase = ''; targetKey = '';
+  paused = false; replay = null; lastReplay = null; history = []; replayAccumulator = 0; matchFinished = false; pendingCupResult = false; pendingBreak = null; lastEventId = 0; lastPhase = ''; targetKey = '';
   $('lobby').hidden = true; $('game').hidden = false; document.body.classList.add('playing');
   $('playbook').classList.remove('open'); $('replayBanner').hidden = true; $('showReplay').disabled = true;
   $('courtMessage').textContent = ''; messageUntil = 0; $('commentary').textContent = `${home.short} against ${away.short}. Call your first play.`;
-  controls.clear(); fixed.reset(); theme(home, away); audio.resume(); lastStamp = performance.now();
+  controls.clear(); fixed.reset(); theme(home, away); audio.setScene('game'); audio.resume(); lastStamp = performance.now();
   updateUI(); consumeEvents(); $('court').focus({preventScroll:true});
 }
 function leaveGame() {
-  controls.clear(); audio.pause(); game = null; replay = null; lastReplay = null; history = [];
+  controls.clear(); audio.pause(); game = null; replay = null; lastReplay = null; history = []; pendingBreak = null;
   for (const d of document.querySelectorAll('dialog[open]')) d.close();
   $('game').hidden = true; $('lobby').hidden = false; document.body.classList.remove('playing'); paused = false;
-  $('playbook').classList.remove('open'); refreshSetup(); resetPreview(); $('startGame').focus({preventScroll:true});
+  $('playbook').classList.remove('open'); refreshSetup(); resetPreview(); audio.setScene('menu'); audio.resume(); $('startGame').focus({preventScroll:true});
 }
 function announce(text, duration = 1.6) { $('courtMessage').textContent = text; messageUntil = performance.now() + duration * 1000; }
 function consumeEvents() {
   if (!game) return;
   for (const event of game.drainEvents()) {
-    audio.event(event); lastEventId = event.id;
+    audio.event(event, game); lastEventId = event.id;
     if (event.text) $('commentary').textContent = event.text;
     if (['score','foul','turnover','steal','block','overtime','freeThrow','timeout'].includes(event.type)) {
       const teamName = event.team !== undefined ? game.teams[event.team].short : '';
@@ -223,9 +233,16 @@ function consumeEvents() {
       $('showReplay').disabled = lastReplay.length < 4;
     }
   }
-  if (game.phase === 'halftime' && lastPhase !== 'halftime') showBreak(false);
-  if (game.phase === 'finished' && !matchFinished) { matchFinished = true; finishMatch(); showBreak(true); }
+  if (game.phase === 'halftime' && lastPhase !== 'halftime') queueBreak(false);
+  if (game.phase === 'finished' && !matchFinished) { matchFinished = true; finishMatch(); queueBreak(true); }
   lastPhase = game.phase;
+}
+function queueBreak(final) {
+  // The phase already stops play and both clocks. Let the horn finish before
+  // opening the silent break dialog, using the existing animation frame loop.
+  controls.clear();
+  pendingBreak = { final, at: performance.now() + 1150 };
+  announce(final ? 'FINAL BUZZER' : 'HALFTIME', 1.15);
 }
 function finishMatch() {
   if (matchMode === 'cup' && !pendingCupResult) {
@@ -260,7 +277,8 @@ function togglePause() {
 }
 function callTimeout() {
   if (!game) return;
-  if (!game.action('timeout')) announce(game.timeouts[0] <= 0 ? 'No timeouts remaining.' : 'Call timeout while your team controls the ball.', 2);
+  if (game.action('timeout')) closePlaybook();
+  else announce(game.timeouts[0] <= 0 ? 'No timeouts remaining.' : 'Call timeout while your team controls the ball.', 2);
   consumeEvents(); updateUI();
 }
 function renderSubs() {
@@ -289,9 +307,9 @@ function showBracket() {
 }
 function startReplay() {
   if (!lastReplay?.length || !game) return;
-  controls.clear(); replay = {frames:lastReplay,time:0}; audio.pause(); $('replayBanner').hidden = false; closePlaybook();
+  controls.clear(); replay = {frames:lastReplay,time:0}; audio.setScene('silent'); audio.pause(); $('replayBanner').hidden = false; closePlaybook();
 }
-function stopReplay() { replay = null; $('replayBanner').hidden = true; fixed.reset(); if (!paused) audio.resume(); updateUI(); }
+function stopReplay() { replay = null; $('replayBanner').hidden = true; fixed.reset(); audio.setScene('game'); if (!paused) audio.resume(); updateUI(); }
 
 let targetKey = '';
 function updateTargets() {
@@ -398,6 +416,12 @@ $('resetTouchMapping').addEventListener('click',()=>{
 });
 $('namesSetting').addEventListener('change',()=>{settings.showNames=$('namesSetting').checked;persist();});
 $('soundToggle').addEventListener('click',()=>toggleSound()); $('soundSetting').addEventListener('change',()=>toggleSound($('soundSetting').checked));
+$('audioEnabled').addEventListener('change',()=>toggleSound($('audioEnabled').checked));
+for (const id of ['showAudioSettings','pauseAudioSettings']) $(id).addEventListener('click',()=>{applySettings();showDialog($('audioSettingsDialog'));});
+for (const part of ['music','crowd','effects']) for (const event of ['input','change']) $(`${part}Level`).addEventListener(event,()=>{
+  settings.audioMix = normalizeAudioMix({...settings.audioMix,[part]:Number($(`${part}Level`).value)/100});
+  audio.setMix(settings.audioMix); applySettings(); persist();
+});
 document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.mode;refreshSetup();}));
 $('startGame').addEventListener('click',()=>startMatch()); $('resumeCup').addEventListener('click',()=>startMatch({resume:true}));
 $('showRoster').addEventListener('click',roster); $('showBracket').addEventListener('click',showBracket);
@@ -446,10 +470,14 @@ function frame(stamp) {
       $('releaseFeedback').hidden=!feedback||feedback.team!==0||feedback.expires<game.elapsed||replay!==null;
       if(feedback&&!$('releaseFeedback').hidden)$('releaseFeedback').textContent=`${feedback.text}${feedback.contest!==undefined?feedback.contest>.55?' · CONTESTED':feedback.contest<.2?' · OPEN':'':''}`;
       if(stamp>messageUntil)$('courtMessage').textContent='';
+      if(pendingBreak && stamp>=pendingBreak.at && !paused && !replay) {
+        const {final} = pendingBreak; pendingBreak = null; showBreak(final);
+      }
     } else if(previewGame) {
       previewGame.step(dt*settings.gamePace,{});previewGame.drainEvents();
       previewView.render(previewGame,{dt,time:stamp/1000,preview:true,guidance:'expert',camera:'full',showNames:false});
       $('previewScore').textContent=`${previewGame.score[0]} : ${previewGame.score[1]}`;
+      if(!paused)audio.update(dt);
     }
   }
   requestAnimationFrame(frame);

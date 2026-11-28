@@ -7,7 +7,7 @@
   <meta name="description" content="Pocket College Hoops: top-down 5-on-5 college basketball from DailyFlyer. Call a play, work the ball, and chase a campus championship. Keyboard and touch.">
   <title>Pocket College Hoops · DailyFlyer</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <header class="masthead">
@@ -41,7 +41,7 @@
         <button id="startGame" class="primary" disabled>Loading the teams…</button>
         <button id="resumeCup" class="secondary" hidden>Continue Campus Cup</button>
         <p id="saveNotice" class="small-note" hidden></p>
-        <div class="setup-links"><button id="showRoster" class="text-button">Meet your team</button><button id="showTouchControls" class="text-button">Touch controls</button><button id="showHelp" class="text-button">Controls & rules</button><button id="showBracket" class="text-button" hidden>View bracket</button></div>
+        <div class="setup-links"><button id="showRoster" class="text-button">Meet your team</button><button id="showTouchControls" class="text-button">Touch controls</button><button id="showAudioSettings" class="text-button">Audio settings</button><button id="showHelp" class="text-button">Controls & rules</button><button id="showBracket" class="text-button" hidden>View bracket</button></div>
         <p class="roster-note">16 college programs · Original fictional players · Arcade ratings<br>Solo vs CPU. Progress saves on this browser.</p>
       </div>
       <div class="arena-preview">
@@ -105,9 +105,23 @@
   <dialog id="pauseDialog"><button class="close-dialog" data-close aria-label="Resume game">×</button><p class="eyebrow">TIME TO TALK IT OVER</p><h2>On the bench.</h2>
     <button id="resumeGame" class="primary">Back to the game</button>
     <button id="pauseTouchControls" class="secondary">Touch controls</button>
+    <button id="pauseAudioSettings" class="secondary">Audio settings</button>
     <div class="settings-grid pause-settings"><label>Guidance<select id="pauseGuidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label><label>View<select id="cameraSetting"><option value="full">Full court</option><option value="follow">Follow the play</option></select></label><label class="wide pace-setting">Game pace <output id="pauseGamePaceValue" for="pauseGamePace">80%</output><input id="pauseGamePace" type="range" min="60" max="100" step="5" value="80" aria-label="Game pace"><small>Change the pace for this game and future games. 100% is the original speed.</small></label><label class="check-label"><input id="soundSetting" type="checkbox"> Game sound</label><label class="check-label"><input id="namesSetting" type="checkbox" checked> Player labels</label></div>
     <details><summary>Make a substitution</summary><p class="small-note">A queued substitution happens at the next dead ball.</p><label>Rest<select id="subOut"></select></label><label>Bring in<select id="subIn"></select></label><button id="makeSub" class="secondary">Queue substitution</button><p id="subStatus" role="status"></p></details>
     <div class="dialog-actions"><button id="pauseStats" class="secondary">Box score</button><button id="pauseHelp" class="secondary">Controls & rules</button><button id="pauseFullscreen" class="secondary">Full screen</button><button id="quitGame" class="secondary">Leave game</button></div>
+  </dialog>
+
+  <dialog id="audioSettingsDialog" aria-labelledby="audioSettingsTitle">
+    <button class="close-dialog" data-close aria-label="Close audio settings">×</button>
+    <p class="eyebrow">THE SOUND OF GAME NIGHT</p><h2 id="audioSettingsTitle">Audio settings</h2>
+    <label class="check-label audio-enabled"><input id="audioEnabled" type="checkbox"> Game sound</label>
+    <div class="audio-levels">
+      <label>Music <output id="musicLevelValue" for="musicLevel">55%</output><input id="musicLevel" type="range" min="0" max="100" step="5" value="55" aria-label="Music volume"><small>Original broadcast theme in the lobby and short cues at game transitions.</small></label>
+      <label>Crowd <output id="crowdLevelValue" for="crowdLevel">65%</output><input id="crowdLevel" type="range" min="0" max="100" step="5" value="65" aria-label="Crowd volume"><small>Arena murmur, cheers, oohs, ahhs, and boos.</small></label>
+      <label>Court sounds <output id="effectsLevelValue" for="effectsLevel">80%</output><input id="effectsLevel" type="range" min="0" max="100" step="5" value="80" aria-label="Court sounds volume"><small>The ball, sneakers, rim, net, whistles, and buzzer.</small></label>
+    </div>
+    <p class="audio-settings-note">Changes save automatically. Sound resumes when you close the menus. Set a level to 0% to mute that part of the mix.</p>
+    <button class="primary" data-close>Done</button>
   </dialog>
 
   <dialog id="touchControlsDialog" aria-labelledby="touchControlsTitle">
@@ -160,6 +174,6 @@
   <dialog id="bracketDialog"><button class="close-dialog" data-close aria-label="Close bracket">×</button><p class="eyebrow">EIGHT PROGRAMS. ONE CHAMPION.</p><h2>Campus Cup</h2><div id="bracketContent"></div></dialog>
   <dialog id="breakDialog"><p id="breakEyebrow" class="eyebrow">THE HALFTIME HUDDLE</p><h2 id="breakTitle">A new half. A fresh start.</h2><div id="breakScore" class="break-score"></div><p id="breakSummary"></p><div id="breakStats"></div><button id="continueGame" class="primary">Start the second half</button><button id="breakBoxScore" class="secondary">Full box score</button><button id="backToLobby" class="secondary" hidden>Back to matchups</button></dialog>
   <noscript>This game needs JavaScript enabled to run the basketball simulation.</noscript>
-  <script type="module" src="app.js?v=7"></script>
+  <script type="module" src="app.js?v=8"></script>
 </body>
 </html>

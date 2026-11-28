@@ -29,7 +29,7 @@ Do not publish the repository root: it contains other DFE projects. The new game
 - Four lengths: 90 seconds, 3 minutes (default), 6 minutes, or 20 minutes per half. Overtime is one minute in arcade lengths and five minutes at regulation length.
 - Separate opponent difficulty, Simple/Moderate/Expert guidance, and game pace. Pace defaults to 80%, adjustable from 60% to 100% without exceeding the original full speed.
 - Responsive court rotation, full-court/follow camera, adjustable controls size and opacity, customizable touch assignments, left-handed layout, box scores, halftime report, and manual replay of the last made basket.
-- Original synthesized dribble, sneaker, net, rim, whistle, buzzer, and crowd sounds. Sound is opt-in, gesture activated, muted on pause/hide, and uses no background timer. The menu preview is silent.
+- Original broadcast-style music, synthesized crowd voices and arena ambience, and dribble, sneaker, net, rim, whistle, and buzzer effects. Sound is opt-in, with separate music, crowd, and court-sound levels. Paused menus, replay, and hidden pages are silent.
 
 ## Controls
 
@@ -92,6 +92,24 @@ Pace slows player movement, ball travel, AI reactions, clocks, cooldowns, and re
 
 Replay plays at half the selected pace without advancing the live game. The lobby preview follows the same pace, while menus, interface feedback, and camera easing remain responsive.
 
+## Audio
+
+Open **Audio settings** from the lobby or **Pause > Audio settings**. **Game sound** is the master on/off control and defaults to off. The three level sliders run from **0% to 100% in 5-point steps** and save in the same browser:
+
+| Audio control | Default | What it controls |
+| --- | --- | --- |
+| Music | 55% | Lobby theme and short game-transition cues |
+| Crowd | 65% | Arena murmur, cheers, oohs, ahhs, and boos |
+| Court sounds | 80% | Ball, sneakers, rim, net, whistles, and buzzer |
+
+The music is an original eight-bar theme at **118 BPM**, about **16 seconds** long, built from brass/synth parts, bass, drums, and fills for an early-2000s sports-broadcast feel. It loops in the lobby. Opening tip, second-half/overtime starts, timeouts, and period endings use short excerpts; ordinary possessions do not restart the full theme. The lobby's simulated game does not produce court effects.
+
+The crowd uses **synthesized collective vowel sounds**, including layered oohs, ahhs, and boos, with a quiet arena bed. These are generated voices and ambience, not recordings of real spectators. Reactions favor the home team: scores and defensive plays can draw cheers, lob/dunk attempts draw anticipation, and misses or opponent scores draw disappointment. Calls against the home team can draw occasional boos. Reaction priorities and cooldowns limit overlapping voices; an out-of-bounds call alone does not imply a turnover reaction.
+
+Audio requires a user gesture and the master switch. Setting a category to 0% mutes that part of the mix. Opening menus, starting replay, or hiding the page stops playback; sound resumes for the appropriate scene after menus close or play resumes. The settings dialog stays silent while adjusting levels. At halftime and the final buzzer, gameplay is already stopped while a brief **1.15-second presentation** lets the horn and short music cue play before the silent break dialog opens.
+
+All music, voices, and court effects are generated locally; no broadcast recordings, external audio files, or background scheduling timers are used.
+
 ## Deliberate arcade rules
 
 This is solo vs CPU, with no online multiplayer. Automatic dribbling/inbounds, three timeouts per team, short default halves, and simplified foul detection keep possessions quick. All dead balls stop the clock. Traveling, three-second violations, offensive fouls, goaltending, jump-ball possession procedures, replay challenges, and other administrative NCAA rules are not fully modeled. This is not a complete NCAA rules simulator.
@@ -105,7 +123,7 @@ Rules checked against official references:
 
 ## Architecture and reuse
 
-`engine.js` is DOM-free and deterministic for a given seed/input stream. `teams.js` holds the catalogue; `view.js` renders Match instances and snapshots; `input.js` owns independent pointers; `control-context.js` resolves possession-sensitive actions; `touch-layout.js` normalizes saved assignments and migrates legacy screen mappings; `pace.js` defines the default and bounds shared by the app and shot meter; `audio.js` synthesizes game sounds; `season.js` manages brackets and versioned local storage; `app.js` connects UI, simulation, and replay state.
+`engine.js` is DOM-free and deterministic for a given seed/input stream. `teams.js` holds the catalogue; `view.js` renders Match instances and snapshots; `input.js` owns independent pointers; `control-context.js` resolves possession-sensitive actions; `touch-layout.js` normalizes saved assignments and migrates legacy screen mappings; `pace.js` defines the default and bounds shared by the app and shot meter; `audio-score.js` builds original music and crowd buffers, while `audio.js` manages playback, scenes, levels, and court effects; `season.js` manages brackets and versioned local storage; `app.js` connects UI, simulation, and replay state.
 
 `public/vendor/pgi-controls.js`, `device-audio.js`, and `math.js` are copied unchanged from the existing Pocket Sports shared core in `daily_flyer/themes/pocket_sports_assets/core/`, based on PGI commit `b2067c82307f01fcb4d4331b443e3d3a617a95fc`. Keeping the small primitives bundled makes this static build self-contained. Future shared input fixes should be ported here explicitly.
 
@@ -119,7 +137,7 @@ Run from the repository root:
 node --test games/pocket-basketball/tests/*.test.mjs
 ```
 
-The test suite covers scoring, shot timing/contest/range, pass flight and receiver control, rebounds, possession/shot-clock changes, backcourt violations, fouls and free throws, substitutions, halftime/overtime, completed CPU games, snapshot isolation, independent touch ownership, canceled shots, possession-sensitive actions, turnover shot guards, faster off-ball movement, offensive spacing, body separation, mute/hidden-page audio, and Cup advancement/save corruption. Touch-mapping checks cover all 24 assignments, legacy screen-to-through migration, safe recovery from malformed settings, swaps, and held inputs across menu changes.
+The required suite passed **113/113 tests**. It covers scoring, shot timing/contest/range, pass flight and receiver control, rebounds, possession/shot-clock changes, backcourt violations, fouls and free throws, substitutions, halftime/overtime, completed CPU games, snapshot isolation, independent touch ownership, canceled shots, possession-sensitive actions, turnover shot guards, faster off-ball movement, offensive spacing, body separation, audio scenes/mixing/reactions and mute/hidden-page behavior, and Cup advancement/save corruption. Touch-mapping checks cover all 24 assignments, legacy screen-to-through migration, safe recovery from malformed settings, swaps, and held inputs across menu changes.
 
 The compact mobile layout was checked in a browser fixture at five viewport sizes. Geometry checks passed at each size, including the score and clocks, phase/status, Plays and Pause access, control bounds, and fixed Y/X/B/A ordering. Measured canvas dimensions and HUD heights were:
 
@@ -134,5 +152,7 @@ The compact mobile layout was checked in a browser fixture at five viewport size
 The 390 × 844 v6 baseline used controls size 1.25. A dash indicates that a baseline measurement was not recorded. These are canvas dimensions, not a claim that every pixel is unobstructed playing space: the mobile thumb controls overlay the court.
 
 The review checked minimum and maximum control sizes, with face buttons approximately **49.6–78px**, **45% opacity**, and left-handed mode moving the two groups without rearranging the diamond. Interaction checks covered movement, a **975 ms B-button hold at 80% pace** producing **GREAT RELEASE · OPEN**, opening Plays and returning after a call, nested Pause → Touch controls dialogs, switching to Follow camera, and a hit reaching the canvas through an uncovered part of the controls overlay. Desktop review confirmed the six-column scoreboard, including Plays and Pause, remained correctly arranged.
+
+Audio checks used a real `AudioContext` and visible fixture diagnostics. Opting in started one lobby music loop; entering the game replaced it with the crowd bed. Diagnostics confirmed home-score cheers, boos for a call against home, lob anticipation, and disappointment after an away basket. Pause and master mute stopped all sources, suspended the context, and discarded reactions. In the actual app, menus stayed silent; Music 0% and Crowd 75% survived reload before restoring the defaults. Audio-dialog scrolling worked at 320 × 568, and nested Pause → Audio settings → Done → Pause → Back to game worked at 812 × 354. Timestamped app flows kept the break modal closed at the horn, then opened halftime after **1,230 ms** and the final after **1,182 ms**, against the 1,150 ms target; afterward audio was paused with zero active sources. No application console errors were observed. No subjective listening assessment was performed.
 
 Earlier touch-customization checks at 390 × 844 and 812 × 354 verified saved assignments after reload, matching hints/help, resetting while retaining size and handedness, and nested dialogs keeping play paused. The current viewport checks used a browser fixture; native iPhone Safari, physical touch feel, and device speaker behavior were not tested. QA fixtures are not part of the published application.

@@ -116,3 +116,19 @@ dialog{width:min(670px,calc(100% - 24px));max-height:90vh;max-height:90dvh;paddi
   body.playing #game .score-team>strong{font-size:19px;line-height:1.05;text-align:center}
   body.playing #game .score-team small{margin-top:1px;font-size:9px;line-height:1.05}
 }
+
+/* Audio controls use the native dialog's existing viewport limit and scrolling. */
+#audioSettingsDialog{width:min(520px,calc(100% - 24px))}
+#audioSettingsDialog .check-label{margin:4px 0 10px}
+#audioSettingsDialog .audio-levels{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin:18px 0}
+#audioSettingsDialog .audio-levels label{display:block;min-width:0;font-size:14px;line-height:1.4}
+#audioSettingsDialog .audio-levels output{float:right;min-width:4ch;text-align:right;font:800 14px/1.4 ui-monospace,monospace;color:var(--mint)}
+#audioSettingsDialog .audio-levels input[type=range]{display:block;width:100%;margin:6px 0 0}
+#audioSettingsDialog .audio-settings-note{margin:10px 0 14px;font-size:12px;line-height:1.5;color:var(--muted)}
+@media(max-height:500px){
+  #audioSettingsDialog{padding:18px 20px}
+  #audioSettingsDialog h2{margin-bottom:10px;font-size:24px}
+  #audioSettingsDialog .eyebrow{margin-bottom:6px}
+  #audioSettingsDialog .audio-levels{gap:10px;margin:12px 0}
+  #audioSettingsDialog .audio-settings-note{margin:8px 0 12px}
+}
