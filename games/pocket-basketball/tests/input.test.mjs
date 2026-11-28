@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Controls } from '../public/input.js';
 import { HoopsAudio } from '../public/audio.js';
+import { normalizeTouchLayout, assignTouchAction } from '../public/touch-layout.js';
 
 class Surface {
   constructor() {
@@ -45,6 +46,78 @@ function setup({ context, onAction } = {}) {
     onPause: () => state.pauses++, active: () => state.active });
   return { win, doc, ...nodes, input, actions, state };
 }
+
+// The app moves these existing semantic button nodes into the chosen face
+// positions. Resolve the same node identities here; never recreate listeners.
+function faceSurfaces(harness, layout) {
+  return Object.fromEntries(Object.entries(normalizeTouchLayout(layout))
+    .map(([letter, action]) => [letter, harness[action]]));
+}
+
+test('default X holds sprint while B charges and releases a shot on the actual Controls surfaces', () => {
+  const h = setup(), face = faceSurfaces(h);
+  assert.equal(face.X, h.sprint); assert.equal(face.B, h.shoot);
+  face.X.emit('pointerdown', { pointerId: 11 });
+  face.B.emit('pointerdown', { pointerId: 12 });
+  assert.equal(h.input.read().sprint, true); assert.equal(h.input.charging, true);
+  h.win.emit('pointerup', { pointerId: 12 });
+  assert.deepEqual(h.actions.map(a => a.name), ['shoot']);
+  assert.equal(h.input.charging, false); assert.equal(h.input.read().sprint, true);
+  h.win.emit('pointerup', { pointerId: 11 });
+  assert.equal(h.input.read().sprint, false);
+});
+
+test('swapped X shoot and B sprint retain their listeners and the held-steal possession safeguard', () => {
+  let context = { offense: false, canShoot: false, token: 'defending', possessionEpoch: 1 };
+  const h = setup({ context: () => context, onAction(name) {
+    if (name === 'steal') context = { offense: true, canShoot: false, token: 'won', possessionEpoch: 2 };
+  } });
+  const face = faceSurfaces(h, assignTouchAction(undefined, 'X', 'shoot'));
+  assert.equal(face.X, h.shoot); assert.equal(face.B, h.sprint);
+  face.B.emit('pointerdown', { pointerId: 21 });
+  face.X.emit('pointerdown', { pointerId: 22 });
+  assert.deepEqual(h.actions.map(a => a.name), ['steal']);
+  assert.equal(h.input.charging, false); assert.equal(h.input.read().sprint, true);
+  context.canShoot = true; h.input.syncContext();
+  h.win.emit('pointerup', { pointerId: 22 });
+  assert.deepEqual(h.actions.map(a => a.name), ['steal'], 'the remapped held face must not become a shot');
+  face.X.emit('pointerdown', { pointerId: 23 });
+  assert.equal(h.input.charging, true);
+  h.win.emit('pointerup', { pointerId: 23 });
+  assert.deepEqual(h.actions.map(a => a.name), ['steal', 'shoot']);
+  assert.equal(h.actions.at(-1).payload.possessionEpoch, 2);
+  h.win.emit('pointerup', { pointerId: 21 });
+  assert.equal(h.input.read().sprint, false);
+});
+
+test('changing layout in a menu cancels both old holds and requires fresh inputs at the new faces', () => {
+  const h = setup(); let layout = normalizeTouchLayout(), face = faceSurfaces(h, layout);
+  face.X.emit('pointerdown', { pointerId: 31 });
+  face.B.emit('pointerdown', { pointerId: 32 });
+  assert.equal(h.input.read().sprint, true); assert.equal(h.input.charging, true);
+
+  h.state.active = false;
+  h.input.clear();
+  layout = assignTouchAction(layout, 'B', 'sprint');
+  face = faceSurfaces(h, layout);
+  assert.equal(face.B, h.sprint); assert.equal(face.X, h.shoot);
+  h.state.active = true;
+  h.win.emit('pointerup', { pointerId: 32 });
+  h.win.emit('pointerup', { pointerId: 31 });
+  h.shoot.emit('click', { detail: 1 });
+  h.sprint.emit('click', { detail: 1 });
+  assert.deepEqual(h.actions, [], 'old releases and compatibility clicks cannot shoot or swipe');
+  assert.equal(h.input.charging, false); assert.equal(h.input.read().sprint, false);
+
+  face.B.emit('pointerdown', { pointerId: 33 });
+  face.X.emit('pointerdown', { pointerId: 34 });
+  assert.equal(h.input.read().sprint, true); assert.equal(h.input.charging, true);
+  h.win.emit('pointerup', { pointerId: 34 });
+  assert.deepEqual(h.actions.map(a => a.name), ['shoot']);
+  assert.equal(h.input.read().sprint, true);
+  h.win.emit('pointerup', { pointerId: 33 });
+  assert.equal(h.input.read().sprint, false);
+});
 
 test('shooting thumb releases without stopping movement held by the other thumb', () => {
   const { win, stick, shoot, input, actions } = setup();

@@ -6,18 +6,28 @@ Use the EA NHL-style principle of **stable buttons whose actions follow possessi
 
 Keep the same keyboard key and touch surface in the same place as possession changes. The right-thumb diamond is fixed: **Y at the top, X on the left, B on the right, A at the bottom**. Show a persistent, prominent face-button letter alongside the current action. Update the action label, accessible name, and help text together. Avoid asking the player to find a different main button whenever the ball changes hands.
 
-| Touch position | Control role | With the ball | Defending or recovering a loose ball |
+| Default touch position | Control role | With the ball | Defending or recovering a loose ball |
 | --- | --- | --- | --- |
 | **A · bottom** | Pass / select | Pass to a teammate | Select the nearest eligible teammate to the ball |
-| **X · left** | Primary attack / pressure | Shoot, or the sport's main attacking action | Steal, check, or the sport's main defensive pressure action |
+| **X · left** | Sprint / burst | Sprint or burst | Sprint or burst |
 | **Y · top** | Secondary team / defensive action | Basketball screen, or a sport-specific secondary action | Basketball block, or a sport-specific secondary action |
-| **B · right** | Sprint / burst | Sprint or burst | Sprint or burst |
+| **B · right** | Primary attack / pressure | Shoot, or the sport's main attacking action | Steal, check, or the sport's main defensive pressure action |
 
 Movement stays on the left stick. Portrait, landscape, and left-handed layouts may relocate the whole action cluster, but must preserve the diamond's internal positions. Do not mirror X and B or rearrange the letters when possession changes.
 
-The defensive selection action should choose a useful player nearest to the ball, not cycle through distant teammates. Only eligible players on the user's team can be selected. Secondary actions use Y rather than expanding the primary controls into a changing row of buttons. Existing explicit keyboard shortcuts can remain aliases.
+The defensive selection action should choose a useful player nearest to the ball, not cycle through distant teammates. Only eligible players on the user's team can be selected. Secondary actions default to Y rather than expanding the primary controls into a changing row of buttons. Existing explicit keyboard shortcuts can remain aliases.
 
-Keep label changes immediate and understandable. A remains A while its action changes from **PASS** to **SWITCH**; X remains X while **SHOOT** changes to **STEAL**. Buttons must not move or change size during play. Do not rely on color alone to communicate identity or action. Receiver labels should not reuse A/B/X/Y in a way that competes with these face-button meanings. Guidance levels may change explanations, not the underlying mapping.
+Keep label changes immediate and understandable. With the defaults, A remains A while its action changes from **PASS** to **SWITCH**; B remains B while **SHOOT** changes to **STEAL**. Buttons must not move or change size during play. Do not rely on color alone to communicate identity or action. Receiver labels should not reuse A/B/X/Y in a way that competes with these face-button meanings. Guidance levels may change explanations, not the underlying mapping.
+
+## Touch customization
+
+Keep touch preferences together in a **Touch controls** dialog. In Pocket College Hoops, it is available from **Touch controls** in the lobby, **Pause > Touch controls**, and **Controls & rules > Customize touch controls**. The same dialog contains **Controls size**, **Left-handed layout**, and the action assignments.
+
+The letters retain their fixed Xbox positions; the player assigns the action pairs to those positions. Move each possession-sensitive pair together: PASS/SWITCH, SHOOT/STEAL, SCREEN/BLOCK, and SPRINT. Choosing an action already assigned elsewhere swaps the two assignments, keeping all four pairs reachable exactly once.
+
+Save preferences automatically in the same browser and restore them on the next visit. **Reset button mapping** resets only the four action assignments to **A = PASS/SWITCH, B = SHOOT/STEAL, Y = SCREEN/BLOCK, X = SPRINT**; controls size and handedness retain their saved values. These are the defaults for basketball and future games or control revisions adopting this standard. Touch customization does not remap keyboard shortcuts or the diamond's letter positions.
+
+Update visible actions, accessible names, and touch help to match the saved assignments. After a swap, each pair still follows possession on its newly assigned button. Changing an assignment while paused must not carry a held or queued action back into play.
 
 ## Possession and loose-ball behavior
 
@@ -42,14 +52,14 @@ The guard suppresses accidental shooting, not movement or a deliberate pass. Cle
 
 ## Pocket College Hoops mapping
 
-| Face button | Offense | Defense / recovery | Keyboard equivalent |
+| Default face button | Offense | Defense / recovery | Keyboard equivalent |
 | --- | --- | --- | --- |
 | **A · bottom** | PASS | SWITCH: select nearest eligible teammate to the ball | `J` |
-| **X · left** | SHOOT: hold and release; also used for free throws | STEAL: one attempt on press, never a shot charge | `Space` |
+| **X · left** | SPRINT | SPRINT | Hold `Shift` or `K` |
 | **Y · top** | SCREEN | BLOCK | `L` for screen/block; `R` also blocks |
-| **B · right** | SPRINT | SPRINT | Hold `Shift` or `K` |
+| **B · right** | SHOOT: hold and release; also used for free throws | STEAL: one attempt on press, never a shot charge | `Space` |
 
-`E` remains a legacy steal shortcut; `Q` and `Tab` remain switch aliases. Blocking stays on Y, separate from the X SHOOT/STEAL surface. Direct teammate passing and receiver buttons remain available on offense. Touch labels, keyboard help, and the controls dialog must reflect the same mapping.
+`E` remains a legacy steal shortcut; `Q` and `Tab` remain switch aliases. Blocking defaults to Y, separate from the B SHOOT/STEAL surface; customization preserves that separation. Direct teammate passing and receiver buttons remain available on offense. Keyboard shortcuts retain their actions regardless of the touch assignments.
 
 The face-button letters describe the **on-screen touch layout**. Pocket College Hoops supports keyboard and touch input; the diamond alone does not add physical gamepad support. Only advertise connected-controller support after that input path is implemented and verified.
 
@@ -66,6 +76,8 @@ When implementing or revising a controller, verify these behaviors in the actual
 - Complete a same-team pass: offensive labels remain stable in flight, and the catch does not execute an earlier shot press.
 - Change ballhandler, pause, or lose focus during a charge: the old release cannot shoot.
 - Hold movement with one finger and use an action with another: both retain independent ownership.
-- Confirm the keyboard and touch mappings agree, the internal Y/X/B/A diamond stays fixed, and portrait/landscape preserve screen-relative movement. Check physical-controller equivalents only in games that implement them.
+- Swap two touch assignments: all four action pairs remain available, and their labels and accessible names follow the new positions.
+- Reload in the same browser: custom preferences return. Use Reset button mapping: B returns to SHOOT/STEAL and X to SPRINT, with A PASS/SWITCH and Y SCREEN/BLOCK; controls size and handedness stay as chosen.
+- Confirm touch customization leaves keyboard actions unchanged, the internal Y/X/B/A diamond stays fixed, and portrait/landscape preserve screen-relative movement. Check physical-controller equivalents only in games that implement them.
 
 Adopt the standard deliberately in each game and verify its existing controls when doing so. Documentation alone does not retrofit another game's controller.

@@ -3,6 +3,7 @@ import {Match} from './engine.js';
 import {CourtView} from './view.js';
 import {Controls} from './input.js';
 import {controlContext} from './control-context.js';
+import {TOUCH_SLOTS, normalizeTouchLayout, assignTouchAction, touchButtonFor} from './touch-layout.js';
 import {HoopsAudio} from './audio.js';
 import {LocalStore, createCup, advanceCup, cupMatch, validCup, roundName} from './season.js';
 import {FixedClock} from './vendor/math.js';
@@ -23,6 +24,14 @@ if (!['simple','moderate','expert'].includes(settings.guidance)) settings.guidan
 if (![90,180,360,1200].includes(Number(settings.halfSeconds))) settings.halfSeconds = 180;
 if (!['full','follow'].includes(settings.camera)) settings.camera = 'full';
 settings.controlSize = Math.max(.8, Math.min(1.25, Number(settings.controlSize) || 1));
+settings.touchLayout = normalizeTouchLayout(settings.touchLayout);
+const touchActions = {
+  pass: {name:'Pass / Switch', label:'pass, J'},
+  shoot: {name:'Shoot / Steal', label:'shoot, hold and release Space'},
+  screen: {name:'Screen / Block', label:'call a screen, L'},
+  sprint: {name:'Sprint', label:'sprint, hold Shift or K'}
+};
+const touchLetter = action => touchButtonFor(settings.touchLayout, action);
 let cup = store.read('cup', null); if (!validCup(cup)) cup = null;
 let mode = 'quick', game = null, previewGame, paused = false, replay = null, lastReplay = null;
 let history = [], replayAccumulator = 0, matchFinished = false, lastPhase = '', messageUntil = 0, lastEventId = 0;
@@ -32,7 +41,9 @@ const audio = new HoopsAudio(), view = new CourtView($('court')), previewView = 
 audio.setEnabled(!!settings.sound);
 
 function persist() {
-  if (!store.write('settings', settings)) saveWarning();
+  const saved = store.write('settings', settings);
+  if (!saved) saveWarning();
+  return saved;
 }
 function saveWarning() {
   $('saveNotice').hidden = false;
@@ -64,6 +75,31 @@ function applySettings() {
   $('soundSetting').checked = !!settings.sound; $('soundToggle').setAttribute('aria-pressed', String(!!settings.sound));
   $('soundToggle').textContent = settings.sound ? 'Sound on' : 'Sound off';
   $('viewToggle').textContent = settings.camera === 'full' ? 'Follow play' : 'Full court';
+}
+function applyTouchLayout() {
+  // Move the existing action elements only while configuring controls. Their
+  // input listeners and pointer ownership stay attached to the same elements.
+  const group = document.querySelector('.face-controls');
+  for (const slot of TOUCH_SLOTS) {
+    const action = settings.touchLayout[slot], button = $(`${action}Button`);
+    button.classList.remove(...TOUCH_SLOTS.map(letter => `face-${letter.toLowerCase()}`));
+    button.classList.add(`face-${slot.toLowerCase()}`);
+    button.querySelector('.face-letter').textContent = slot;
+    button.setAttribute('aria-label', `${slot}: ${touchActions[action].label}`);
+    group.append(button);
+    $(`touch${slot}`).value = action;
+  }
+  $('touchMappingHelp').textContent = `${touchLetter('pass')} passes on offense and switches to the nearest player on defense. ${touchLetter('shoot')} shoots on offense and steals on defense. ${touchLetter('screen')} calls a screen on offense and blocks on defense. Hold ${touchLetter('sprint')} to sprint.`;
+  updateTargets();
+}
+function saveTouchSettings(message) {
+  const saved = persist();
+  $('touchControlStatus').textContent = `${message} ${saved ? 'Saved on this browser.' : 'Applied for this session; browser storage is unavailable.'}`;
+}
+function showTouchControls() {
+  applySettings();
+  $('touchControlStatus').textContent = store.available ? 'Changes save automatically on this browser.' : 'Browser storage is unavailable. Changes apply for this session.';
+  showDialog($('touchControlsDialog'));
 }
 function toggleSound(value = !settings.sound) {
   settings.sound = !!value; audio.setEnabled(settings.sound);
@@ -260,9 +296,9 @@ function updateTargets() {
   $('passAction').textContent = offense ? 'PASS' : 'SWITCH';
   $('screenAction').textContent = offense ? 'SCREEN' : 'BLOCK';
   $('screenKey').textContent = offense ? 'L' : 'L / R';
-  $('shootButton').setAttribute('aria-label', offense ? shotGuard ? 'X: settle possession, then press again to shoot' : settingFreeThrow ? 'X: get set for the free throw' : 'X: shoot, hold and release Space' : 'X: steal, tap Space');
-  $('passButton').setAttribute('aria-label', offense ? 'A: pass, J' : 'A: switch to player closest to ball, J or Q');
-  $('screenButton').setAttribute('aria-label', offense ? 'Y: call a screen, L' : 'Y: block, L or R');
+  $('shootButton').setAttribute('aria-label', `${touchLetter('shoot')}: ${offense ? shotGuard ? 'settle possession, then press again to shoot' : settingFreeThrow ? 'get set for the free throw' : 'shoot, hold and release Space' : 'steal, tap Space'}`);
+  $('passButton').setAttribute('aria-label', `${touchLetter('pass')}: ${offense ? 'pass, J' : 'switch to player closest to ball, J or Q'}`);
+  $('screenButton').setAttribute('aria-label', `${touchLetter('screen')}: ${offense ? 'call a screen, L' : 'block, L or R'}`);
   $('primaryKeyLabel').textContent = offense ? 'SHOOT' : 'STEAL';
   $('primaryKeyValue').textContent = offense ? 'HOLD SPACE' : 'TAP SPACE';
   $('primaryKeyHint').textContent = offense ? 'release in green' : 'R to block a shot';
@@ -296,11 +332,11 @@ function updateUI() {
   $('callTimeout').innerHTML = `Timeout (${game.timeouts[0]}) <kbd>T</kbd>`;
   let coach = '';
   if (settings.guidance!=='expert') {
-    if (game.phase==='freeThrow') coach=game.freeThrows?.team===0?game.phaseTime>0?'Get set at the line. Wait for X to show SHOOT.':'At the line: hold X / Space, then release in green.':'Get ready to rebound a missed final free throw.';
-    else if (!controlContext(game).offense) coach='A / J switches nearest. X / Space steals. Y / R blocks.';
-    else if (controlContext(game).shotGuard) coach='Ball won. Move or pass now; release X, then press again after a moment.';
+    if (game.phase==='freeThrow') coach=game.freeThrows?.team===0?game.phaseTime>0?`Get set at the line. Wait for ${touchLetter('shoot')} to show SHOOT.`:`At the line: hold ${touchLetter('shoot')} / Space, then release in green.`:'Get ready to rebound a missed final free throw.';
+    else if (!controlContext(game).offense) coach=`${touchLetter('pass')} / J switches nearest. ${touchLetter('shoot')} / Space steals. ${touchLetter('screen')} / R blocks.`;
+    else if (controlContext(game).shotGuard) coach=`Ball won. Move or pass now; release ${touchLetter('shoot')}, then press again after a moment.`;
     else if (game.shotClock<7) coach='Shot clock is low. Get a shot up before the horn.';
-    else if (settings.guidance==='simple') coach='Hold X / Space, release in green. A / J passes; Y calls a screen.';
+    else if (settings.guidance==='simple') coach=`Hold ${touchLetter('shoot')} / Space, release in green. ${touchLetter('pass')} / J passes; ${touchLetter('screen')} calls a screen.`;
     else coach=play.hint;
   }
   $('coachLine').textContent = coach || `${game.teams[0].arena} · ${matchMode==='cup'?roundName(cup?.round||0):'Pocket College Hoops'}`;
@@ -316,14 +352,26 @@ $('gameLength').addEventListener('change',()=>{settings.halfSeconds=Number($('ga
 for(const id of ['guidance','pauseGuidance']) $(id).addEventListener('change',()=>{settings.guidance=$(id).value;applySettings();persist();updateUI();});
 $('cameraSetting').addEventListener('change',()=>{settings.camera=$('cameraSetting').value;applySettings();persist();});
 $('viewToggle').addEventListener('click',()=>{settings.camera=settings.camera==='full'?'follow':'full';applySettings();persist();});
-$('controlSize').addEventListener('input',()=>{settings.controlSize=Number($('controlSize').value);applySettings();persist();});
-$('leftHanded').addEventListener('change',()=>{settings.leftHanded=$('leftHanded').checked;applySettings();persist();});
+$('controlSize').addEventListener('input',()=>{settings.controlSize=Number($('controlSize').value);applySettings();saveTouchSettings('Control size updated.');});
+$('leftHanded').addEventListener('change',()=>{settings.leftHanded=$('leftHanded').checked;applySettings();saveTouchSettings('Handedness updated.');});
+for (const slot of TOUCH_SLOTS) $(`touch${slot}`).addEventListener('change',()=>{
+  controls.clear();
+  const action = $(`touch${slot}`).value, previousSlot = touchLetter(action), previousAction = settings.touchLayout[slot];
+  settings.touchLayout = assignTouchAction(settings.touchLayout, slot, action);
+  applyTouchLayout(); updateUI();
+  saveTouchSettings(`${slot}: ${touchActions[action].name}.${previousSlot !== slot ? ` ${previousSlot}: ${touchActions[previousAction].name}.` : ''}`);
+});
+$('resetTouchMapping').addEventListener('click',()=>{
+  controls.clear(); settings.touchLayout = normalizeTouchLayout(); applyTouchLayout(); updateUI();
+  saveTouchSettings('Button mapping reset: B shoots / steals; X sprints.');
+});
 $('namesSetting').addEventListener('change',()=>{settings.showNames=$('namesSetting').checked;persist();});
 $('soundToggle').addEventListener('click',()=>toggleSound()); $('soundSetting').addEventListener('change',()=>toggleSound($('soundSetting').checked));
 document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.mode;refreshSetup();}));
 $('startGame').addEventListener('click',()=>startMatch()); $('resumeCup').addEventListener('click',()=>startMatch({resume:true}));
 $('showRoster').addEventListener('click',roster); $('showBracket').addEventListener('click',showBracket);
 for(const id of ['showHelp','gameHelp','pauseHelp']) $(id).addEventListener('click',()=>showDialog($('helpDialog')));
+for(const id of ['showTouchControls','pauseTouchControls','helpTouchControls']) $(id).addEventListener('click',showTouchControls);
 for(const id of ['showBoxScore','pauseStats','breakBoxScore']) $(id).addEventListener('click',boxScore);
 $('pauseGame').addEventListener('click',togglePause); $('resumeGame').addEventListener('click',()=>closeDialog($('pauseDialog')));
 $('quitGame').addEventListener('click',()=>{if(window.confirm('Leave this game? Completed tournament rounds stay saved.'))leaveGame();});
@@ -372,4 +420,4 @@ function frame(stamp) {
   requestAnimationFrame(frame);
 }
 
-buildPlaybook();applySettings();refreshSetup();resetPreview();if(!store.available||!browserStorage)saveWarning();requestAnimationFrame(frame);
+buildPlaybook();applySettings();applyTouchLayout();refreshSetup();resetPreview();if(!store.available||!browserStorage)saveWarning();requestAnimationFrame(frame);
