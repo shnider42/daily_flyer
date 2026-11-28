@@ -16,7 +16,7 @@ The current catalog contains **47 original instrumental pieces** plus three supp
 
 ## Exceptional boss encounters · 0.37.0
 
-**Farwake V33B — Triplets & Clean Ending** uses the Hard-Panned Guitars and Main Theme Replies mix. The first half features short synth answers from the contributed menu recording, including its rising C–G–C phrase. The closing guitar sweeps trade measures between ears. The 141.176-second stereo master, `Farwake_V33B_Triplets_Clean_Ending_Wider_Guitars.wav` (SHA-256 `fb91e7b6cb81844c2b8c7fdea2feadb47a2098d40ce08943796f2f23b30316cc`), supplies the AAC stream at `dist/music/farwake-v33b-triplets-clean-ending.m4a`.
+**Farwake V33B — Triplets & Clean Ending** plays revision 2, **Synth Lift & Arpeggio Handoff**. This mix uses the 95/5 guitar separation, lifts the existing background synth, and sends the last two pairs of arpeggios left then right by measure. The 141.176-second stereo master (SHA-256 `8a67b6249033d2c46c71de84744be8634e0f454295d89f32674c8f1f484daf9d`) supplies the AAC stream at `dist/music/farwake-v33b-triplets-clean-ending.m4a`.
 
 Keep this treatment rare. The qualifying encounters are Tinbell's Bellwether, the Floodworks Foreman, and the three optional heavy ship encounters in [system identities and bosses](system-identity-and-bosses.md). Ordinary wildlife, elite infantry, Relay Nine's ambush and Crosswind's continuing fleet battle keep their established scoring. Every boss has an explicit authored encounter identity and local participation rules; enemy health, species, darkness and a location name are insufficient.
 
