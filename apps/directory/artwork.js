@@ -5,6 +5,7 @@ export const ART_PALETTES = Object.freeze({
   'ball-knowledge':{background:'#f7f5ee',foreground:'#17191a',accent:'#db412d'},
   dsl:{background:'#5c6746',foreground:'#f0edd8',accent:'#e58b53'},
   gridiron:{background:'#202631',foreground:'#fff0c8',accent:'#efac32'},
+  basketball:{background:'#111b24',foreground:'#fff0d4',accent:'#ffac58'},
   infierno:{background:'#e8dfc8',foreground:'#26251f',accent:'#ba342e'},
   'further-in':{background:'#c3b351',foreground:'#282919',accent:'#e5d577'},
   breach:{background:'#e45f32',foreground:'#f9ebcc',accent:'#242629'},
@@ -97,6 +98,17 @@ const covers={
       <path d="M0 319 347 276 640 305V420H0Z" fill="#304835"/>${line('M0 358 347 312 640 342M0 397 347 350 640 380','#b9c89b',2)}${line('M81 420 153 299M224 420 254 287M369 420 355 281M514 420 455 288','#b9c89b',2,'stroke-dasharray="7 11"')}
       <g transform="translate(510 330) rotate(-24)"><path d="M-82 0Q0-69 82 0 0 69-82 0Z" fill="#c7753f" stroke="#fff0c8" stroke-width="4"/>${line('M-43 0H43M-27-12V12M-9-12V12M9-12V12M27-12V12','#fff0c8',4)}</g>
       ${note('NFL + COLLEGE CLASSICS',28,394,'#e4e7c4',{size:12,spacing:1})}${paper(u,.19)}`,
+  }),
+  basketball:u=>({
+    body:`${rect(0,0,640,420,'#111b24')}${rect(20,20,600,380,'none','stroke="#61717a" stroke-width="1"')}${dotfield(u,409,34,198,230,.11)}
+      ${note('POCKET',33,60,'#ffac58',{size:24,spacing:5})}${note('CAMPUS EDITION',605,57,'#bec9c9',{size:11,spacing:1.6,anchor:'end'})}
+      ${type('COLLEGE',28,153,91,'#fff0d4',{width:376})}${type('HOOPS',27,247,118,'#ffac58',{width:373})}
+      <g transform="translate(514 178) rotate(-17)"><circle r="71" fill="#dd7433" stroke="#fff0d4" stroke-width="4"/><path d="M-71 0H71M0-71V71M-51-50Q20 0-51 50M51-50Q-20 0 51 50" fill="none" stroke="#3a241b" stroke-width="4"/><circle cx="-24" cy="-29" r="8" fill="#ffc779" opacity=".65"/></g>
+      ${rect(28,276,584,103,'#d5a56b')}${rect(28,276,100,103,'#233d55')}${rect(512,276,100,103,'#233d55')}
+      ${line('M28 289H612M28 366H612M320 276V379M28 305H83V350H28M612 305H557V350H612','#fff1d4',2)}<circle cx="320" cy="328" r="27" fill="none" stroke="#fff1d4" stroke-width="2"/>
+      <path d="M52 276A59 59 0 0 1 52 379M588 276A59 59 0 0 0 588 379" fill="none" stroke="#fff1d4" stroke-width="2"/>
+      <g fill="#ffac58" stroke="#111b24" stroke-width="3"><circle cx="239" cy="318" r="8"/><circle cx="399" cy="344" r="8"/></g><g fill="#fff0d4" stroke="#111b24" stroke-width="3"><circle cx="262" cy="336" r="8"/><circle cx="373" cy="307" r="8"/></g>
+      ${note('5 ON 5 · CALL THE PLAY · CHASE THE CUP',320,399,'#fff0d4',{size:12,spacing:1.3,anchor:'middle'})}${paper(u,.12)}`,
   }),
   infierno:u=>({
     body:`${rect(0,0,640,420,'#e8dfc8')}${rect(0,0,19,420,'#b9372f')}${rect(33,26,574,368,'none','stroke="#282720" stroke-width="1.5"')}${dotfield(u,346,29,260,362,.1)}

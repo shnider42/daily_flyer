@@ -44,7 +44,7 @@ test('recent updates surface older projects without changing their creation orde
   assert.deepEqual(selectProjects(sample,{sort:'newest'}).map(p=>p.id),['new-release','earlier-update','older-updated','unrecorded']);
 });
 test('game subtype filter distinguishes sports from the other games',()=>{
-  assert.deepEqual(selectProjects(catalog,{type:'games',kind:'Sports',sort:'name'}).map(p=>p.id),['corner-pocket','pocket-baseball','gridiron','hockey','soccer','volleyball','shenanigans-golf','sunday-broadcast']);
+  assert.deepEqual(selectProjects(catalog,{type:'games',kind:'Sports',sort:'name'}).map(p=>p.id),['corner-pocket','pocket-baseball','pocket-basketball','gridiron','hockey','soccer','volleyball','shenanigans-golf','sunday-broadcast']);
 });
 
 

@@ -1777,5 +1777,44 @@
       "note": "Quick tap answers on a phone; keyboard shortcuts on desktop. Category practice includes an untimed option."
     },
     "featureWeight": 2
+  },
+  {
+    "id": "pocket-basketball",
+    "featureEligible": false,
+    "title": "Pocket College Hoops",
+    "subtitle": "Call the play. Chase the campus crown.",
+    "description": "Play top-down 5-on-5 college basketball with 16 programs, original fictional arcade rosters, offensive and defensive playbooks, practice, and an eight-team Campus Cup. Solo against the CPU with keyboard or touch controls.",
+    "type": "games",
+    "subtype": "Sports",
+    "tags": [
+      "Basketball",
+      "College",
+      "Top-down",
+      "Solo",
+      "Arcade",
+      "Playbooks",
+      "Tournament",
+      "Touch",
+      "Keyboard"
+    ],
+    "art": "basketball",
+    "url": "https://dfe-pocket-basketball.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/pocket-basketball/games/pocket-basketball",
+    "createdAt": "2026-11-27",
+    "datePrecision": "day",
+    "dateSource": "First Pocket College Hoops build in its DFE project thread; America/New_York calendar date.",
+    "aliases": [
+      "Pocket Basketball",
+      "College Basketball",
+      "PCH",
+      "Campus Cup",
+      "Pocket Sports Basketball"
+    ],
+    "device": {
+      "best": "both",
+      "note": "Use the left stick and action buttons on a phone, or keyboard movement and shooting on desktop. The court adapts to portrait and landscape."
+    },
+    "featureWeight": 0
   }
 ]
