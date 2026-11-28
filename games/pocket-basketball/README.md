@@ -23,7 +23,7 @@ Do not publish the repository root: it contains other DFE projects. The new game
 - **All 128 players are fictional.** Ratings, strengths, and tactics are original arcade balancing, not official statistics or current team assessments. See `ROSTER_SOURCES.md` for identity references and provenance.
 - Quick matchup, unlimited 5v5 practice, and an eight-team Campus Cup. Cup opponents advance through simulated results; the user's games are playable. Completed rounds and settings save in browser storage. An interrupted game restarts from its beginning.
 - Pick-and-roll, motion, drive-and-kick, and post-up offense; man, 2–3 zone, and full-court press defense. Calls alter teammate positions and decisions.
-- Directional/contextual passing, leading bounce passes, eligible alley-oop passes, direct receiver buttons, click/tap passing, defender switching, playbook screens, sprint stamina, steals, blocks, layups, dunks, jumpers, and physical rebounds.
+- Directional/contextual passing, leading bounce passes, eligible alley-oop passes, direct receiver buttons on desktop, click/tap passing, defender switching, playbook screens, sprint stamina, steals, blocks, layups, dunks, jumpers, and physical rebounds.
 - Shots use a held/released meter. Timing, player ratings, distance, pressure, and fatigue affect outcomes. Passes follow fixed destinations; receivers adjust on foot.
 - Two halves, 30-second shot clock, 20-second offensive rim-rebound reset, backcourt violations, 2/3-point scoring, shooting fouls, playable free throws, one-and-one/double bonus, five-foul disqualification, and repeated overtime. A legal shot released before the horn resolves before the period ends.
 - Four lengths: 90 seconds, 3 minutes (default), 6 minutes, or 20 minutes per half. Overtime is one minute in arcade lengths and five minutes at regulation length.
@@ -53,7 +53,7 @@ Steer toward a runner and press **Y / L** for a through pass. The ordinary resul
 | Move | WASD or arrows | Left stick |
 | Switch alias | Q or Tab | SWITCH (A by default) |
 | Legacy steal alias | E | STEAL (B by default) |
-| Direct pass | Click teammate | Tap teammate or receiver button |
+| Direct pass | Click teammate or desktop receiver button | Tap teammate |
 | Direct defender selection | Click defender | Tap defender |
 | Play call | 1–4 | Plays panel |
 | Contain | Hold C or Control | Position your defender manually |
@@ -73,6 +73,16 @@ After a made basket, the scoring scene holds for **1.0 simulation second**, then
 Players run faster without the ball than while dribbling. Wider corners and weak-side outlets, one motion cutter at a time, and a big who clears the driving lane keep the offense spread out. Only the closest recovery players chase loose rebounds; the others preserve passing outlets. Physical separation, slimmer player silhouettes, and separated position badges make close matchups easier to read.
 
 CPU defenders react to cuts and passing with a short delay and individual preferences for defensive spacing and shading. Defensive ratings, difficulty, and fatigue affect those adjustments. Man, zone, and press retain their distinct assignments, with tracking reset for new possessions, restarts, substitutions, and defensive calls. Their variation is seeded for the match and does not add a fresh random direction on every frame.
+
+## Mobile court layout
+
+On phones and short landscape viewports, a compact **48px scoreboard** keeps both scores, period, game clock, shot clock, team fouls/bonus, **Plays**, and **Pause** at the top. The court fills the space below it. The movement stick and face-button diamond overlay the lower corners, with no separate bottom control tray or reserved side panels. The mobile full-court camera uses less spectator border to show a larger playing surface. Left-handed mode swaps the thumb zones while retaining the Y/X/B/A diamond.
+
+The current phase remains visible in a small status overlay; foul and scoring messages, the shot meter, and release feedback remain available on the court. Repeated coaching lines, the selected-play caption, player-name panel, MOVE/keyboard captions, receiver shortcut row, and court utility buttons are hidden on mobile. **A / PASS** still passes in the aimed direction, and tapping a teammate passes directly to that player. With a custom layout, the assigned PASS button retains that behavior. Uncovered court areas remain available for player taps between the overlaid controls.
+
+Use **Plays** for offense/defense calls, timeouts, box scores, the last-basket replay, and help. Use **Pause > View** to change between full court and follow camera, and **Pause > Full screen** for the fullscreen control. Pace, touch customization, sound, player labels, substitutions, and other pause actions remain accessible there. Opening these mobile panels pauses the game.
+
+Desktop keeps its separate playbook, receiver shortcuts, coaching information, player details, and court camera/fullscreen buttons.
 
 ## Game pace
 
@@ -111,6 +121,18 @@ node --test games/pocket-basketball/tests/*.test.mjs
 
 The test suite covers scoring, shot timing/contest/range, pass flight and receiver control, rebounds, possession/shot-clock changes, backcourt violations, fouls and free throws, substitutions, halftime/overtime, completed CPU games, snapshot isolation, independent touch ownership, canceled shots, possession-sensitive actions, turnover shot guards, faster off-ball movement, offensive spacing, body separation, mute/hidden-page audio, and Cup advancement/save corruption. Touch-mapping checks cover all 24 assignments, legacy screen-to-through migration, safe recovery from malformed settings, swaps, and held inputs across menu changes.
 
-Browser review covered the desktop game, controls and shot release, pause/settings, and responsive 390×844 portrait / 844×390 landscape layouts, including mobile playbook selection. Mobile viewport checks used a browser fixture; physical iPhone touch feel and speaker behavior still need hands-on review. QA fixtures are not part of the published application.
+The compact mobile layout was checked in a browser fixture at five viewport sizes. Geometry checks passed at each size, including the score and clocks, phase/status, Plays and Pause access, control bounds, and fixed Y/X/B/A ordering. Measured canvas dimensions and HUD heights were:
 
-Touch customization was checked at 390×844 and 812×354: saved assignments survived reload, hints and help matched the chosen letters, resetting retained size and handedness, nested dialogs kept play paused, and the default B button successfully charged and released a shot.
+| Viewport | Previous v6 canvas | Previous HUD | Compact canvas | Compact HUD |
+| --- | --- | --- | --- | --- |
+| 390 × 844 | 390 × 477 | 63px | 390 × 796 | 48px |
+| 428 × 926 | — | — | 428 × 878 | 48px |
+| 812 × 354 | 449 × 253 | 51px | 812 × 306 | 48px |
+| 926 × 428 | — | — | 926 × 380 | 48px |
+| 320 × 568 | — | — | 320 × 520 | 48px |
+
+The 390 × 844 v6 baseline used controls size 1.25. A dash indicates that a baseline measurement was not recorded. These are canvas dimensions, not a claim that every pixel is unobstructed playing space: the mobile thumb controls overlay the court.
+
+The review checked minimum and maximum control sizes, with face buttons approximately **49.6–78px**, **45% opacity**, and left-handed mode moving the two groups without rearranging the diamond. Interaction checks covered movement, a **975 ms B-button hold at 80% pace** producing **GREAT RELEASE · OPEN**, opening Plays and returning after a call, nested Pause → Touch controls dialogs, switching to Follow camera, and a hit reaching the canvas through an uncovered part of the controls overlay. Desktop review confirmed the six-column scoreboard, including Plays and Pause, remained correctly arranged.
+
+Earlier touch-customization checks at 390 × 844 and 812 × 354 verified saved assignments after reload, matching hints/help, resetting while retaining size and handedness, and nested dialogs keeping play paused. The current viewport checks used a browser fixture; native iPhone Safari, physical touch feel, and device speaker behavior were not tested. QA fixtures are not part of the published application.

@@ -1,6 +1,6 @@
 import {TEAMS, getTeam, OFFENSE, DEFENSE} from './teams.js';
 import {Match} from './engine.js?v=6';
-import {CourtView} from './view.js?v=5';
+import {CourtView} from './view.js?v=7';
 import {Controls} from './input.js?v=6';
 import {DEFAULT_GAME_PACE, normalizeGamePace} from './pace.js?v=6';
 import {controlContext} from './control-context.js?v=5';
@@ -57,7 +57,8 @@ function theme(team, away) {
   document.documentElement.style.setProperty('--home', team.primary);
   document.documentElement.style.setProperty('--away', away.primary);
 }
-function mobileBook() { return matchMedia('(max-width:760px), (max-width:1000px) and (max-height:560px)').matches; }
+const mobileLayout = matchMedia('(max-width:760px), (max-width:1000px) and (max-height:560px)');
+function mobileBook() { return mobileLayout.matches; }
 function anyDialog() { return !!document.querySelector('dialog[open]'); }
 function isActive() { return !!game && !paused && !replay && !document.hidden && game.phase !== 'finished' && game.phase !== 'halftime'; }
 function syncPause() {
@@ -327,9 +328,11 @@ function updateUI() {
   $('clock').textContent = game.practice ? '∞' : clockText(game.clock);
   $('shotClock').textContent = game.phase==='freeThrow' ? '—' : Math.max(0,Math.ceil(game.shotClock));
   $('shotClock').parentElement.classList.toggle('urgent',game.shotClock<6);
-  const bonus = n => n>=10?' · 2 SHOTS':n>=7?' · 1+1':'';
-  $('homeFouls').textContent = `${game.teamFouls[0]} FOULS${bonus(game.teamFouls[0])}`;
-  $('awayFouls').textContent = `${game.teamFouls[1]} FOULS${bonus(game.teamFouls[1])}`;
+  for (const [team, id] of ['homeFouls','awayFouls'].entries()) {
+    const fouls = game.teamFouls[team], el = $(id);
+    el.querySelector('.fouls-full').textContent = `${fouls} FOULS${fouls>=10?' · 2 SHOTS':fouls>=7?' · 1+1':''}`;
+    el.querySelector('.fouls-compact').textContent = `F${fouls}${fouls>=10?' · 2FT':fouls>=7?' · 1+1':''}`;
+  }
   const dir = game.attackDir(0), world = view.screenDirection({x:1,y:0});
   const toward = Math.abs(world.y)>.5 ? (dir*world.y>0?'RIGHT':'LEFT') : (dir<0?'UP':'DOWN');
   $('possession').textContent = game.inOffense() ? `ATTACK ${toward}` : 'ON DEFENSE';
@@ -411,7 +414,11 @@ $('callTimeout').addEventListener('click',callTimeout); $('showReplay').addEvent
 $('makeSub').addEventListener('click',()=>{const ok=game.action('substitute',{outId:Number($('subOut').value),inId:Number($('subIn').value)});renderSubs();$('subStatus').textContent=ok?'Substitution requested. It takes effect at the next dead ball.':'That substitution is unavailable.';});
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeDialog(b.closest('dialog'))));
 document.querySelectorAll('dialog').forEach(d=>d.addEventListener('close',()=>{const index=dialogStack.indexOf(d);if(index>=0)dialogStack.splice(index,1);syncPause();}));
-$('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('game').requestFullscreen();}catch{announce('Full screen is unavailable in this browser.',2);}});
+for (const id of ['fullscreen','pauseFullscreen']) $(id).addEventListener('click',async()=>{
+  if (id === 'pauseFullscreen') closeDialog($('pauseDialog'));
+  try { if(document.fullscreenElement)await document.exitFullscreen();else await $('game').requestFullscreen(); }
+  catch { announce('Full screen is unavailable in this browser.',2); }
+});
 let pointerStart = null;
 $('court').addEventListener('pointerdown',e=>{pointerStart={x:e.clientX,y:e.clientY,id:e.pointerId};});
 $('court').addEventListener('pointerup',e=>{if(!pointerStart||pointerStart.id!==e.pointerId||Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>12||!isActive())return;pointerStart=null;const id=view.hitPlayer(e.clientX,e.clientY,game);const p=game.player(id);if(!p||p.team!==0)return;const {offense}=controlContext(game);controls.cancelShot();game.action(offense?'pass':'switch',offense?{targetId:id}:{id});controls.syncContext();consumeEvents();updateUI();});
@@ -426,10 +433,10 @@ function frame(stamp) {
     if (game) {
       if (replay) {
         replay.time+=dt*.5*settings.gamePace; const index=Math.floor(replay.time/.1);
-        if(index>=replay.frames.length)stopReplay();else view.render(replay.frames[index],{dt,time:stamp/1000,guidance:'expert',camera:settings.camera,showNames:settings.showNames});
+        if(index>=replay.frames.length)stopReplay();else view.render(replay.frames[index],{dt,time:stamp/1000,guidance:'expert',camera:settings.camera,showNames:settings.showNames,compactViewport:mobileBook()});
       } else {
         fixed.advance(dt*settings.gamePace);
-        view.render(game,{dt,time:stamp/1000,charge:controls.charge,charging:controls.charging&&game.inOffense(),guidance:settings.guidance,camera:settings.camera,showNames:settings.showNames});
+        view.render(game,{dt,time:stamp/1000,charge:controls.charge,charging:controls.charging&&game.inOffense(),guidance:settings.guidance,camera:settings.camera,showNames:settings.showNames,compactViewport:mobileBook()});
         if(!paused)audio.update(dt*settings.gamePace,game);
       }
       uiAccumulator+=dt;if(uiAccumulator>.1){uiAccumulator=0;updateUI();}

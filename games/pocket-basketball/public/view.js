@@ -29,6 +29,7 @@ export class CourtView {
   constructor(canvas) {
     this.canvas = canvas; this.ctx = canvas.getContext('2d', { alpha: false });
     this.width = 0; this.height = 0; this.dpr = 1; this.scale = 1; this.rotated = false;
+    this.origin = { x: 0, y: 0 };
     this.center = { x: 250, y: 470 }; this.ready = false;
     this.arena = null; this.arenaKey = ''; this.flash = null; this.lastEventId = null;
     this.lastScore = null; this.screenPlayers = []; this.labels = []; this.labelSlots = new Map();
@@ -50,8 +51,8 @@ export class CourtView {
 
   _point(x, y) {
     const dx = (x - this.center.x) * this.scale, dy = (y - this.center.y) * this.scale;
-    return this.rotated ? { x: this.width / 2 - dy, y: this.height / 2 + dx }
-      : { x: this.width / 2 + dx, y: this.height / 2 + dy };
+    return this.rotated ? { x: this.origin.x - dy, y: this.origin.y + dx }
+      : { x: this.origin.x + dx, y: this.origin.y + dy };
   }
 
   // Input uses screen coordinates: right +x, down +y. Clockwise view is inverted.
@@ -62,8 +63,8 @@ export class CourtView {
   worldPoint(clientX, clientY) {
     if (!this.ready) return null;
     const rect = this.canvas.getBoundingClientRect();
-    const x = (clientX - rect.left - this.width / 2) / this.scale;
-    const y = (clientY - rect.top - this.height / 2) / this.scale;
+    const x = (clientX - rect.left - this.origin.x) / this.scale;
+    const y = (clientY - rect.top - this.origin.y) / this.scale;
     return this.rotated ? { x: this.center.x + y, y: this.center.y - x }
       : { x: this.center.x + x, y: this.center.y + y };
   }
@@ -86,7 +87,7 @@ export class CourtView {
   }
 
   _worldTransform(ctx) {
-    ctx.translate(this.width / 2, this.height / 2);
+    ctx.translate(this.origin.x, this.origin.y);
     if (this.rotated) ctx.rotate(Math.PI / 2);
     ctx.scale(this.scale, this.scale); ctx.translate(-this.center.x, -this.center.y);
   }
@@ -355,21 +356,32 @@ export class CourtView {
     ctx.restore(); circle(ctx, x - radius * .27, y - radius * .35, radius * .16, '#ffe09b90');
   }
 
-  render(game, { dt = 1 / 60, time = 0, charge = 0, charging = false, guidance = 'simple', camera = 'full', showNames = true, preview = false } = {}) {
+  render(game, { dt = 1 / 60, time = 0, charge = 0, charging = false, guidance = 'simple', camera = 'full', showNames = true, preview = false, compactViewport = false } = {}) {
     if (!game || !this.ctx || !this._resize()) return;
     const ctx = this.ctx, players = activePlayers(game);
     const options = { charge, charging, guidance, camera, showNames, preview };
     this._makeArena(game.teams?.[0]);
-    const fit = Math.min(this.width / (this.rotated ? H + MARGIN * 2 : W + MARGIN * 2),
-      this.height / (this.rotated ? W + MARGIN * 2 : H + MARGIN * 2));
+    // Mobile overlays do not need the full spectator border. Fit the playing
+    // surface itself, keeping a little sideline space and extra screen-top
+    // clearance because player silhouettes stay upright in either rotation.
+    // All draw and input transforms share this slightly lowered screen origin.
+    const compact = !!compactViewport && !preview;
+    const side = compact ? Math.min(8, this.width * .05) : 0;
+    const top = compact ? Math.min(32, this.height * .12) : 0;
+    const bottom = compact ? Math.min(8, this.height * .05) : 0;
+    const viewportWidth = this.width - side * 2, viewportHeight = this.height - top - bottom;
+    this.origin.x = this.width / 2; this.origin.y = top + viewportHeight / 2;
+    const margin = compact ? 0 : MARGIN;
+    const fit = Math.min(viewportWidth / (this.rotated ? H + margin * 2 : W + margin * 2),
+      viewportHeight / (this.rotated ? W + margin * 2 : H + margin * 2));
     this.scale = fit * (camera === 'follow' ? 1.35 : 1);
     if (camera === 'follow') {
       const controlled = players.find(p => p.id === game.controlled), ball = game.ball || { x: 250, y: 470 };
       const focus = controlled ? { x: ball.x * .65 + controlled.x * .35, y: ball.y * .65 + controlled.y * .35 } : ball;
-      const halfWidth = (this.rotated ? this.height : this.width) / this.scale / 2;
-      const halfHeight = (this.rotated ? this.width : this.height) / this.scale / 2;
-      const x = halfWidth >= 310 ? 250 : clamp(focus.x, -60 + halfWidth, 560 - halfWidth);
-      const y = halfHeight >= 530 ? 470 : clamp(focus.y, -60 + halfHeight, 1000 - halfHeight);
+      const halfWidth = (this.rotated ? viewportHeight : viewportWidth) / this.scale / 2;
+      const halfHeight = (this.rotated ? viewportWidth : viewportHeight) / this.scale / 2;
+      const x = halfWidth >= W / 2 + margin ? W / 2 : clamp(focus.x, -margin + halfWidth, W + margin - halfWidth);
+      const y = halfHeight >= H / 2 + margin ? H / 2 : clamp(focus.y, -margin + halfHeight, H + margin - halfHeight);
       const ease = 1 - Math.exp(-Math.min(.1, dt) * 8);
       this.center.x += (x - this.center.x) * ease; this.center.y += (y - this.center.y) * ease;
     } else { this.center.x = 250; this.center.y = 470; }

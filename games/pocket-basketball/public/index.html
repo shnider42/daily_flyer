@@ -7,7 +7,7 @@
   <meta name="description" content="Pocket College Hoops: top-down 5-on-5 college basketball from DailyFlyer. Call a play, work the ball, and chase a campus championship. Keyboard and touch.">
   <title>Pocket College Hoops · DailyFlyer</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <header class="masthead">
@@ -56,13 +56,14 @@
     <section id="game" class="game" hidden aria-label="Basketball game">
       <div class="game-console">
         <div class="scoreboard">
-          <div class="score-team home"><span id="homeAbbr">CONN</span><strong id="homeScore">0</strong><small id="homeFouls">0 FOULS</small></div>
+          <div class="score-team home"><span id="homeAbbr">CONN</span><strong id="homeScore">0</strong><small id="homeFouls"><span class="fouls-full">0 FOULS</span><span class="fouls-compact" aria-hidden="true">F0</span></small></div>
           <div class="game-clock"><span id="period">1ST HALF</span><strong id="clock">3:00</strong><small id="possession">YOUR BALL</small></div>
-          <div class="score-team away"><span id="awayAbbr">DUKE</span><strong id="awayScore">0</strong><small id="awayFouls">0 FOULS</small></div>
+          <div class="score-team away"><span id="awayAbbr">DUKE</span><strong id="awayScore">0</strong><small id="awayFouls"><span class="fouls-full">0 FOULS</span><span class="fouls-compact" aria-hidden="true">F0</span></small></div>
           <div class="shot-clock"><span>SHOT</span><strong id="shotClock">30</strong></div>
-          <button id="pauseGame" class="pause-button" aria-label="Pause game">Ⅱ</button>
+          <button id="openPlays" class="text-button">Plays</button>
+          <button id="pauseGame" class="pause-button" aria-label="Pause game"><span class="pause-icon" aria-hidden="true"></span></button>
         </div>
-        <div class="possession-bar"><b id="situation">OPENING POSSESSION</b><span id="playName">HIGH PICK & ROLL</span><button id="openPlays" class="text-button">Plays</button></div>
+        <div class="possession-bar"><b id="situation">OPENING POSSESSION</b><span id="playName">HIGH PICK & ROLL</span></div>
         <div class="court-wrap">
           <canvas id="court" tabindex="0" aria-label="Basketball court. WASD or arrows to move. J passes on offense and switches to the closest player on defense. Space shoots on offense and steals on defense. L sends a leading bounce pass or alley-oop on offense and blocks on defense. R blocks."></canvas>
           <div id="courtMessage" class="court-message" aria-live="polite"></div>
@@ -106,7 +107,7 @@
     <button id="pauseTouchControls" class="secondary">Touch controls</button>
     <div class="settings-grid pause-settings"><label>Guidance<select id="pauseGuidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label><label>View<select id="cameraSetting"><option value="full">Full court</option><option value="follow">Follow the play</option></select></label><label class="wide pace-setting">Game pace <output id="pauseGamePaceValue" for="pauseGamePace">80%</output><input id="pauseGamePace" type="range" min="60" max="100" step="5" value="80" aria-label="Game pace"><small>Change the pace for this game and future games. 100% is the original speed.</small></label><label class="check-label"><input id="soundSetting" type="checkbox"> Game sound</label><label class="check-label"><input id="namesSetting" type="checkbox" checked> Player labels</label></div>
     <details><summary>Make a substitution</summary><p class="small-note">A queued substitution happens at the next dead ball.</p><label>Rest<select id="subOut"></select></label><label>Bring in<select id="subIn"></select></label><button id="makeSub" class="secondary">Queue substitution</button><p id="subStatus" role="status"></p></details>
-    <div class="dialog-actions"><button id="pauseStats" class="secondary">Box score</button><button id="pauseHelp" class="secondary">Controls & rules</button><button id="quitGame" class="secondary">Leave game</button></div>
+    <div class="dialog-actions"><button id="pauseStats" class="secondary">Box score</button><button id="pauseHelp" class="secondary">Controls & rules</button><button id="pauseFullscreen" class="secondary">Full screen</button><button id="quitGame" class="secondary">Leave game</button></div>
   </dialog>
 
   <dialog id="touchControlsDialog" aria-labelledby="touchControlsTitle">
@@ -159,6 +160,6 @@
   <dialog id="bracketDialog"><button class="close-dialog" data-close aria-label="Close bracket">×</button><p class="eyebrow">EIGHT PROGRAMS. ONE CHAMPION.</p><h2>Campus Cup</h2><div id="bracketContent"></div></dialog>
   <dialog id="breakDialog"><p id="breakEyebrow" class="eyebrow">THE HALFTIME HUDDLE</p><h2 id="breakTitle">A new half. A fresh start.</h2><div id="breakScore" class="break-score"></div><p id="breakSummary"></p><div id="breakStats"></div><button id="continueGame" class="primary">Start the second half</button><button id="breakBoxScore" class="secondary">Full box score</button><button id="backToLobby" class="secondary" hidden>Back to matchups</button></dialog>
   <noscript>This game needs JavaScript enabled to run the basketball simulation.</noscript>
-  <script type="module" src="app.js?v=6"></script>
+  <script type="module" src="app.js?v=7"></script>
 </body>
 </html>
