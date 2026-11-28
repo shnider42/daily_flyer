@@ -23,6 +23,7 @@ Do not publish the repository root: it contains other DFE projects. The new game
 - **All 128 players are fictional.** Ratings, strengths, and tactics are original arcade balancing, not official statistics or current team assessments. See `ROSTER_SOURCES.md` for identity references and provenance.
 - Quick matchup, unlimited 5v5 practice, and an eight-team Campus Cup. Cup opponents advance through simulated results; the user's games are playable. Completed rounds and settings save in browser storage. An interrupted game restarts from its beginning.
 - Pick-and-roll, motion, drive-and-kick, and post-up offense; man, 2–3 zone, and full-court press defense. Calls alter teammate positions and decisions.
+- Separate off-ball awareness and defensive anticipation ratings let patient readers and quick athletes have different strengths. Every roster includes varied readers among starters and reserves.
 - Directional/contextual passing, leading bounce passes, eligible alley-oop passes, direct receiver buttons on desktop, click/tap passing, defender switching, playbook screens, sprint stamina, steals, blocks, layups, dunks, jumpers, and physical rebounds.
 - Shots use a held/released meter. Timing, player ratings, distance, pressure, and fatigue affect outcomes. Passes follow fixed destinations; receivers adjust on foot.
 - Two halves, 30-second shot clock, 20-second offensive rim-rebound reset, backcourt violations, 2/3-point scoring, shooting fouls, playable free throws, one-and-one/double bonus, five-foul disqualification, and repeated overtime. A legal shot released before the horn resolves before the period ends.
@@ -73,6 +74,26 @@ After a made basket, the scoring scene holds for **1.0 simulation second**, then
 Players run faster without the ball than while dribbling. Wider corners and weak-side outlets, one motion cutter at a time, and a big who clears the driving lane keep the offense spread out. Only the closest recovery players chase loose rebounds; the others preserve passing outlets. Physical separation, slimmer player silhouettes, and separated position badges make close matchups easier to read.
 
 CPU defenders react to cuts and passing with a short delay and individual preferences for defensive spacing and shading. Defensive ratings, difficulty, and fatigue affect those adjustments. Man, zone, and press retain their distinct assignments, with tracking reset for new possessions, restarts, substitutions, and defensive calls. Their variation is seeded for the match and does not add a fresh random direction on every frame.
+
+## Spacing, reads, and player identity
+
+The movement system adapts coaching principles into a compact arcade game. Players can preserve spacing, set up a cut, clear the lane after a run, fill a vacated position, or relocate into a passing window. Defenders distinguish pressure on the ball from passing-lane coverage and weak-side help, then recover when the situation changes. Teams still have different offensive and defensive calls; the goal is useful spacing and timing, rather than every college team playing the same spread offense.
+
+**Meet your team** and **Pause > Make a substitution** show three distinct movement and reading ratings:
+
+| Displayed rating | Internal key | Role |
+| --- | --- | --- |
+| Speed | `speed` | Physical running pace |
+| Off-ball IQ | `awareness` | Recognizing offensive openings, timing movement, and choosing a passing angle |
+| Def. reads | `anticipation` | Recognizing threats, helping, and recovering on defense |
+
+The two mental ratings vary independently of speed and of each other. They do not raise a player's physical top speed. For example, UCLA's fictional reserve guard **Seth Lin** has **74 Speed / 91 Off-ball IQ**; Indiana's fictional wing **Mateo Vega** has **62 Speed / 94 Off-ball IQ**. A lineup can trade athleticism for better reads, including by bringing a smart reserve into the game. The roster dialog preserves the shooting, inside, defense, and rebounding ratings, while the substitution controls show the selected players' movement/read values without adding court overlays.
+
+Primary coaching references informing this arcade adaptation:
+
+- [Mike Brey, Notre Dame motion offense clinic, NABC (2019)](https://nabc.com/nabc_releases/2019/brey/): offensive spacing, cutting, interior touches, and setting up a defender with a change of pace.
+- [Fran Fraschilla, *Hoops 101: Man-to-Man Defense* (2003)](https://a.espncdn.com/ncb/2003/0204/1503923.html): different college defensive systems, ball-side/weak-side positioning, help, and recovery.
+- [Nancy Lieberman, *Getting Open and Being a Threat Without the Ball*](https://us.humankinetics.com/blogs/excerpt/getting-open-and-being-a-threat-without-the-ball): reading a defender, using angles and deception, and giving a screen or cut time to develop.
 
 ## Mobile court layout
 
@@ -137,7 +158,7 @@ Run from the repository root:
 node --test games/pocket-basketball/tests/*.test.mjs
 ```
 
-The required suite passed **113/113 tests**. It covers scoring, shot timing/contest/range, pass flight and receiver control, rebounds, possession/shot-clock changes, backcourt violations, fouls and free throws, substitutions, halftime/overtime, completed CPU games, snapshot isolation, independent touch ownership, canceled shots, possession-sensitive actions, turnover shot guards, faster off-ball movement, offensive spacing, body separation, audio scenes/mixing/reactions and mute/hidden-page behavior, and Cup advancement/save corruption. Touch-mapping checks cover all 24 assignments, legacy screen-to-through migration, safe recovery from malformed settings, swaps, and held inputs across menu changes.
+The required suite passed **124/124 tests**. Flow checks cover an early awareness advantage without speed bonuses, eventual re-evaluation by lower readers, pass/cut/fill/clear timing, committed screens, help and recovery, center clearance on a drive, legal CPU pass choices, and deterministic snapshot-safe routes. It covers scoring, shot timing/contest/range, pass flight and receiver control, rebounds, possession/shot-clock changes, backcourt violations, fouls and free throws, substitutions, halftime/overtime, completed CPU games, snapshot isolation, independent touch ownership, canceled shots, possession-sensitive actions, turnover shot guards, faster off-ball movement, offensive spacing, body separation, audio scenes/mixing/reactions and mute/hidden-page behavior, and Cup advancement/save corruption. Touch-mapping checks cover all 24 assignments, legacy screen-to-through migration, safe recovery from malformed settings, swaps, and held inputs across menu changes.
 
 The compact mobile layout was checked in a browser fixture at five viewport sizes. Geometry checks passed at each size, including the score and clocks, phase/status, Plays and Pause access, control bounds, and fixed Y/X/B/A ordering. Measured canvas dimensions and HUD heights were:
 

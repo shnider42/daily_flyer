@@ -8,13 +8,13 @@ export const ROSTER_NOTE = "Real college programs. Original fictional players an
 
 export const OFFENSE = [
   { id: "pickroll", name: "High pick & roll", tag: "TWO-MAN GAME", description: "Your center sets a high screen, then rolls toward the rim. Wings keep the corners open.", hint: "Turn the corner. Pass to the roller when the help defender steps up." },
-  { id: "motion", name: "Motion offense", tag: "CUT & REPLACE", description: "Wings exchange sides, the weak-side player cuts, and the big relocates to open a passing lane.", hint: "Move the ball and watch for a cutter behind the defense." },
-  { id: "spacing", name: "Drive & kick", tag: "FOUR OUT", description: "Four players spread the floor while the center stays near the rim for a finish or rebound.", hint: "Drive into a gap, draw help, then pass to the open shooter." },
+  { id: "motion", name: "Motion offense", tag: "CUT & REPLACE", description: "Teammates read the passing lanes, set up a cut, then clear out as another player fills the opening.", hint: "Pass and watch the next cut. Give teammates a moment to get open." },
+  { id: "spacing", name: "Drive & kick", tag: "FOUR OUT", description: "Four players keep the floor wide, then adjust their passing angles when a defender helps on the drive.", hint: "Draw help with a drive, then pass to the teammate moving into the open window." },
   { id: "post", name: "Post up", tag: "INSIDE OUT", description: "Your big establishes position near the block. Teammates clear the lane and offer outlets.", hint: "Feed the post. Finish inside or pass out when a second defender arrives." },
 ];
 
 export const DEFENSE = [
-  { id: "man", name: "Man to man", tag: "STAY CONNECTED", description: "Each defender tracks an opponent, with help near the basket.", hint: "Stay between your assignment and the rim. Switch to the closest defender when beaten." },
+  { id: "man", name: "Man to man", tag: "HELP & RECOVER", description: "Pressure the ball, guard passing lanes nearby, and give help from the weak side before recovering to an assignment.", hint: "Stay between the ball and rim. If a teammate helps, watch for the pass back out." },
   { id: "zone", name: "2–3 zone", tag: "PROTECT THE PAINT", description: "Two defenders guard the perimeter; three protect the lane and baseline.", hint: "Close out on shooters without pulling everyone away from the paint." },
   { id: "press", name: "Full-court press", tag: "TURN UP THE HEAT", description: "Defenders apply pressure earlier and pursue passing lanes, at the cost of stamina and space behind them.", hint: "Trap near the sideline. Recover quickly if the first pass beats the press." },
 ];
@@ -166,6 +166,15 @@ const positionalRatings = [
   [65, 51, 85, 62, 58, 84, 86, 82, 64],
 ];
 
+// Independent, fictional court-reading profiles. Every roster mixes offensive
+// readers, defensive organizers and players still learning both. Rotating the
+// profiles through positions makes a clever cutter or patient help defender
+// possible at any size and speed, including on the bench.
+const courtReadProfiles = [
+  [93, 83], [73, 92], [85, 71], [67, 78],
+  [90, 66], [79, 87], [82, 75], [70, 89],
+];
+
 function makePlayer(name, slot, team, teamIndex) {
   const [shooting, speed, inside, defense, rebounding] = team.ratings;
   const biases = [speed - 82, shooting - 82, inside - 82, (shooting - 82) / 2, (speed - 82) / 2, defense - 82, rebounding - 82, team.defense === "press" ? 5 : 0, (shooting - 82) / 2];
@@ -174,6 +183,9 @@ function makePlayer(name, slot, team, teamIndex) {
     const reserve = slot >= 5 ? 3 : 0;
     return [key, Math.max(50, Math.min(96, Math.round(positionalRatings[slot][i] + biases[i] * 0.8 + individual - reserve)))];
   }));
+  const reads = courtReadProfiles[(teamIndex * 3 + slot * 5) % courtReadProfiles.length];
+  ratings.awareness = reads[0] + ((teamIndex + slot * 2) % 5) - 2;
+  ratings.anticipation = reads[1] + ((teamIndex * 2 + slot * 3) % 5) - 2;
   return {
     name, number: jerseyNumbers[slot], position: positions[slot],
     height: heightBase[slot] + ((teamIndex + slot) % 3) - 1,

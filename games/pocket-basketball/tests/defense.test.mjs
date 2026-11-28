@@ -45,8 +45,9 @@ test('defenders lag an actual cut, then recover to coverage on foot', () => {
     maxStep = Math.max(maxStep, distance(defender, before));
   }
   const wanted = m._defensiveObservation(defender);
-  assert.ok(defender.x < start.x - 35, 'the delayed read eventually follows the cut');
-  assert.ok(distance(defender, wanted) < 8, 'the defender recovers rather than wandering or staying frozen');
+  assert.ok(defender.x < start.x - 20, 'the delayed read shifts coverage after the cut');
+  assert.equal(defender.defenseRead.role, 'gap', 'a now-distant receiver is covered from the help gap rather than chased step for step');
+  assert.ok(distance(defender, wanted) < 12, 'the defender recovers rather than wandering or staying frozen');
   assert.ok(maxStep < 8, 'recovery uses ordinary movement and contact limits');
 });
 

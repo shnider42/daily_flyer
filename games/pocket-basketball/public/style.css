@@ -132,3 +132,9 @@ dialog{width:min(670px,calc(100% - 24px));max-height:90vh;max-height:90dvh;paddi
   #audioSettingsDialog .audio-levels{gap:10px;margin:12px 0}
   #audioSettingsDialog .audio-settings-note{margin:8px 0 12px}
 }
+
+/* Player choices stay in the roster and pause menus, clear of the court. */
+.roster-list{display:grid;gap:12px}.roster-player{padding:14px;border:1px solid var(--line);border-radius:4px;background:#1c303c}
+.roster-player header{display:flex;align-items:baseline;justify-content:space-between;gap:12px}.roster-player h3{font-size:1rem;line-height:1.35;margin:0}.roster-player header>b{color:var(--accent);font-size:.875rem}.roster-player>p{font-size:.8125rem;margin:4px 0 12px;color:var(--muted)}
+.player-read-ratings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 12px;font-size:.875rem;line-height:1.35;color:#c9d7dd}.player-read-ratings span{display:flex;flex-direction:column;justify-content:space-between;gap:4px}.player-read-ratings b{font-size:1.125rem;color:var(--mint)}
+.roster-skills{display:flex;flex-wrap:wrap;gap:6px 16px;border-top:1px solid var(--line);margin-top:12px;padding-top:10px;font-size:.875rem;color:#c9d7dd}.roster-skills b{color:var(--ink)}.sub-ratings{margin-top:10px}.roster-legend{font-size:.875rem!important}

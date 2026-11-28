@@ -1,4 +1,4 @@
-import { TEAMS, getTeam } from './teams.js';
+import { TEAMS, getTeam } from './teams.js?v=9';
 
 const seeded = seed => { let s = seed >>> 0; return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296); };
 const clone = value => JSON.parse(JSON.stringify(value));

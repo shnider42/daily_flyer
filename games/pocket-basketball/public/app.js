@@ -1,12 +1,12 @@
-import {TEAMS, getTeam, OFFENSE, DEFENSE} from './teams.js';
-import {Match} from './engine.js?v=6';
+import {TEAMS, getTeam, OFFENSE, DEFENSE} from './teams.js?v=9';
+import {Match} from './engine.js?v=9';
 import {CourtView} from './view.js?v=7';
 import {Controls} from './input.js?v=6';
 import {DEFAULT_GAME_PACE, normalizeGamePace} from './pace.js?v=6';
 import {controlContext} from './control-context.js?v=5';
 import {TOUCH_SLOTS, normalizeTouchLayout, assignTouchAction, touchButtonFor} from './touch-layout.js?v=5';
 import {HoopsAudio, normalizeAudioMix} from './audio.js?v=8';
-import {LocalStore, createCup, advanceCup, cupMatch, validCup, roundName} from './season.js';
+import {LocalStore, createCup, advanceCup, cupMatch, validCup, roundName} from './season.js?v=9';
 import {FixedClock} from './vendor/math.js';
 import {bindGameButton} from './vendor/pgi-controls.js';
 
@@ -288,10 +288,21 @@ function renderSubs() {
   $('subIn').innerHTML = list.filter(p=>!p.active&&p.fouls<5).map(option).join('');
   $('makeSub').disabled = !list.some(p=>!p.active&&p.fouls<5);
   $('subStatus').textContent = game.pendingSubs.length ? `${game.pendingSubs.length} substitution queued.` : '';
+  renderSubRatings();
+}
+function playerReadRatings(p) {
+  return `<span>Speed <b>${p.ratings.speed}</b></span><span>Off-ball IQ <b>${p.ratings.awareness ?? 75}</b></span><span>Def. reads <b>${p.ratings.anticipation ?? 75}</b></span>`;
+}
+function renderSubRatings() {
+  if (!game) return;
+  for (const id of ['subOut', 'subIn']) {
+    const p = $(id).value === '' ? null : game.player(Number($(id).value));
+    $(`${id}Ratings`).innerHTML = p ? playerReadRatings(p) : '';
+  }
 }
 function roster() {
   const team = getTeam(settings.home); $('rosterTitle').textContent = `${team.name} ${team.mascot}`;
-  $('rosterTable').innerHTML = `<table><thead><tr><th>PLAYER</th><th>POS</th><th>SHOT</th><th>INSIDE</th><th>DEF</th><th>REB</th></tr></thead><tbody>${team.players.map((p,i)=>`<tr><td>#${p.number} ${escape(p.name)}<small>${i<5?'Starting five':'Bench'} · ${Math.floor(p.height/12)}′${p.height%12}″</small></td><td>${p.position}</td><td>${p.ratings.shooting}</td><td>${p.ratings.inside}</td><td>${p.ratings.defense}</td><td>${p.ratings.rebound}</td></tr>`).join('')}</tbody></table>`;
+  $('rosterTable').innerHTML = team.players.map((p,i)=>`<article class="roster-player"><header><h3>#${p.number} ${escape(p.name)}</h3><b>${p.position}</b></header><p>${i<5?'Starting five':'Bench'} · ${Math.floor(p.height/12)}′${p.height%12}″</p><div class="player-read-ratings">${playerReadRatings(p)}</div><div class="roster-skills"><span>Shot <b>${p.ratings.shooting}</b></span><span>Inside <b>${p.ratings.inside}</b></span><span>Defense <b>${p.ratings.defense}</b></span><span>Rebound <b>${p.ratings.rebound}</b></span></div></article>`).join('');
   showDialog($('rosterDialog'));
 }
 function boxScore() {
@@ -436,6 +447,7 @@ $('breakDialog').addEventListener('cancel',e=>e.preventDefault());
 $('openPlays').addEventListener('click',openPlaybook); $('closePlays').addEventListener('click',closePlaybook);
 $('callTimeout').addEventListener('click',callTimeout); $('showReplay').addEventListener('click',startReplay); $('skipReplay').addEventListener('click',stopReplay);
 $('makeSub').addEventListener('click',()=>{const ok=game.action('substitute',{outId:Number($('subOut').value),inId:Number($('subIn').value)});renderSubs();$('subStatus').textContent=ok?'Substitution requested. It takes effect at the next dead ball.':'That substitution is unavailable.';});
+for (const id of ['subOut', 'subIn']) $(id).addEventListener('change', renderSubRatings);
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeDialog(b.closest('dialog'))));
 document.querySelectorAll('dialog').forEach(d=>d.addEventListener('close',()=>{const index=dialogStack.indexOf(d);if(index>=0)dialogStack.splice(index,1);syncPause();}));
 for (const id of ['fullscreen','pauseFullscreen']) $(id).addEventListener('click',async()=>{
