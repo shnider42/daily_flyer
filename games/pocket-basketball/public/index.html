@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111b24">
+  <meta name="description" content="Pocket College Hoops: top-down 5-on-5 college basketball from DailyFlyer. Call a play, work the ball, and chase a campus championship. Keyboard and touch.">
+  <title>Pocket College Hoops · DailyFlyer</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="./"><span class="brand-mark">PCH</span><span>DAILYFLYER<span class="brand-sub">POCKET SPORTS</span></span></a>
+    <nav><a href="https://dfe-directory.onrender.com/">All DFE games</a><button id="soundToggle" class="quiet" aria-pressed="false">Sound off</button></nav>
+  </header>
+  <main>
+    <section id="lobby" class="lobby">
+      <div class="setup">
+        <p class="eyebrow">FIVE ON FIVE. EVERY POSSESSION COUNTS.</p>
+        <h1>POCKET<br><span>COLLEGE HOOPS</span></h1>
+        <p class="intro">Call the play. Find the open man.<br>Give the student section something to lose it over.</p>
+        <div class="mode-tabs" role="group" aria-label="Game mode">
+          <button data-mode="quick" aria-pressed="true">Quick game</button>
+          <button data-mode="cup" aria-pressed="false">Campus Cup</button>
+          <button data-mode="practice" aria-pressed="false">Practice</button>
+        </div>
+        <p id="modeDescription" class="mode-description">Your five against the CPU. Pick a matchup and take the floor.</p>
+        <div class="matchup">
+          <label>Your program<select id="homeTeam" aria-label="Your program"></select></label>
+          <span class="versus">VS</span>
+          <label id="opponentLabel">The visitors<select id="awayTeam" aria-label="Opponent program"></select></label>
+        </div>
+        <div id="teamIdentity" class="team-identity"></div>
+        <div class="settings-grid">
+          <label>Opponent<select id="difficulty"><option value="freshman">Freshman</option><option value="varsity" selected>Varsity</option><option value="all-american">All-American</option></select></label>
+          <label>Guidance<select id="guidance"><option value="simple" selected>Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label>
+          <label class="wide">Game length<select id="gameLength"><option value="90">Quick · 90-second halves</option><option value="180" selected>Standard · 3-minute halves</option><option value="360">Long · 6-minute halves</option><option value="1200">Regulation time · 20-minute halves</option></select></label>
+        </div>
+        <button id="startGame" class="primary" disabled>Loading the teams…</button>
+        <button id="resumeCup" class="secondary" hidden>Continue Campus Cup</button>
+        <p id="saveNotice" class="small-note" hidden></p>
+        <div class="setup-links"><button id="showRoster" class="text-button">Meet your team</button><button id="showHelp" class="text-button">Controls & rules</button><button id="showBracket" class="text-button" hidden>View bracket</button></div>
+        <p class="roster-note">16 college programs · Original fictional players · Arcade ratings<br>Solo vs CPU. Progress saves on this browser.</p>
+      </div>
+      <div class="arena-preview">
+        <div class="preview-heading"><span>THE CAMPUS BROADCAST</span><span>5 v 5</span></div>
+        <canvas id="preview" aria-label="Live college basketball game preview"></canvas>
+        <div class="preview-score"><span id="previewHome">UCONN</span><strong id="previewScore">0 : 0</strong><span id="previewAway">DUKE</span></div>
+        <div class="preview-caption"><strong>A SMALL COURT.<br>A BIG NIGHT.</strong><span>PLAYBOOKS.<br>BUZZER BEATERS.<br>ONE MORE GAME.</span></div>
+        <div class="feature-strip"><span>KEYBOARD + TOUCH</span><span>FULL TEAMS</span><span>8-TEAM CUP</span></div>
+      </div>
+    </section>
+
+    <section id="game" class="game" hidden aria-label="Basketball game">
+      <div class="game-console">
+        <div class="scoreboard">
+          <div class="score-team home"><span id="homeAbbr">CONN</span><strong id="homeScore">0</strong><small id="homeFouls">0 FOULS</small></div>
+          <div class="game-clock"><span id="period">1ST HALF</span><strong id="clock">3:00</strong><small id="possession">YOUR BALL</small></div>
+          <div class="score-team away"><span id="awayAbbr">DUKE</span><strong id="awayScore">0</strong><small id="awayFouls">0 FOULS</small></div>
+          <div class="shot-clock"><span>SHOT</span><strong id="shotClock">30</strong></div>
+          <button id="pauseGame" class="pause-button" aria-label="Pause game">Ⅱ</button>
+        </div>
+        <div class="possession-bar"><b id="situation">OPENING POSSESSION</b><span id="playName">HIGH PICK & ROLL</span><button id="openPlays" class="text-button">Plays</button></div>
+        <div class="court-wrap">
+          <canvas id="court" tabindex="0" aria-label="Basketball court. WASD or arrows to move, hold and release Space to shoot, J to pass, Q to switch, E to steal."></canvas>
+          <div id="courtMessage" class="court-message" aria-live="polite"></div>
+          <div id="replayBanner" class="replay-banner" hidden><b>INSTANT REPLAY · ½ SPEED</b><button id="skipReplay">Back to game</button></div>
+          <div id="releaseFeedback" class="release-feedback" hidden></div>
+          <div class="court-tools"><button id="viewToggle" aria-label="Change camera view">Full court</button><button id="fullscreen" aria-label="Toggle full screen">Full screen</button></div>
+          <div id="playerTag" class="player-tag"></div>
+          <div id="shotMeter" class="shot-meter" hidden><span>RELEASE IN GREEN</span><div class="meter-track"><i id="shotFill"></i><b class="green-window"></b><i id="shotNeedle"></i></div></div>
+        </div>
+        <div id="coachLine" class="coach-line">Move with WASD or the left stick. Hold SHOOT, then release in green.</div>
+        <div class="controls">
+          <div class="movement"><div id="joystick" class="joystick" aria-label="Drag to move"><span class="stick-cross">+</span><i id="stickKnob"></i></div><span>MOVE <kbd>WASD</kbd></span></div>
+          <div class="actions">
+            <div id="passTargets" class="pass-targets" aria-label="Pass directly to a teammate"></div>
+            <div class="main-actions"><button id="passButton" class="action pass">PASS<small>J</small></button><button id="shootButton" class="action shoot">SHOOT<small>HOLD SPACE</small></button><button id="sprintButton" class="action sprint">SPRINT<small>SHIFT / K</small></button></div>
+            <div class="secondary-actions"><button id="switchButton">SWITCH <kbd>Q</kbd></button><button id="stealButton">STEAL <kbd>E</kbd></button><button id="screenButton">SCREEN <kbd>L</kbd></button></div>
+          </div>
+          <div class="desktop-keys"><span>MOVE</span><b>W A S D</b><small>or arrow keys</small><span>SHOOT</span><b>HOLD SPACE</b><small>release in green</small></div>
+        </div>
+      </div>
+      <aside id="playbook" class="playbook">
+        <div class="panel-heading"><span class="eyebrow">THE PLAYBOOK</span><button id="closePlays" aria-label="Close playbook">×</button></div>
+        <h2 id="playbookTitle">Make the call.</h2><p id="playHint">Run your offense. Read the defense.</p>
+        <div id="offensePlays" class="plays"></div>
+        <div class="defense-heading">DEFENSIVE SCHEME</div><div id="defensePlays" class="defenses"></div>
+        <div class="player-card"><span id="playerPosition">POINT GUARD</span><strong id="playerName">YOUR FLOOR GENERAL</strong><div class="stamina-label"><span>ENERGY</span><span id="staminaLabel">100%</span></div><div class="energy"><i id="staminaFill"></i></div><p id="playerStats">0 PTS · 0 REB · 0 AST</p></div>
+        <div class="sideline"><span>FROM THE SIDELINE</span><p id="commentary">The floor is yours. Make something happen.</p></div>
+        <div class="sidebar-actions"><button id="callTimeout">Timeout <kbd>T</kbd></button><button id="showBoxScore">Box score</button><button id="showReplay" disabled>Last basket replay</button><button id="gameHelp">Controls & rules</button></div>
+        <p class="sidebar-note">Tap a teammate to pass. Tap a defender to switch.<br><kbd>1–4</kbd> Play calls · <kbd>P</kbd> Pause</p>
+      </aside>
+    </section>
+  </main>
+  <footer id="footer"><span>POCKET COLLEGE HOOPS / DAILYFLYER</span><span>Original arcade game. Unofficial fan project.</span></footer>
+
+  <dialog id="pauseDialog"><button class="close-dialog" data-close aria-label="Resume game">×</button><p class="eyebrow">TIME TO TALK IT OVER</p><h2>On the bench.</h2>
+    <button id="resumeGame" class="primary">Back to the game</button>
+    <div class="settings-grid pause-settings"><label>Guidance<select id="pauseGuidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label><label>View<select id="cameraSetting"><option value="full">Full court</option><option value="follow">Follow the play</option></select></label><label>Controls size<input id="controlSize" type="range" min="0.8" max="1.25" step="0.05" value="1" aria-label="Controls size"></label><label class="check-label"><input id="leftHanded" type="checkbox"> Left-handed layout</label><label class="check-label"><input id="soundSetting" type="checkbox"> Game sound</label><label class="check-label"><input id="namesSetting" type="checkbox" checked> Player labels</label></div>
+    <details><summary>Make a substitution</summary><p class="small-note">A queued substitution happens at the next dead ball.</p><label>Rest<select id="subOut"></select></label><label>Bring in<select id="subIn"></select></label><button id="makeSub" class="secondary">Queue substitution</button><p id="subStatus" role="status"></p></details>
+    <div class="dialog-actions"><button id="pauseStats" class="secondary">Box score</button><button id="pauseHelp" class="secondary">Controls & rules</button><button id="quitGame" class="secondary">Leave game</button></div>
+  </dialog>
+
+  <dialog id="helpDialog"><button class="close-dialog" data-close aria-label="Close help">×</button><p class="eyebrow">THE QUICK HUDDLE</p><h2>Make the extra pass.</h2>
+    <div class="help-grid"><div><h3>With the ball</h3><p><b>Move:</b> WASD / arrows or left stick. Your teammates follow the play you call.</p><p><b>Shoot:</b> hold Space / SHOOT and release as the marker reaches green. Close to the rim, your player uses a layup or dunk. Open shots, strong ratings, fresh legs, and good timing help.</p><p><b>Pass:</b> J / PASS finds a teammate in the direction you steer. Tap a player or their letter button for a direct pass. You take control of the receiver.</p><p><b>Screen:</b> L / SCREEN brings a big up to screen for you. Use 1–4 or the playbook to change the whole offense.</p></div><div><h3>Without the ball</h3><p><b>Switch:</b> Q / SWITCH selects a defender near the ball. You can also tap your defender on the court.</p><p><b>Steal:</b> E / STEAL when close to the ballhandler. Reaching from a bad position can cause a foul.</p><p><b>Contest:</b> Space / BLOCK contests a nearby shot. Stay between the ball and basket; hold C / Control to contain.</p><p><b>Sprint:</b> hold Shift, K, or SPRINT. It drains energy. P / Escape pauses; T calls a timeout.</p></div></div>
+    <h3>College rules, arcade pace</h3><p>Five players a side. Two halves, a 30-second shot clock, 20 after an offensive rebound off the rim, ten seconds to cross half court, and two- or three-point baskets. Five personal fouls disqualify a player. The seventh team foul starts one-and-one; the tenth starts two free throws. Team fouls reset at halftime and carry into overtime. Free throws use the same shooting meter.</p>
+    <p>Quick games shorten the halves. Overtime is one minute, or five minutes with regulation-length halves. Automatic dribbling and inbounds keep the game moving. Foul detection is simplified; traveling, three-second violations, offensive fouls, goaltending, and administrative NCAA rules are not modeled. This is a solo arcade game, with no online multiplayer.</p>
+    <p><b>Guidance and difficulty are separate.</b> Simple adds passing labels and coaching hints; Moderate keeps essential prompts; Expert clears the coaching text. Opponent difficulty changes CPU behavior.</p>
+    <p><b>Campus Cup:</b> eight programs, three rounds, one champion. Other matchups are simulated. Completed-round progress saves locally; an unfinished game starts again if you reload.</p>
+    <p class="small-note">Programs and their colors provide the setting. All players and ratings are original game content, not current rosters or official statistics. Rules reference: <a href="https://www.ncaa.org/championships/playing-rules/mens-basketball-playing-rules/" target="_blank" rel="noopener">NCAA men's basketball</a>.</p>
+  </dialog>
+  <dialog id="rosterDialog"><button class="close-dialog" data-close aria-label="Close roster">×</button><p class="eyebrow">MEET YOUR FIVE</p><h2 id="rosterTitle"></h2><p class="small-note">Original fictional players. Ratings are designed for this arcade game.</p><div id="rosterTable" class="table-wrap"></div></dialog>
+  <dialog id="statsDialog"><button class="close-dialog" data-close aria-label="Close box score">×</button><p class="eyebrow">THE BOX SCORE</p><h2 id="statsTitle">Tonight's game</h2><div id="statsContent"></div></dialog>
+  <dialog id="bracketDialog"><button class="close-dialog" data-close aria-label="Close bracket">×</button><p class="eyebrow">EIGHT PROGRAMS. ONE CHAMPION.</p><h2>Campus Cup</h2><div id="bracketContent"></div></dialog>
+  <dialog id="breakDialog"><p id="breakEyebrow" class="eyebrow">THE HALFTIME HUDDLE</p><h2 id="breakTitle">A new half. A fresh start.</h2><div id="breakScore" class="break-score"></div><p id="breakSummary"></p><div id="breakStats"></div><button id="continueGame" class="primary">Start the second half</button><button id="breakBoxScore" class="secondary">Full box score</button><button id="backToLobby" class="secondary" hidden>Back to matchups</button></dialog>
+  <noscript>This game needs JavaScript enabled to run the basketball simulation.</noscript>
+  <script type="module" src="app.js?v=1"></script>
+</body>
+</html>
