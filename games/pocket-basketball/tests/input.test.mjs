@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Controls } from '../public/input.js';
 import { HoopsAudio } from '../public/audio.js';
 import { normalizeTouchLayout, assignTouchAction } from '../public/touch-layout.js';
+import { FixedClock } from '../public/vendor/math.js';
 
 class Surface {
   constructor() {
@@ -32,7 +33,7 @@ class Surface {
   }
 }
 
-function setup({ context, onAction } = {}) {
+function setup({ context, onAction, pace } = {}) {
   const win = globalThis.window = new Surface();
   const doc = globalThis.document = new Surface();
   doc.hidden = false;
@@ -40,7 +41,7 @@ function setup({ context, onAction } = {}) {
     .map((name) => [name, new Surface()]));
   const actions = [];
   const state = { active: true, pauses: 0 };
-  const input = new Controls({ ...nodes, context, onAction: (name, payload) => {
+  const input = new Controls({ ...nodes, context, pace, onAction: (name, payload) => {
     actions.push({ name, payload }); onAction?.(name, payload);
   },
     onPause: () => state.pauses++, active: () => state.active });
@@ -66,6 +67,31 @@ test('default X holds sprint while B charges and releases a shot on the actual C
   assert.equal(h.input.charging, false); assert.equal(h.input.read().sprint, true);
   h.win.emit('pointerup', { pointerId: 11 });
   assert.equal(h.input.read().sprint, false);
+});
+
+test('the shot meter follows the court pace and a paused pace change cannot release an old shot', t => {
+  let wallTime = 0, pace = .8, simulationTime = 0;
+  t.mock.method(globalThis.performance, 'now', () => wallTime);
+  const h = setup({ pace: () => pace });
+  const clock = new FixedClock(dt => { simulationTime += dt; });
+  const advance = frames => { for (let i = 0; i < frames; i++) { wallTime += 1000 / 60; clock.advance(pace / 60); } };
+  h.shoot.emit('pointerdown', { pointerId: 41 });
+  advance(60);
+  assert.ok(Math.abs(simulationTime - .8) <= 1 / 60 + 1e-9);
+  assert.ok(Math.abs(h.input.charge - 2 / 3) < 1e-9, 'one real second advances the 1.2s meter by .8 simulation seconds');
+  h.win.emit('pointerup', { pointerId: 41 });
+  assert.ok(Math.abs(h.actions[0].payload.timing - 2 / 3) < 1e-9);
+
+  h.shoot.emit('pointerdown', { pointerId: 42 });
+  advance(10);
+  h.state.active = false; h.input.clear(); clock.reset(); pace = .6;
+  h.state.active = true;
+  h.win.emit('pointerup', { pointerId: 42 });
+  assert.equal(h.actions.length, 1, 'an old held press is cancelled when pace changes in a menu');
+  h.shoot.emit('pointerdown', { pointerId: 43 });
+  advance(78);
+  h.win.emit('pointerup', { pointerId: 43 });
+  assert.ok(Math.abs(h.actions[1].payload.timing - .65) < 1e-9, 'a fresh release in green uses the new pace');
 });
 
 test('swapped X shoot and B sprint retain their listeners and the held-steal possession safeguard', () => {

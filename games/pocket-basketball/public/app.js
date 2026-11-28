@@ -1,7 +1,8 @@
 import {TEAMS, getTeam, OFFENSE, DEFENSE} from './teams.js';
-import {Match} from './engine.js?v=5';
+import {Match} from './engine.js?v=6';
 import {CourtView} from './view.js?v=5';
-import {Controls} from './input.js?v=5';
+import {Controls} from './input.js?v=6';
+import {DEFAULT_GAME_PACE, normalizeGamePace} from './pace.js?v=6';
 import {controlContext} from './control-context.js?v=5';
 import {TOUCH_SLOTS, normalizeTouchLayout, assignTouchAction, touchButtonFor} from './touch-layout.js?v=5';
 import {HoopsAudio} from './audio.js';
@@ -16,7 +17,7 @@ const lastName = name => name.split(' ').at(-1);
 let browserStorage; try { browserStorage = localStorage; } catch { browserStorage = null; }
 const store = new LocalStore(browserStorage);
 const saved = store.read('settings', {});
-const settings = {home: 'boston-college', away: 'duke', difficulty: 'varsity', guidance: 'simple', halfSeconds: 180, camera: 'full', controlSize: 1, controlOpacity: .45, leftHanded: false, showNames: true, sound: false, ...((saved && typeof saved === 'object') ? saved : {})};
+const settings = {home: 'boston-college', away: 'duke', difficulty: 'varsity', guidance: 'simple', halfSeconds: 180, camera: 'full', gamePace: DEFAULT_GAME_PACE, controlSize: 1, controlOpacity: .45, leftHanded: false, showNames: true, sound: false, ...((saved && typeof saved === 'object') ? saved : {})};
 if (!TEAMS.some(t => t.id === settings.home)) settings.home = 'boston-college';
 if (!TEAMS.some(t => t.id === settings.away) || settings.home === settings.away) settings.away = settings.home === 'duke' ? 'uconn' : 'duke';
 if (!['freshman','varsity','all-american'].includes(settings.difficulty)) settings.difficulty = 'varsity';
@@ -25,6 +26,7 @@ if (![90,180,360,1200].includes(Number(settings.halfSeconds))) settings.halfSeco
 if (!['full','follow'].includes(settings.camera)) settings.camera = 'full';
 settings.controlSize = Math.max(.8, Math.min(1.25, Number(settings.controlSize) || 1));
 settings.controlOpacity = Math.max(.1, Math.min(1, Number(settings.controlOpacity) || .45));
+settings.gamePace = normalizeGamePace(settings.gamePace);
 settings.touchLayout = normalizeTouchLayout(settings.touchLayout);
 const touchActions = {
   pass: {name:'Pass / Switch', label:'pass, J'},
@@ -73,8 +75,14 @@ function applySettings() {
   document.body.classList.toggle('left-handed', settings.leftHanded);
   $('guidance').value = settings.guidance; $('pauseGuidance').value = settings.guidance;
   $('cameraSetting').value = settings.camera; $('controlSize').value = settings.controlSize;
-  $('controlOpacity').value = settings.controlOpacity;
+  // Leave the native range thumb under browser control throughout a drag.
+  if (Number($('controlOpacity').value) !== settings.controlOpacity) $('controlOpacity').value = settings.controlOpacity;
   $('controlOpacityValue').textContent = `${Math.round(settings.controlOpacity * 100)}%`;
+  for (const id of ['gamePace','pauseGamePace']) {
+    const percent = Math.round(settings.gamePace * 100);
+    if (Number($(id).value) !== percent) $(id).value = percent;
+    $(`${id}Value`).textContent = `${percent}%`;
+  }
   $('leftHanded').checked = !!settings.leftHanded; $('namesSetting').checked = !!settings.showNames;
   $('soundSetting').checked = !!settings.sound; $('soundToggle').setAttribute('aria-pressed', String(!!settings.sound));
   $('soundToggle').textContent = settings.sound ? 'Sound on' : 'Sound off';
@@ -92,6 +100,7 @@ function applyTouchLayout() {
     button.setAttribute('aria-label', `${slot}: ${touchActions[action].label}`);
     group.append(button);
     $(`touch${slot}`).value = action;
+    $(`touchPreview${slot}`).textContent = {pass:'PASS',shoot:'SHOOT',through:'THRU',sprint:'SPRINT'}[action];
   }
   $('touchMappingHelp').textContent = `${touchLetter('pass')} passes on offense and switches to the nearest player on defense. ${touchLetter('shoot')} shoots on offense and steals on defense. ${touchLetter('through')} sends a leading bounce pass, or sets up an alley-oop when aimed toward the rim with a teammate in range; on defense it blocks. Hold ${touchLetter('sprint')} to sprint.`;
   updateTargets();
@@ -149,7 +158,7 @@ function selectPlay(id) {
 function closePlaybook() { $('playbook').classList.remove('open'); syncPause(); }
 function openPlaybook() { $('playbook').classList.add('open'); syncPause(); }
 
-const controls = new Controls({stick:$('joystick'),knob:$('stickKnob'),shoot:$('shootButton'),pass:$('passButton'),sprint:$('sprintButton'),through:$('throughButton'),active:isActive,context:()=>controlContext(game),
+const controls = new Controls({stick:$('joystick'),knob:$('stickKnob'),shoot:$('shootButton'),pass:$('passButton'),sprint:$('sprintButton'),through:$('throughButton'),active:isActive,context:()=>controlContext(game),pace:()=>settings.gamePace,
   onPause:togglePause,
   onAction(name, payload = {}) {
     if (!isActive()) return;
@@ -363,7 +372,15 @@ for(const id of ['guidance','pauseGuidance']) $(id).addEventListener('change',()
 $('cameraSetting').addEventListener('change',()=>{settings.camera=$('cameraSetting').value;applySettings();persist();});
 $('viewToggle').addEventListener('click',()=>{settings.camera=settings.camera==='full'?'follow':'full';applySettings();persist();});
 $('controlSize').addEventListener('input',()=>{settings.controlSize=Number($('controlSize').value);applySettings();saveTouchSettings('Control size updated.');});
-$('controlOpacity').addEventListener('input',()=>{settings.controlOpacity=Number($('controlOpacity').value);applySettings();saveTouchSettings('Control opacity updated.');});
+for (const event of ['input','change']) $('controlOpacity').addEventListener(event,()=>{
+  settings.controlOpacity = Math.max(.1, Math.min(1, Number($('controlOpacity').value) || .45));
+  applySettings(); saveTouchSettings('Control opacity updated.');
+});
+for (const id of ['gamePace','pauseGamePace']) for (const event of ['input','change']) $(id).addEventListener(event,()=>{
+  const next = normalizeGamePace(Number($(id).value) / 100);
+  if (next !== settings.gamePace) { controls.clear(); fixed.reset(); settings.gamePace = next; }
+  applySettings(); persist();
+});
 $('leftHanded').addEventListener('change',()=>{settings.leftHanded=$('leftHanded').checked;applySettings();saveTouchSettings('Handedness updated.');});
 for (const slot of TOUCH_SLOTS) $(`touch${slot}`).addEventListener('change',()=>{
   controls.clear();
@@ -408,12 +425,12 @@ function frame(stamp) {
   if (!document.hidden) {
     if (game) {
       if (replay) {
-        replay.time+=dt*.5; const index=Math.floor(replay.time/.1);
+        replay.time+=dt*.5*settings.gamePace; const index=Math.floor(replay.time/.1);
         if(index>=replay.frames.length)stopReplay();else view.render(replay.frames[index],{dt,time:stamp/1000,guidance:'expert',camera:settings.camera,showNames:settings.showNames});
       } else {
-        fixed.advance(dt);
+        fixed.advance(dt*settings.gamePace);
         view.render(game,{dt,time:stamp/1000,charge:controls.charge,charging:controls.charging&&game.inOffense(),guidance:settings.guidance,camera:settings.camera,showNames:settings.showNames});
-        if(!paused)audio.update(dt,game);
+        if(!paused)audio.update(dt*settings.gamePace,game);
       }
       uiAccumulator+=dt;if(uiAccumulator>.1){uiAccumulator=0;updateUI();}
       $('shotMeter').hidden=!controls.charging||!game.inOffense()||paused;
@@ -423,7 +440,7 @@ function frame(stamp) {
       if(feedback&&!$('releaseFeedback').hidden)$('releaseFeedback').textContent=`${feedback.text}${feedback.contest!==undefined?feedback.contest>.55?' · CONTESTED':feedback.contest<.2?' · OPEN':'':''}`;
       if(stamp>messageUntil)$('courtMessage').textContent='';
     } else if(previewGame) {
-      previewGame.step(dt,{});previewGame.drainEvents();
+      previewGame.step(dt*settings.gamePace,{});previewGame.drainEvents();
       previewView.render(previewGame,{dt,time:stamp/1000,preview:true,guidance:'expert',camera:'full',showNames:false});
       $('previewScore').textContent=`${previewGame.score[0]} : ${previewGame.score[1]}`;
     }

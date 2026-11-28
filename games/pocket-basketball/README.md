@@ -27,7 +27,7 @@ Do not publish the repository root: it contains other DFE projects. The new game
 - Shots use a held/released meter. Timing, player ratings, distance, pressure, and fatigue affect outcomes. Passes follow fixed destinations; receivers adjust on foot.
 - Two halves, 30-second shot clock, 20-second offensive rim-rebound reset, backcourt violations, 2/3-point scoring, shooting fouls, playable free throws, one-and-one/double bonus, five-foul disqualification, and repeated overtime. A legal shot released before the horn resolves before the period ends.
 - Four lengths: 90 seconds, 3 minutes (default), 6 minutes, or 20 minutes per half. Overtime is one minute in arcade lengths and five minutes at regulation length.
-- Separate opponent difficulty and Simple/Moderate/Expert guidance.
+- Separate opponent difficulty, Simple/Moderate/Expert guidance, and game pace. Pace defaults to 80%, adjustable from 60% to 100% without exceeding the original full speed.
 - Responsive court rotation, full-court/follow camera, adjustable controls size and opacity, customizable touch assignments, left-handed layout, box scores, halftime report, and manual replay of the last made basket.
 - Original synthesized dribble, sneaker, net, rim, whistle, buzzer, and crowd sounds. Sound is opt-in, gesture activated, muted on pause/hide, and uses no background timer. The menu preview is silent.
 
@@ -42,7 +42,7 @@ The primary buttons follow the [Pocket Sports controller standard](../../docs/po
 | **Y · top** | THRU PASS: leading bounce pass or an eligible near-rim alley-oop | BLOCK | L for through pass/block; R also blocks |
 | **B · right** | SHOOT / free throw: hold and release near green | STEAL on press | Space |
 
-Open **Touch controls** from the lobby, **Pause > Touch controls**, or **Controls & rules > Customize touch controls**. This dialog contains **Controls size**, **Control opacity**, **Left-handed layout**, and assignments for the four action pairs. Control opacity defaults to **45%**, adjustable from **10% to 100%**. It changes button and joystick fills and outlines while face letters and action text retain their contrast. Choosing a pair already assigned elsewhere swaps the two assignments, so every action remains reachable. The letters stay in their fixed positions, and each paired action continues to follow possession.
+Open **Touch controls** from the lobby, **Pause > Touch controls**, or **Controls & rules > Customize touch controls**. This dialog contains **Controls size**, **Control opacity**, **Left-handed layout**, and assignments for the four action pairs. Control opacity defaults to **45%**, adjustable from **10% to 100%**. It fades the entire face buttons, joystick and knob, and receiver buttons, including their letters and text. A live sample in the dialog shows the effect against a court background while you drag the slider. Choosing a pair already assigned elsewhere swaps the two assignments, so every action remains reachable. The letters stay in their fixed positions, and each paired action continues to follow possession.
 
 Preferences save automatically in the same browser. **Reset button mapping** resets only the four assignments to **A = PASS/SWITCH, B = SHOOT/STEAL, Y = THRU PASS/BLOCK, X = SPRINT**; controls size, opacity, and handedness retain their saved values. Existing saved SCREEN/BLOCK assignments migrate to THRU PASS/BLOCK in the same physical position, preserving other custom assignments. Touch assignments do not change keyboard shortcuts.
 
@@ -68,9 +68,19 @@ Winning team possession clears incompatible held actions and starts a roughly 50
 
 Held movement and sprint continue through possession changes and automatic dead balls; opening menus or losing focus clears held inputs. A held shot is canceled when its player/possession context changes.
 
-After a made basket, the scoring scene holds for **1.0 second**, then the next team has a **1.25-second** automatic inbound setup. Both clocks pause throughout this 2.25-second reset, including after a made final free throw. An and-one goes directly to its additional free throw; a period-ending basket proceeds to the break or final result. Held steering and sprint resume with play, while shot presses during the reset are discarded.
+After a made basket, the scoring scene holds for **1.0 simulation second**, then the next team has **1.25 simulation seconds** for automatic inbound setup. Both clocks pause throughout this reset, including after a made final free throw. It takes about **2.8 real seconds at the default 80% pace**, or 2.25 seconds at 100%. An and-one goes directly to its additional free throw; a period-ending basket proceeds to the break or final result. Held steering and sprint resume with play, while shot presses during the reset are discarded.
 
 Players run faster without the ball than while dribbling. Wider corners and weak-side outlets, one motion cutter at a time, and a big who clears the driving lane keep the offense spread out. Only the closest recovery players chase loose rebounds; the others preserve passing outlets. Physical separation, slimmer player silhouettes, and separated position badges make close matchups easier to read.
+
+CPU defenders react to cuts and passing with a short delay and individual preferences for defensive spacing and shading. Defensive ratings, difficulty, and fatigue affect those adjustments. Man, zone, and press retain their distinct assignments, with tracking reset for new possessions, restarts, substitutions, and defensive calls. Their variation is seeded for the match and does not add a fresh random direction on every frame.
+
+## Game pace
+
+Set **Game pace** in the lobby or Pause. The default is **80%**, with **60–100%** available in **5-point steps**; 100% is the original full speed. The preference saves in the same browser and applies to every mode, including an ongoing game when changed from Pause.
+
+Pace slows player movement, ball travel, AI reactions, clocks, cooldowns, and restarts together, preserving the relationship between a pass and a receiver's run. The shot meter also follows pace. At 80%, a full hold takes **1.5 real seconds**, with the ideal release near **0.98 seconds**; the green target stays in the same place. A 500 ms possession shot guard lasts about **625 real milliseconds**. Opening Pause clears held inputs before changing pace, so the setting cannot turn an old press into a new action.
+
+Replay plays at half the selected pace without advancing the live game. The lobby preview follows the same pace, while menus, interface feedback, and camera easing remain responsive.
 
 ## Deliberate arcade rules
 
@@ -85,11 +95,11 @@ Rules checked against official references:
 
 ## Architecture and reuse
 
-`engine.js` is DOM-free and deterministic for a given seed/input stream. `teams.js` holds the catalogue; `view.js` renders Match instances and snapshots; `input.js` owns independent pointers; `control-context.js` resolves possession-sensitive actions; `touch-layout.js` normalizes saved assignments and migrates legacy screen mappings; `audio.js` synthesizes game sounds; `season.js` manages brackets and versioned local storage; `app.js` connects UI, simulation, and replay state.
+`engine.js` is DOM-free and deterministic for a given seed/input stream. `teams.js` holds the catalogue; `view.js` renders Match instances and snapshots; `input.js` owns independent pointers; `control-context.js` resolves possession-sensitive actions; `touch-layout.js` normalizes saved assignments and migrates legacy screen mappings; `pace.js` defines the default and bounds shared by the app and shot meter; `audio.js` synthesizes game sounds; `season.js` manages brackets and versioned local storage; `app.js` connects UI, simulation, and replay state.
 
 `public/vendor/pgi-controls.js`, `device-audio.js`, and `math.js` are copied unchanged from the existing Pocket Sports shared core in `daily_flyer/themes/pocket_sports_assets/core/`, based on PGI commit `b2067c82307f01fcb4d4331b443e3d3a617a95fc`. Keeping the small primitives bundled makes this static build self-contained. Future shared input fixes should be ported here explicitly.
 
-Canvas uses device-pixel ratio capped at 2, caches the procedural arena, and keeps player labels upright when rotating the court. Simulation uses a fixed 60 Hz step. Replay snapshots never advance the live simulation or RNG. No real frame-rate claim is made by the headless tests.
+Canvas uses device-pixel ratio capped at 2, caches the procedural arena, and keeps player labels upright when rotating the court. Simulation uses a fixed step of 1/60 of a simulation second; the selected pace controls how simulation time advances against real time. Replay snapshots never advance the live simulation or RNG. No real frame-rate claim is made by the headless tests.
 
 ## Verification
 

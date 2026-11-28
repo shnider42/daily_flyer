@@ -1,4 +1,5 @@
 import { bindGameButton, movementInput, protectGameSurface, stickInput } from './vendor/pgi-controls.js';
+import { normalizeGamePace } from './pace.js?v=6';
 
 const SHOT_HOLD_MS = 1200;
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
@@ -8,9 +9,9 @@ const editable = (target) => !!target?.closest?.('input, select, textarea, [cont
 /** Pocket Sports input. Coordinates are screen coordinates: positive Y is down. */
 export class Controls {
   constructor({ stick, knob, shoot, pass, sprint, steal, block, switcher, through, screen,
-    onAction = () => {}, onPause = () => {}, active = () => true, settings = {},
+    onAction = () => {}, onPause = () => {}, active = () => true, pace = () => 1, settings = {},
     context = () => ({ offense: true, canShoot: true, token: 'default' }) } = {}) {
-    Object.assign(this, { stick, knob, shoot, sprint, onAction, onPause, active, settings, context });
+    Object.assign(this, { stick, knob, shoot, sprint, onAction, onPause, active, pace, settings, context });
     this.keys = Object.create(null);
     this._stick = { x: 0, y: 0 };
     this._stickPointer = null;
@@ -261,7 +262,7 @@ export class Controls {
   }
 
   get charging() { return this._shotOwner !== null && this._shotAction === 'shoot'; }
-  get charge() { return this.charging ? clamp01((now() - this._shotStarted) / SHOT_HOLD_MS) : 0; }
+  get charge() { return this.charging ? clamp01((now() - this._shotStarted) * normalizeGamePace(this.pace(), 1) / SHOT_HOLD_MS) : 0; }
 
   cancelShot() {
     // Cancel intent, not ownership: a held thumb/key must still be released.

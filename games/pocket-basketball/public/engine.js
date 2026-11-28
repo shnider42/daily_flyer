@@ -15,6 +15,13 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const STAT_KEYS = ['points', 'fgm', 'fga', 'threesMade', 'threesAttempted', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers'];
 const freshStats = () => Object.fromEntries(STAT_KEYS.map(k => [k, 0]));
 const makeRng = seed => { let s = seed >>> 0; return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; };
+const defenseProfile = (seed, id) => {
+  // A separate seeded stream gives each defender stable habits without
+  // changing gameplay rolls or adding fresh randomness to movement frames.
+  const random = makeRng((seed >>> 0) ^ Math.imul(id + 1, 0x9e3779b9));
+  return { reaction: .16 + random() * .1, cadence: .055 + random() * .035,
+    shade: (random() - .5) * 20, cushion: (random() - .5) * 14 };
+};
 const OFFENSE_IDS = ['pickroll', 'motion', 'spacing', 'post'];
 const DEFENSE_IDS = ['man', 'zone', 'press'];
 const level = name => ({ rookie: .8, freshman: .8, easy: .8, varsity: 1, pro: 1, allamerican: 1.12, 'all-american': 1.12, legend: 1.12, hard: 1.12 }[name] || 1);
@@ -67,6 +74,7 @@ export class Match {
       facing: side ? 1 : -1, stamina: 1, fouls: 0, stats: freshStats(),
       actionCooldown: 0, aiTimer: .3 + this.random() * .6, holdTime: 0,
       jump: 0, screen: 0, anim: 'idle', animTime: 0,
+      defenseProfile: defenseProfile(seed, side * 100 + i), defenseRead: null,
       ratings: { speed: 75, shooting: 75, inside: 75, passing: 75, handle: 75,
         defense: 75, rebound: 75, stamina: 75, freeThrow: 75, ...p.ratings },
     })));
@@ -112,7 +120,12 @@ export class Match {
     }
   }
   setPlay(id) { if (OFFENSE_IDS.includes(id)) { this.offense[this.human < 0 ? this.possession : this.human] = id; this.playTime = 0; return true; } return false; }
-  setDefense(id) { if (DEFENSE_IDS.includes(id)) { this.defense[this.human < 0 ? 1 - this.possession : this.human] = id; return true; } return false; }
+  setDefense(id) {
+    if (!DEFENSE_IDS.includes(id)) return false;
+    const team = this.human < 0 ? 1 - this.possession : this.human;
+    if (this.defense[team] !== id) { this.defense[team] = id; this._resetDefenseTracking(team); }
+    return true;
+  }
   shotInfo(p = this.carrier()) {
     if (!p) return { range: 0, contest: 0, quality: 0, value: 2, type: 'jumper' };
     const hoop = this.hoop(p.team), range = distance(p, hoop);
@@ -240,10 +253,12 @@ export class Match {
     if (this.possession === team) return false;
     this.possession = team; this.possessionEpoch++; this.possessionChangedAt = this.elapsed;
     this.shootGraceUntil = team === this.human ? this.elapsed + POSSESSION_SHOT_GRACE : 0;
+    this._resetDefenseTracking();
     return true;
   }
   _prepareInbound(team, spot, delay = .75, shotClock = 30, resetShape = false) {
     this._flushSubs();
+    this._resetDefenseTracking();
     this.afterScore = null;
     this.phase = 'inbound'; this.phaseTime = delay; this._setPossession(team); this.shotClock = shotClock;
     this.ball.flight = null; this.ball.owner = null; this.ball.z = 0; this.ball.vx = this.ball.vy = this.ball.vz = 0;
@@ -429,6 +444,7 @@ export class Match {
   }
   _startFreeThrows(p, count, oneAndOne = false) {
     this._flushSubs(p.id);
+    this._resetDefenseTracking();
     this.afterScore = null;
     this.phase = 'freeThrow'; this.phaseTime = .8;
     this.freeThrows = { team: p.team, shooter: p.id, remaining: count, total: count, taken: 0,
@@ -489,6 +505,7 @@ export class Match {
     incoming.vx = incoming.vy = 0; out.active = false; out.slot = -1; out.vx = out.vy = 0;
     if (this.controlled === out.id) this.controlled = incoming.id;
     if (this.ball.owner === out.id) this.ball.owner = incoming.id;
+    this._resetDefenseTracking();
     this._emit('substitution', `${incoming.name.split(' ').at(-1)} checks in for ${out.name.split(' ').at(-1)}.`, { team: out.team, playerId: incoming.id });
     return true;
   }
@@ -558,6 +575,7 @@ export class Match {
     if (this.shotClock <= 0 && this.ball.flight?.kind !== 'shot') {
       this._turnover(this.possession, 'Shot-clock violation. Get a shot away sooner.'); return;
     }
+    this._updateDefenseTracking();
     for (const p of this.active()) {
       if (p.id === this.controlled && this.human >= 0) this._moveHuman(p, input, dt);
       else this._moveAI(p, dt);
@@ -567,6 +585,7 @@ export class Match {
     if (this.phase === 'live') this._stepBall(dt);
   }
   _endPeriod() {
+    this._resetDefenseTracking();
     this.ball.flight = null; this.ball.owner = null; this.ball.z = 0; this.endPending = false; this.afterScore = null;
     if (this.period === 1) {
       this._flushSubs();
@@ -679,25 +698,84 @@ export class Match {
     }
     return { ...target, x: clamp(x, 28, 472), y: clamp(y, 25, 915) };
   }
-  _defensiveTarget(p) {
+  _resetDefenseTracking(team) {
+    for (const p of this.players) if (team === undefined || p.team === team) p.defenseRead = null;
+  }
+  _defenseContext(p) { return `${this.period}:${this.possessionEpoch}:${this.defense[p.team]}:${p.slot}`; }
+  _defenseTiming(p) {
+    const scale = p.team === this.human ? 1 : this.difficultyScale;
+    const fatigue = 1 - clamp(p.stamina, 0, 1), rating = p.ratings.defense;
+    return {
+      // Cadence adds at most .09s to a cut's observed reaction: together these
+      // remain about .15–.4 simulation seconds, including on tired defenders.
+      reaction: clamp(p.defenseProfile.reaction + (75 - rating) * .0012 + fatigue * .08 + (1 - scale) * .12, .15, .31),
+      cadence: p.defenseProfile.cadence,
+      error: clamp(1 + (75 - rating) * .012 + fatigue * .35 + (1 - scale) * .4, .6, 1.6),
+    };
+  }
+  _updateDefenseTracking() {
+    const defenders = this.active(1 - this.possession);
+    // Sample all assignments before updating any state. Press-role hysteresis
+    // must not depend on which defender happens to be visited first.
+    const reads = defenders.map(p => {
+      const context = this._defenseContext(p), current = p.defenseRead;
+      return { p, context, timing: this._defenseTiming(p), observation: !current || current.context !== context
+        || this.elapsed >= current.nextObserve ? this._defensiveObservation(p) : null };
+    });
+    for (const { p, context, timing, observation } of reads) {
+      let read = p.defenseRead;
+      if (!read || read.context !== context) {
+        // A new possession/restart establishes sensible coverage immediately;
+        // subsequent cuts and changes must travel through the reaction queue.
+        p.defenseRead = { context, key: observation.key,
+          target: { x: observation.x, y: observation.y }, observations: [],
+          nextObserve: this.elapsed + timing.cadence };
+        continue;
+      }
+      if (observation) {
+        if (observation.key !== read.key) { read.key = observation.key; read.observations = []; }
+        read.observations.push({ at: this.elapsed, x: observation.x, y: observation.y });
+        read.nextObserve = this.elapsed + timing.cadence;
+      }
+      while (read.observations.length && read.observations[0].at <= this.elapsed - timing.reaction) {
+        const known = read.observations.shift();
+        read.target = { x: known.x, y: known.y };
+      }
+    }
+  }
+  _defensiveObservation(p) {
     const c = this.carrier(), offense = this.possession, hoop = this.hoop(offense), dir = this.attackDir(offense);
     const opponents = this.active(offense).sort((a, b) => a.slot - b.slot), mode = this.defense[p.team];
     let mark = opponents.find(o => o.slot === p.slot) || opponents[p.slot % Math.max(1, opponents.length)] || this.ball;
+    let key = `${mode}:mark:${mark.id ?? 'ball'}`;
+    const { error } = this._defenseTiming(p), shade = p.defenseProfile.shade * error, cushion = p.defenseProfile.cushion * error;
     if (mode === 'press' && c) {
-      const pressers = this.active(p.team).sort((a, b) => distance(a, c) - distance(b, c)).slice(0, 2);
-      if (pressers.includes(p)) mark = c;
+      const pressureKey = `press:ball:${c.id}`;
+      const pressureDistance = q => distance(q, c) - (q.defenseRead?.key === pressureKey ? 28 : 0);
+      const pressers = this.active(p.team).sort((a, b) => pressureDistance(a) - pressureDistance(b)).slice(0, 2);
+      if (pressers.includes(p)) { mark = c; key = pressureKey; }
     }
     if (mode === 'zone' && distance(this.ball, hoop) < 420) {
       const positions = [[175, 205], [325, 205], [105, 75], [395, 75], [250, 70]];
       const base = positions[p.slot % 5];
-      const zone = { x: base[0] + (this.ball.x - 250) * .16, y: hoop.y - dir * base[1] };
-      if (c && distance(p, c) < 95) mark = c;
-      else return zone;
+      const helpKey = `zone:ball:${c?.id}`;
+      const helpRange = p.defenseRead?.key === helpKey ? 115 : 85;
+      if (c && distance(p, c) < helpRange) { mark = c; key = helpKey; }
+      else return { key: `zone:area:${p.slot}`, x: clamp(base[0] + (this.ball.x - 250) * .16 + shade * .7, 15, 485),
+        y: clamp(hoop.y - dir * (base[1] + cushion * .6), 18, 922) };
     }
     const toward = norm(hoop.x - mark.x, hoop.y - mark.y);
     let gap = mark.id === this.ball.owner ? (mode === 'press' ? 24 : 31) : 34;
     if (distance(mark, hoop) > 440 && mode !== 'press') gap = 70;
-    return { x: clamp(mark.x + toward.x * gap, 15, 485), y: clamp(mark.y + toward.y * gap, 18, 922) };
+    gap = clamp(gap + cushion, 18, 82);
+    return { key, x: clamp(mark.x + toward.x * gap - toward.y * shade, 15, 485),
+      y: clamp(mark.y + toward.y * gap + toward.x * shade, 18, 922) };
+  }
+  _defensiveTarget(p) {
+    const read = p.defenseRead;
+    if (read?.context === this._defenseContext(p)) return { ...read.target };
+    const { x, y } = this._defensiveObservation(p);
+    return { x, y };
   }
   _moveAI(p, dt) {
     const carrier = this.carrier(), isCarrier = carrier?.id === p.id;
@@ -916,7 +994,9 @@ export class Match {
 
   snapshot() {
     return {
-      teams: this.teams, players: this.players.map(p => ({ ...p, ratings: { ...p.ratings }, stats: { ...p.stats } })),
+      teams: this.teams, players: this.players.map(p => ({ ...p, ratings: { ...p.ratings }, stats: { ...p.stats },
+        defenseProfile: { ...p.defenseProfile }, defenseRead: p.defenseRead ? { ...p.defenseRead,
+          target: { ...p.defenseRead.target }, observations: p.defenseRead.observations.map(o => ({ ...o })) } : null })),
       ball: copy(this.ball), score: [...this.score], stats: this.stats.map(s => ({ ...s })),
       period: this.period, clock: this.clock, shotClock: this.shotClock, phase: this.phase, phaseTime: this.phaseTime,
       controlled: this.controlled, possession: this.possession, possessionEpoch: this.possessionEpoch,

@@ -21,7 +21,7 @@ Keep label changes immediate and understandable. With the defaults, A remains A 
 
 ## Touch customization
 
-Keep touch preferences together in a **Touch controls** dialog. In Pocket College Hoops, it is available from **Touch controls** in the lobby, **Pause > Touch controls**, and **Controls & rules > Customize touch controls**. The same dialog contains **Controls size**, **Control opacity**, **Left-handed layout**, and the action assignments. Control opacity defaults to **45%**, adjustable from **10% to 100%**. It changes button and joystick fills and outlines; face letters and action text retain their contrast.
+Keep touch preferences together in a **Touch controls** dialog. In Pocket College Hoops, it is available from **Touch controls** in the lobby, **Pause > Touch controls**, and **Controls & rules > Customize touch controls**. The same dialog contains **Controls size**, **Control opacity**, **Left-handed layout**, and the action assignments. Control opacity defaults to **45%**, adjustable from **10% to 100%**. Fade each whole face button, joystick including its knob, and receiver button, including their letters and text. A live sample in the dialog shows the chosen opacity against a court background as the slider moves. The sample is for viewing and does not accept gameplay input; pressed controls keep the chosen opacity while their fill and border provide feedback.
 
 The letters retain their fixed Xbox positions; the player assigns the action pairs to those positions. Move each possession-sensitive pair together: PASS/SWITCH, SHOOT/STEAL, THRU PASS/BLOCK, and SPRINT. Choosing an action already assigned elsewhere swaps the two assignments, keeping all four pairs reachable exactly once.
 
@@ -65,7 +65,9 @@ The guard suppresses accidental shooting, not movement or a deliberate pass. Cle
 
 Steer toward the intended runner before pressing THRU PASS. An alley-oop requires a suitable teammate near the rim and an attack aimed toward the basket from close enough range. The button changes from **THRU** to **LOB** when the current aim and positions allow that pass. The lob is a pass until the teammate reaches it; it must not count as a shot or score merely because it travels toward the hoop. Call **High pick & roll** in the playbook to bring a screener up; Y no longer calls the screen directly.
 
-Give a made basket a readable beat before restarting the next possession. Pocket College Hoops holds the scoring scene for **1.0 second**, followed by a **1.25-second** assisted inbound. This also follows a made final free throw. Pause both clocks during that reset and inbound. Preserve steering and sprint holds, but do not accept or queue a shot during the reset. A made basket with an additional free throw keeps the free-throw sequence; a basket that ends the period proceeds to the period break.
+Give a made basket a readable beat before restarting the next possession. Pocket College Hoops holds the scoring scene for **1.0 simulation second**, followed by **1.25 simulation seconds** for an assisted inbound. This also follows a made final free throw. Pause both clocks during that reset and inbound. Preserve steering and sprint holds, but do not accept or queue a shot during the reset. A made basket with an additional free throw keeps the free-throw sequence; a basket that ends the period proceeds to the period break.
+
+Pocket College Hoops defaults to **80% game pace**, adjustable from **60% to 100% in 5-point steps** in the lobby and Pause. Apply that pace to movement, ball travel, AI reaction timing, clocks, cooldowns, restarts, and the shot meter together. The green release target keeps its place in the meter; lower pace gives the player more real time to reach it. At 80%, a full shot hold takes **1.5 real seconds**, the approximately 500 ms possession guard takes **625 ms**, and the scoring reset plus inbound takes about **2.8 seconds**. Menus clear held actions before a pace change, and replay runs at half the selected pace. Keep interface feedback and camera movement responsive while the game slows.
 
 The face-button letters describe the **on-screen touch layout**. Pocket College Hoops supports keyboard and touch input; the diamond alone does not add physical gamepad support. Only advertise connected-controller support after that input path is implemented and verified.
 
@@ -84,9 +86,11 @@ When implementing or revising a controller, verify these behaviors in the actual
 - Hold movement with one finger and use an action with another: both retain independent ownership.
 - Swap two touch assignments: all four action pairs remain available, and their labels and accessible names follow the new positions.
 - Reload in the same browser: custom preferences return. Use Reset button mapping: B returns to SHOOT/STEAL and X to SPRINT, with A PASS/SWITCH and Y THRU PASS/BLOCK; controls size, opacity, and handedness stay as chosen.
+- Drag Control opacity: the whole controls and the in-dialog sample visibly fade, including their text. Confirm the chosen value saves and returns after reload, and the sample cannot trigger gameplay.
 - Load an older saved SCREEN/BLOCK assignment: THRU PASS/BLOCK takes its existing slot without rearranging the other actions.
 - Use THRU PASS with a teammate running ahead: a pass leads that player. An alley-oop needs a real catch and finish; a missed lob or a horn before the catch must not register an automatic shot or basket.
 - After a made basket, score once and pause both clocks through the reset and inbound. Preserve the additional free throw on an and-one and end the period correctly on a buzzer-beating finish.
+- Lower game pace: player movement, pass and shot travel, reaction timing, restarts, clocks, and the shot meter slow together. Change pace from Pause: no held action survives, and resuming causes no catch-up burst. Replay remains slower than live play and does not advance the match.
 - Confirm touch customization leaves keyboard actions unchanged, the internal Y/X/B/A diamond stays fixed, and portrait/landscape preserve screen-relative movement. Check physical-controller equivalents only in games that implement them.
 
 Adopt the standard deliberately in each game and verify its existing controls when doing so. Documentation alone does not retrofit another game's controller.
