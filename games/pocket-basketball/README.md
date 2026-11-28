@@ -33,23 +33,36 @@ Do not publish the repository root: it contains other DFE projects. The new game
 
 ## Controls
 
-| Action | Keyboard | Touch |
+The primary buttons follow the [Pocket Sports controller standard](../../docs/pocket-sports-controls.md): a fixed Xbox-style right-thumb diamond with **Y on top, X left, B right, A bottom**. The letters and positions stay fixed; their action labels follow possession. Left-handed mode moves the cluster without rearranging its internal diamond.
+
+| Touch button | Offense | Defense / recovery | Keyboard |
+| --- | --- | --- | --- |
+| **A · bottom** | PASS | SWITCH to nearest eligible teammate to the ball | J |
+| **X · left** | SHOOT / free throw: hold and release near green | STEAL on press | Space |
+| **Y · top** | SCREEN | BLOCK | L for screen/block; R also blocks |
+| **B · right** | SPRINT | SPRINT | Hold Shift or K |
+
+| Other action | Keyboard / pointer | Touch |
 | --- | --- | --- |
 | Move | WASD or arrows | Left stick |
-| Shoot / free throw | Hold Space; release near green | Hold SHOOT; release near green |
-| Pass / switch on defense | J | PASS / SWITCH |
-| Direct pass | Click teammate | Tap teammate or A–D receiver |
-| Sprint | Hold Shift or K | Hold SPRINT |
-| Switch defender | Q or Tab | SWITCH or tap defender |
-| Steal | E | STEAL |
-| Contest / block | Space | BLOCK |
-| Screen | L | SCREEN |
+| Switch alias | Q or Tab | A / SWITCH |
+| Legacy steal alias | E | X / STEAL |
+| Direct pass | Click teammate | Tap teammate or receiver button |
+| Direct defender selection | Click defender | Tap defender |
 | Play call | 1–4 | Plays panel |
 | Contain | Hold C or Control | Position your defender manually |
 | Timeout | T | Timeout in playbook |
 | Pause | P / Escape | Pause button |
 
-Movement always follows the screen orientation. The selected player has a gold ring. On possession changes, control goes to the new ballhandler or an appropriate defender. Opening menus cancels held actions; automatic dead balls keep movement ownership. A held shot is canceled when its player/possession context changes.
+The face-button labels describe the on-screen touch controls. Keyboard and touch are supported; physical gamepad input is not implemented by this layout.
+
+Movement always follows the screen orientation. The selected player has a gold ring. On possession changes, control goes to the new ballhandler or an appropriate defender. A changes from PASS to SWITCH, X from SHOOT to STEAL, and Y from SCREEN to BLOCK; B stays SPRINT.
+
+Winning team possession clears incompatible held actions and starts a roughly 500 ms shot guard measured in simulation time. A fresh release/press is also required, preventing a held steal from turning into an accidental shot. Presses during the guard are discarded rather than queued; movement and deliberate passing remain available. An offensive rebound does not need a new turnover guard, but held inputs still require a new press. Own-team passes keep offensive labels during flight, with no queued shots before the catch; shots and other loose balls use recovery controls until secured.
+
+Held movement and sprint continue through possession changes and automatic dead balls; opening menus or losing focus clears held inputs. A held shot is canceled when its player/possession context changes.
+
+Players run faster without the ball than while dribbling. Wider corners and weak-side outlets, one motion cutter at a time, and a big who clears the driving lane keep the offense spread out. Only the closest recovery players chase loose rebounds; the others preserve passing outlets. Physical separation, slimmer player silhouettes, and separated position badges make close matchups easier to read.
 
 ## Deliberate arcade rules
 
@@ -78,6 +91,6 @@ Run from the repository root:
 node --test games/pocket-basketball/tests/*.test.mjs
 ```
 
-The first-release suite covers scoring, shot timing/contest/range, pass flight and receiver control, rebounds, possession/shot-clock changes, backcourt violations, fouls and free throws, substitutions, halftime/overtime, completed CPU games, snapshot isolation, independent touch ownership, canceled shots, mute/hidden-page audio, and Cup advancement/save corruption.
+The 63-test suite covers scoring, shot timing/contest/range, pass flight and receiver control, rebounds, possession/shot-clock changes, backcourt violations, fouls and free throws, substitutions, halftime/overtime, completed CPU games, snapshot isolation, independent touch ownership, canceled shots, possession-sensitive actions, turnover shot guards, faster off-ball movement, offensive spacing, body separation, mute/hidden-page audio, and Cup advancement/save corruption.
 
 Browser review covered the desktop game, controls and shot release, pause/settings, and responsive 390×844 portrait / 844×390 landscape layouts, including mobile playbook selection. Mobile viewport checks used a browser fixture; physical iPhone touch feel and speaker behavior still need hands-on review. QA fixtures are not part of the published application.

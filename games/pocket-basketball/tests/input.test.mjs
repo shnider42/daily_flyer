@@ -31,15 +31,17 @@ class Surface {
   }
 }
 
-function setup() {
+function setup({ context, onAction } = {}) {
   const win = globalThis.window = new Surface();
   const doc = globalThis.document = new Surface();
   doc.hidden = false;
-  const nodes = Object.fromEntries(['stick','knob','shoot','pass','sprint','steal','switcher','screen']
+  const nodes = Object.fromEntries(['stick','knob','shoot','pass','sprint','steal','block','switcher','screen']
     .map((name) => [name, new Surface()]));
   const actions = [];
   const state = { active: true, pauses: 0 };
-  const input = new Controls({ ...nodes, onAction: (name, payload) => actions.push({ name, payload }),
+  const input = new Controls({ ...nodes, context, onAction: (name, payload) => {
+    actions.push({ name, payload }); onAction?.(name, payload);
+  },
     onPause: () => state.pauses++, active: () => state.active });
   return { win, doc, ...nodes, input, actions, state };
 }
@@ -153,6 +155,117 @@ test('keyboard mappings act once and holding sprint is independent of movement',
   win.emit('keydown', { key: 'Escape' });
   assert.equal(state.pauses, 1);
   assert.equal(input.read().sprint, false);
+});
+
+test('the same pass key and touch surface switch on defense, with block kept separate', () => {
+  let context = { offense: true, canShoot: true, token: 'offense', possessionEpoch: 2 };
+  const { win, pass, block, screen, actions } = setup({ context: () => context });
+  screen.emit('pointerdown', { pointerId: 9 });
+  win.emit('keydown', { key: 'j' });
+  win.emit('keyup', { key: 'j' });
+  context = { offense: false, canShoot: false, token: 'defense', possessionEpoch: 3 };
+  win.emit('keydown', { key: 'j' });
+  win.emit('keyup', { key: 'j' });
+  pass.emit('pointerdown', { pointerId: 1 });
+  block.emit('pointerdown', { pointerId: 2 });
+  screen.emit('pointerdown', { pointerId: 10 });
+  win.emit('keydown', { key: 'r' });
+  assert.deepEqual(actions.map(a => a.name), ['screen', 'pass', 'switch', 'switch', 'block', 'block', 'block']);
+  assert.equal(actions[1].payload.possessionEpoch, 2);
+  assert.equal(actions[2].payload.possessionEpoch, 3);
+});
+
+test('a touch steal acts on press and its held thumb cannot shoot after winning the ball', () => {
+  let context = { offense: false, canShoot: false, token: 'defense', possessionEpoch: 1 };
+  const { win, stick, sprint, shoot, input, actions } = setup({ context: () => context,
+    onAction(name) {
+      if (name === 'steal') context = { offense: true, canShoot: false, token: 'won', possessionEpoch: 2 };
+    }
+  });
+  stick.emit('pointerdown', { pointerId: 1, clientX: 115, clientY: 60 });
+  sprint.emit('pointerdown', { pointerId: 2 });
+  shoot.emit('pointerdown', { pointerId: 3 });
+  assert.deepEqual(actions.map(a => a.name), ['steal']);
+  assert.equal(input.charging, false);
+  context.canShoot = true; // The settling period expires while the thumb remains down.
+  input.syncContext();
+  assert.equal(input.charging, false);
+  win.emit('pointerup', { pointerId: 3 });
+  assert.deepEqual(actions.map(a => a.name), ['steal']);
+  assert.equal(input.read().x, 1);
+  assert.equal(input.read().sprint, true);
+  shoot.emit('pointerdown', { pointerId: 4 });
+  assert.equal(input.charging, true);
+  win.emit('pointerup', { pointerId: 4 });
+  assert.deepEqual(actions.map(a => a.name), ['steal', 'shoot']);
+});
+
+test('held Space and keyboard repeat cannot turn a steal into a shot', () => {
+  let context = { offense: false, canShoot: false, token: 'defense', possessionEpoch: 1 };
+  const { win, input, actions } = setup({ context: () => context });
+  win.emit('keydown', { key: ' ', code: 'Space' });
+  assert.deepEqual(actions.map(a => a.name), ['steal']);
+  context = { offense: true, canShoot: true, token: 'won', possessionEpoch: 2 };
+  input.syncContext();
+  win.emit('keydown', { key: ' ', code: 'Space', repeat: true });
+  win.emit('keydown', { key: ' ', code: 'Space', repeat: false });
+  win.emit('keyup', { key: ' ', code: 'Space' });
+  assert.deepEqual(actions.map(a => a.name), ['steal']);
+  win.emit('keydown', { key: ' ', code: 'Space' });
+  win.emit('keyup', { key: ' ', code: 'Space' });
+  assert.deepEqual(actions.map(a => a.name), ['steal', 'shoot']);
+});
+
+test('a press during the shooting guard is discarded, never queued for its expiry', () => {
+  const context = { offense: true, canShoot: false, token: 'won', possessionEpoch: 4 };
+  const { win, shoot, input, actions } = setup({ context: () => context });
+  shoot.emit('pointerdown', { pointerId: 1 });
+  assert.equal(input.charging, false);
+  context.canShoot = true;
+  input.syncContext();
+  win.emit('pointerup', { pointerId: 1 });
+  assert.deepEqual(actions, []);
+  shoot.emit('pointerdown', { pointerId: 2 });
+  win.emit('pointerup', { pointerId: 2 });
+  assert.deepEqual(actions.map(a => a.name), ['shoot']);
+});
+
+test('losing and regaining possession invalidates an old shot even with the same player', () => {
+  let context = { offense: true, canShoot: true, token: '1/player0', possessionEpoch: 1 };
+  const { win, shoot, input, actions } = setup({ context: () => context });
+  shoot.emit('pointerdown', { pointerId: 1 });
+  assert.equal(input.charging, true);
+  // Both turnovers can happen before the next input read; the epoch preserves them.
+  context = { offense: true, canShoot: true, token: '3/player0', possessionEpoch: 3 };
+  win.emit('pointerup', { pointerId: 1 });
+  assert.equal(input.charging, false);
+  assert.deepEqual(actions, []);
+});
+
+test('changing controlled players cancels the held shot without clearing movement', () => {
+  let context = { offense: true, canShoot: true, token: 'player0' };
+  const { win, input, actions } = setup({ context: () => context });
+  win.emit('keydown', { key: 'w' });
+  win.emit('keydown', { key: 'Shift' });
+  win.emit('keydown', { key: ' ', code: 'Space' });
+  context = { offense: true, canShoot: true, token: 'player1' };
+  input.syncContext();
+  win.emit('keyup', { key: ' ', code: 'Space' });
+  assert.deepEqual(actions, []);
+  assert.equal(input.read().y, -1);
+  assert.equal(input.read().sprint, true);
+});
+
+test('assistive clicks follow possession and respect the shot guard', () => {
+  let context = { offense: false, canShoot: false, token: 'defense' };
+  const { pass, shoot, actions } = setup({ context: () => context });
+  pass.emit('click', { detail: 0 });
+  shoot.emit('click', { detail: 0 });
+  context = { offense: true, canShoot: false, token: 'won' };
+  shoot.emit('click', { detail: 0 });
+  context.canShoot = true;
+  shoot.emit('click', { detail: 0 });
+  assert.deepEqual(actions.map(a => a.name), ['switch', 'steal', 'shoot']);
 });
 
 test('audio defaults muted and visibility restoration alone cannot create an AudioContext', () => {

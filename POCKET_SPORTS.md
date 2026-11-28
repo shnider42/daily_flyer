@@ -5,6 +5,8 @@ roster provider, browser saves and match events. The live browser build is in
 `daily_flyer/themes/pocket_sports_assets/`; a Flask backend is available in `daily_flyer/sports.py` and integrates into DailyFlyer
 as a blueprint. No build step or paid API is needed for the playable client.
 
+For new games and future input revisions, follow the [Pocket Sports controller standard](docs/pocket-sports-controls.md): a fixed Xbox-style Y/X/B/A touch diamond, possession-sensitive action labels, and no action carryover after turnovers. Face-button labels alone do not imply physical gamepad support. The game-specific sections below describe their existing releases; adopting the standard requires an explicit implementation and verification in each game.
+
 - Hockey: 6 players per side, all 32 NHL clubs, momentum, rebounds, checking,
   goalie saves, three periods and golden-goal overtime.
 - Soccer: 11 players per side, the completed 2025/26 Champions League round of 16,

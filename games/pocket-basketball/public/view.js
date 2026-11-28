@@ -3,6 +3,7 @@ const W = 500, H = 940, MARGIN = 60;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const TAU = Math.PI * 2;
 const FONT = 'ui-monospace, SFMono-Regular, Consolas, monospace';
+const FLOOR_ROLES = ['PG', 'SG', 'SF', 'PF', 'C'];
 const lastName = name => String(name || '').trim().split(' ').at(-1);
 const activePlayers = game => (game?.players || []).filter(player => player.active);
 function attackDir(game, team) {
@@ -30,7 +31,7 @@ export class CourtView {
     this.width = 0; this.height = 0; this.dpr = 1; this.scale = 1; this.rotated = false;
     this.center = { x: 250, y: 470 }; this.ready = false;
     this.arena = null; this.arenaKey = ''; this.flash = null; this.lastEventId = null;
-    this.lastScore = null; this.screenPlayers = [];
+    this.lastScore = null; this.screenPlayers = []; this.labels = []; this.labelSlots = new Map();
   }
 
   _resize() {
@@ -70,8 +71,13 @@ export class CourtView {
   hitPlayer(clientX, clientY, game) {
     if (!this.ready) return null;
     const rect = this.canvas.getBoundingClientRect(), x = clientX - rect.left, y = clientY - rect.top;
+    const active = activePlayers(game);
+    for (const label of this.labels) {
+      if (x >= label.left && x <= label.right && y >= label.top && y <= label.bottom
+        && active.some(p => p.id === label.id)) return label.id;
+    }
     let nearest = null, best = 30;
-    for (const p of activePlayers(game)) {
+    for (const p of active) {
       const screen = this._point(p.x, p.y), unit = this._spriteUnit(p);
       const distance = Math.hypot(x - screen.x, y - (screen.y - 11 * unit));
       if (distance < best) { nearest = p.id; best = distance; }
@@ -179,7 +185,9 @@ export class CourtView {
   }
 
   _spriteUnit(player) {
-    return clamp(this.scale * 1.13, .98, 1.65) * (1 + ((player.height || 79) - 79) * .006);
+    // Keep a readable ~15 × 29 px minimum without the previous 20 px-wide
+    // mobile silhouette overwhelming a court that may scale to .45 px/unit.
+    return Math.max(.84, clamp(this.scale * .98, .84, 1.5) * (1 + ((player.height || 79) - 79) * .006));
   }
 
   _drawPlayer(ctx, p, game, time, options) {
@@ -194,21 +202,28 @@ export class CourtView {
     const number = p.team === 0 ? '#fffdf4' : '#192637';
     // Ground markings stay still beneath the player's jumping body.
     ctx.save(); ctx.translate(position.x, position.y);
-    ctx.fillStyle = '#1d221950'; ctx.beginPath(); ctx.ellipse(0, 2, 10 * u, 4.5 * u, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#1d22194a'; ctx.beginPath(); ctx.ellipse(0, 2, 8.5 * u, 3.8 * u, 0, 0, TAU); ctx.fill();
     if (selected) {
-      ctx.strokeStyle = '#111c28'; ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.ellipse(0, 1, 13 * u, 7.8 * u, 0, 0, TAU); ctx.stroke();
-      ctx.strokeStyle = '#ffe060'; ctx.lineWidth = 2.8; ctx.stroke();
-      ctx.fillStyle = '#ffe060'; ctx.beginPath(); ctx.moveTo(-4, 13 * u); ctx.lineTo(4, 13 * u); ctx.lineTo(0, 7 * u); ctx.fill();
+      ctx.strokeStyle = '#0b1825'; ctx.lineWidth = 4.5;
+      ctx.beginPath(); ctx.ellipse(0, 1, 10.5 * u, 5.8 * u, 0, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = '#ffe060'; ctx.lineWidth = 2.2; ctx.stroke();
+      ctx.fillStyle = '#ffe060'; ctx.beginPath(); ctx.moveTo(-3, 11 * u); ctx.lineTo(3, 11 * u); ctx.lineTo(0, 6 * u); ctx.fill();
     }
     ctx.translate(0, -lift); ctx.scale(u, u);
     const skin = p.skin || '#b78058';
     // Pixel-inspired silhouettes with independent legs, arms and a clear jersey.
+    const armTop = shooting ? -29 : -21;
+    ctx.beginPath();
+    [[-5,-32],[5,-32],[5,-24],[7,-23],[9,armTop],[9,-10],[7,-9],[7,-4],[9,-2],[9,1],
+      [2,1],[2,-5],[-2,-5],[-2,1],[-9,1],[-9,-2],[-7,-4],[-7,-9],[-9,-10],[-9,armTop],[-7,-23],[-5,-24]]
+      .forEach(([x,y],i) => i ? ctx.lineTo(x,y) : ctx.moveTo(x,y));
+    ctx.closePath(); ctx.lineJoin = 'round'; ctx.fillStyle = '#0a1721'; ctx.fill();
+    ctx.strokeStyle = selected ? '#ffe49c' : '#0a1721'; ctx.lineWidth = selected ? 1.7 : 1.5; ctx.stroke();
     ctx.fillStyle = '#18202b'; ctx.fillRect(-7, -7 + stride * 2, 5, 7); ctx.fillRect(2, -7 - stride * 2, 5, 7);
     ctx.fillStyle = '#f3f0df'; ctx.fillRect(-8, -2 + stride * 2, 7, 3); ctx.fillRect(2, -2 - stride * 2, 7, 3);
     ctx.fillStyle = skin;
-    ctx.fillRect(-10, shooting ? -29 : -21 + stride * 2, 4, shooting ? 13 : 11);
-    ctx.fillRect(6, shooting ? -29 : -21 - stride * 2, 4, shooting ? 13 : 11);
+    ctx.fillRect(-9, shooting ? -29 : -21 + stride * 2, 3, shooting ? 13 : 11);
+    ctx.fillRect(6, shooting ? -29 : -21 - stride * 2, 3, shooting ? 13 : 11);
     ctx.fillStyle = '#111923'; ctx.fillRect(-8, -23, 16, 17);
     ctx.fillStyle = jersey; ctx.fillRect(-7, -23, 14, 14);
     ctx.fillRect(-7, -11, 6, 6); ctx.fillRect(1, -11, 6, 6);
@@ -218,14 +233,11 @@ export class CourtView {
     ctx.fillStyle = skin; ctx.fillRect(-5, -31, 10, 9); ctx.fillRect(-3, -24, 6, 3);
     ctx.fillStyle = '#211b19'; ctx.fillRect(-5, -32, 10, 3); ctx.fillRect(-5, -31, 2, 4);
     ctx.fillStyle = '#f3cb9b55'; ctx.fillRect(-2, -28, 4, 2);
-    ctx.font = `900 8px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `900 ${Math.max(8, 8 / u)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.lineWidth = 1.2; ctx.strokeStyle = p.team === 0 ? '#07131c' : '#faf8ec';
     ctx.strokeText(String(p.number ?? p.slot + 1), 0, -16); ctx.fillStyle = number;
     ctx.fillText(String(p.number ?? p.slot + 1), 0, -16);
     ctx.restore();
-    if (!options.preview && options.showNames && selected) {
-      strokeText(ctx, lastName(p.name).toUpperCase(), position.x, position.y - 40 * u - lift, '#ffe176', clamp(10 * u, 10, 13));
-    }
   }
 
   _guidance(ctx, game, players, options) {
@@ -243,15 +255,6 @@ export class CourtView {
       ctx.setLineDash([]); circle(ctx, to.x, to.y, 13, null, '#ffe176aa', 2); ctx.restore();
     }
     if (options.guidance !== 'simple') return;
-    const receivers = typeof game.receivers === 'function' ? game.receivers()
-      : players.filter(p => p.team === human && p.id !== game.ball.owner).sort((a, b) => a.slot - b.slot);
-    receivers.slice(0, 4).forEach((p, i) => {
-      const point = this._point(p.x, p.y), u = this._spriteUnit(p);
-      const y = point.y - 41 * u;
-      ctx.fillStyle = '#0b2437ed'; ctx.fillRect(point.x - 9, y - 9, 18, 18);
-      ctx.strokeStyle = '#fff0b1a8'; ctx.lineWidth = 1; ctx.strokeRect(point.x - 9, y - 9, 18, 18);
-      strokeText(ctx, 'ABCD'[i], point.x, y + .5, '#fff1bd', 11);
-    });
     // One unobtrusive early-possession diagram shows the current call's purpose.
     if ((game.playTime || 0) < 2.6 && game.phase === 'live') {
       const call = game.offense?.[human], dir = attackDir(game, human);
@@ -263,6 +266,66 @@ export class CourtView {
         ctx.save(); ctx.setLineDash([3, 7]); line(ctx, [[start.x, start.y], [target.x, target.y]], '#fff4cc60', 1.3);
         ctx.setLineDash([]); circle(ctx, target.x, target.y, 7, null, '#fff4cc60', 1.2); ctx.restore();
       }
+    }
+  }
+
+  _drawLabels(ctx, game, players, options) {
+    this.labels = [];
+    if (options.preview) return;
+    const controlled = players.find(p => p.id === game.controlled), requests = [];
+    if (controlled && options.showNames) requests.push({ player: controlled, text: lastName(controlled.name).toUpperCase(), selected: true });
+    const human = game.human < 0 ? game.possession : game.human;
+    const carrier = players.find(p => p.id === game.ball?.owner);
+    if (options.guidance === 'simple' && game.phase !== 'finished' && carrier?.team === human) {
+      const receivers = typeof game.receivers === 'function' ? game.receivers()
+        : players.filter(p => p.team === human && p.id !== game.ball.owner).sort((a, b) => a.slot - b.slot);
+      for (const player of receivers.slice(0, 4)) requests.push({ player, text: FLOOR_ROLES[player.slot] || player.position || 'P', selected: false });
+    }
+    const overlap = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+      * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+    for (const { player, text, selected } of requests) {
+      const sprite = this.screenPlayers.find(p => p.id === player.id);
+      if (!sprite || sprite.x < -15 || sprite.x > this.width + 15 || sprite.y < -15 || sprite.y > this.height + 40) continue;
+      const size = selected ? clamp(10 * sprite.unit, 10, 12) : 11;
+      ctx.font = `800 ${size}px ${FONT}`;
+      const width = Math.ceil(ctx.measureText(text).width) + 12, height = selected ? 19 : 18;
+      const top = sprite.top - sprite.y, side = width / 2 + 13 * sprite.unit;
+      const candidates = [[0,top-13],[side,top+13],[-side,top+13],[0,19],
+        [side,top-10],[-side,top-10],[0,top-35],[side,22],[-side,22],[0,40],
+        [side+24,top-32],[-side-24,top-32],[0,top-57]];
+      let best = null, bestScore = Infinity;
+      const key = `${selected ? 'name' : 'role'}:${player.id}`, previous = this.labelSlots.get(key);
+      for (let index = 0; index < candidates.length; index++) {
+        const [dx,dy] = candidates[index];
+        const left = clamp(sprite.x + dx - width / 2, 4, Math.max(4, this.width - width - 4));
+        const upper = clamp(sprite.y + dy - height / 2, 5, Math.max(5, this.height - height - 5));
+        const box = { id: player.id, text, selected, left, right: left + width, top: upper, bottom: upper + height, size };
+        let score = Math.hypot(dx, dy - top + 13) * .12 + (index === previous ? -2 : 0);
+        for (const body of this.screenPlayers) score += overlap(box, body) * 3;
+        for (const label of this.labels) score += overlap(box, label) * 40;
+        if (score < bestScore) { bestScore = score; best = { ...box, index }; }
+      }
+      this.labelSlots.set(key, best.index);
+      best.anchor = { x: sprite.x, y: sprite.top + 2 };
+      best.end = { x: clamp(best.anchor.x, best.left + 3, best.right - 3), y: clamp(best.anchor.y, best.top + 2, best.bottom - 2) };
+      this.labels.push(best);
+    }
+    // Draw all leaders underneath all labels, so a displaced teammate's line
+    // cannot strike through the selected player's name or another role badge.
+    for (const { anchor, end, selected } of this.labels) {
+      if (Math.hypot(end.x - anchor.x, end.y - anchor.y) > 4) {
+        line(ctx, [[anchor.x,anchor.y],[end.x,end.y]], '#092235c9', 3);
+        line(ctx, [[anchor.x,anchor.y],[end.x,end.y]], selected ? '#ffe176c9' : '#d8e9d4a8', 1);
+      }
+    }
+    for (const best of this.labels) {
+      const { selected, text, size } = best, width = best.right - best.left, height = best.bottom - best.top;
+      ctx.fillStyle = selected ? '#102638ef' : '#102b3ee8';
+      ctx.fillRect(best.left, best.top, width, height);
+      ctx.strokeStyle = selected ? '#ffe176' : '#b8d5d0'; ctx.lineWidth = 1;
+      ctx.strokeRect(best.left + .5, best.top + .5, width - 1, height - 1);
+      strokeText(ctx, text, (best.left + best.right) / 2, (best.top + best.bottom) / 2 + .5,
+        selected ? '#ffe176' : '#fff1ce', size);
     }
   }
 
@@ -318,14 +381,20 @@ export class CourtView {
       ctx.save(); ctx.globalAlpha = clamp(this.flash.remaining * 2, 0, 1);
       circle(ctx, hoop.x, hoop.y, (19 - this.flash.remaining * 12) * Math.max(.8, this.scale), null, '#fff4a9', 3); ctx.restore();
     }
+    this.screenPlayers = players.map(player => {
+      const point = this._point(player.x, player.y), unit = this._spriteUnit(player);
+      const lift = Math.min(9, Math.max(0, player.jump || 0) * 19) * unit;
+      return { id: player.id, ...point, unit, left: point.x - 10 * unit, right: point.x + 10 * unit,
+        top: point.y - 33 * unit - lift, bottom: point.y + 3 * unit };
+    });
     this._guidance(ctx, game, players, options);
     // Sort on screen-ground depth; player text always remains upright.
     players.sort((a, b) => this.rotated ? a.x - b.x : a.y - b.y);
     const animationTime = Number.isFinite(game.elapsed) ? game.elapsed : time;
     for (const player of players) this._drawPlayer(ctx, player, game, animationTime, options);
     this._drawBall(ctx, game, animationTime);
-    // Passing badges are deliberately redrawn above sprites in a crowded lane.
-    if (!preview && guidance === 'simple') this._guidance(ctx, game, players, { ...options, charging: false });
+    // One final label pass separates role badges and the selected-player name.
+    this._drawLabels(ctx, game, players, options);
     if (!preview && guidance !== 'expert' && this.width > 320) {
       const human = game.human < 0 ? game.possession : game.human;
       const hoop = this._point(250, attackDir(game, human) < 0 ? 52.5 : 887.5);

@@ -7,14 +7,18 @@ const editable = (target) => !!target?.closest?.('input, select, textarea, [cont
 
 /** Pocket Sports input. Coordinates are screen coordinates: positive Y is down. */
 export class Controls {
-  constructor({ stick, knob, shoot, pass, sprint, steal, switcher, screen,
-    onAction = () => {}, onPause = () => {}, active = () => true, settings = {} } = {}) {
-    Object.assign(this, { stick, knob, shoot, sprint, onAction, onPause, active, settings });
+  constructor({ stick, knob, shoot, pass, sprint, steal, block, switcher, screen,
+    onAction = () => {}, onPause = () => {}, active = () => true, settings = {},
+    context = () => ({ offense: true, canShoot: true, token: 'default' }) } = {}) {
+    Object.assign(this, { stick, knob, shoot, sprint, onAction, onPause, active, settings, context });
     this.keys = Object.create(null);
     this._stick = { x: 0, y: 0 };
     this._stickPointer = null;
     this._sprintPointers = new Set();
     this._shotOwner = null;
+    this._shotAction = null;
+    this._shotContext = null;
+    this._lastContext = null;
     this._shotStarted = 0;
     this._keyboardShotClickUntil = 0;
     this._listeners = [];
@@ -31,6 +35,7 @@ export class Controls {
     };
     actionButton(pass, 'pass');
     actionButton(steal, 'steal');
+    actionButton(block, 'block');
     actionButton(switcher, 'switch');
     actionButton(screen, 'screen');
 
@@ -125,7 +130,26 @@ export class Controls {
   }
 
   _emit(name, payload) {
-    if (this._isActive()) this.onAction(name, payload);
+    if (!this._isActive()) return;
+    const context = this.syncContext();
+    if (name === 'pass' && !context.offense) name = 'switch';
+    if (name === 'screen' && !context.offense) name = 'block';
+    // Assistive clicks do not have a physical hold/release pair.
+    if (name === 'shoot') {
+      if (!context.offense) name = 'steal';
+      else if (!context.canShoot) return;
+    }
+    const actionPayload = context.possessionEpoch === undefined ? payload :
+      { ...payload, possessionEpoch: context.possessionEpoch };
+    this.onAction(name, actionPayload);
+    this.syncContext();
+  }
+
+  syncContext() {
+    const context = typeof this.context === 'function' ? this.context() : this.context;
+    if (this._lastContext && context.token !== this._lastContext.token) this.cancelShot();
+    this._lastContext = context;
+    return context;
   }
 
   _capture(node, id) {
@@ -163,20 +187,31 @@ export class Controls {
 
   _startShot(owner) {
     if (this._shotOwner !== null) return;
+    const context = this.syncContext();
+    // Own the physical press even when shooting is temporarily unavailable.
+    // Expiring a guard or gaining possession must not turn it into a new press.
     this._shotOwner = owner;
+    this._shotAction = context.offense ? (context.canShoot ? 'shoot' : null) : 'steal';
+    this._shotContext = context.token;
     this._shotStarted = now();
     this.shoot?.classList?.add('is-pressed');
+    if (this._shotAction === 'steal') this._emit('steal');
   }
 
   _finishShot(fire) {
     if (this._shotOwner === null) return;
+    const context = this.syncContext();
+    const canFire = this._shotAction === 'shoot' && context.offense && context.canShoot &&
+      this._shotContext === context.token;
     const timing = this.charge;
     const owner = this._shotOwner;
     this._shotOwner = null;
+    this._shotAction = null;
+    this._shotContext = null;
     this._shotStarted = 0;
     this.shoot?.classList?.remove('is-pressed');
     if (owner === 'keyboard') this._keyboardShotClickUntil = now() + 100;
-    if (fire) this._emit('shoot', { timing });
+    if (fire && canFire) this._emit('shoot', { timing });
   }
 
   _endPointer(event, fire) {
@@ -196,14 +231,16 @@ export class Controls {
     if (!this._isActive()) return;
     const space = event.code === 'Space' || key === ' ' || key === 'spacebar';
     const gameplay = space || ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',
-      'j','k','shift','e','q','tab','l','t','1','2','3','4','c','control'].includes(key);
+      'j','k','shift','e','r','q','tab','l','t','1','2','3','4','c','control'].includes(key);
     if (!gameplay) return;
     event.preventDefault();
+    const held = this.keys[key];
     this.keys[key] = true;
-    if (event.repeat) return;
+    if (event.repeat || held) return;
     if (space) this._startShot('keyboard');
     else if (key === 'j') this._emit('pass');
     else if (key === 'e') this._emit('steal');
+    else if (key === 'r') this._emit('block');
     else if (key === 'q' || key === 'tab') this._emit('switch');
     else if (key === 'l') this._emit('screen');
     else if (key === 't') this._emit('timeout');
@@ -221,17 +258,20 @@ export class Controls {
     }
   }
 
-  get charging() { return this._shotOwner !== null; }
+  get charging() { return this._shotOwner !== null && this._shotAction === 'shoot'; }
   get charge() { return this.charging ? clamp01((now() - this._shotStarted) / SHOT_HOLD_MS) : 0; }
 
   cancelShot() {
-    const owner = this._shotOwner;
-    this._finishShot(false);
-    this._release(this.shoot, owner);
+    // Cancel intent, not ownership: a held thumb/key must still be released.
+    this._shotAction = null;
+    this._shotContext = null;
+    this._shotStarted = 0;
+    this.shoot?.classList?.remove('is-pressed');
   }
 
   read() {
     if (!this._isActive()) { this.clear(); return { x: 0, y: 0, sprint: false, contain: false }; }
+    this.syncContext();
     const movement = movementInput(this._stick, this.keys);
     const settings = typeof this.settings === 'function' ? this.settings() : this.settings;
     return { x: movement.x, y: -movement.y,
@@ -246,6 +286,7 @@ export class Controls {
     this.keys = Object.create(null);
     this._resetStick();
     this._finishShot(false);
+    this._lastContext = null;
     this._sprintPointers.clear();
     this._assistiveSprint = false;
     this.sprint?.classList?.remove('is-pressed');

@@ -3,7 +3,9 @@
 // are deliberate arcade choices. Ratings are original game balancing values.
 export const COURT = Object.freeze({ width: 500, height: 940, W: 500, H: 940,
   hoopInset: 52.5, threeRadius: 221.4583, cornerThree: 216.5,
-  laneWidth: 120, freeThrowLine: 190, playerRadius: 11 });
+  laneWidth: 120, freeThrowLine: 190, playerRadius: 14 });
+export const POSSESSION_SHOT_GRACE = .5;
+export const OFF_BALL_SPEED_MULTIPLIER = 1.25;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const norm = (x, y) => { const n = Math.hypot(x, y) || 1; return { x: x / n, y: y / n }; };
@@ -48,7 +50,8 @@ export class Match {
     this.score = [0, 0]; this.stats = [freshStats(), freshStats()];
     this.period = 1; this.clock = this.halfSeconds; this.shotClock = 30;
     this.phase = 'inbound'; this.phaseTime = .8; this.playTime = 0; this.elapsed = 0;
-    this.possession = 0; this.controlled = null; this.teamFouls = [0, 0];
+    this.possession = 0; this.possessionEpoch = 0; this.possessionChangedAt = null;
+    this.shootGraceUntil = 0; this.controlled = null; this.teamFouls = [0, 0];
     this.timeouts = [3, 3]; this.offense = this.teams.map(t => OFFENSE_IDS.includes(t.offense) ? t.offense : 'motion');
     this.defense = this.teams.map(t => DEFENSE_IDS.includes(t.defense) ? t.defense : 'man');
     this.events = []; this.lastEvent = null; this.shotFeedback = null; this.freeThrows = null; this.pendingSubs = [];
@@ -79,6 +82,17 @@ export class Match {
   carrier() { return this.player(this.ball.owner); }
   inOffense() { return this.human >= 0 && this.possession === this.human; }
   receivers() { return this.active(this.human < 0 ? this.possession : this.human).filter(p => p.id !== this.ball.owner).sort((a, b) => a.slot - b.slot); }
+  nearestDefender(team = this.human) {
+    if (team !== 0 && team !== 1) return null;
+    return this.active(team).sort((a, b) => {
+      const gap = distance(a, this.ball) - distance(b, this.ball);
+      if (Math.abs(gap) > 1e-8) return gap;
+      // Repeated presses and exact ties must not toggle away from the best player.
+      if (a.id === this.controlled) return -1;
+      if (b.id === this.controlled) return 1;
+      return a.id - b.id;
+    })[0] || null;
+  }
   drainEvents() { const events = this.events; this.events = []; return events; }
   _emit(type, text, fields = {}) {
     const event = { id: ++this._eventId, type, text, time: this.elapsed, ...fields };
@@ -91,9 +105,7 @@ export class Match {
     const c = this.carrier();
     if (c?.team === this.human) this.controlled = c.id;
     else {
-      const target = c || this.ball;
-      const nearest = this.active(this.human).sort((a, b) => distance(a, target) - distance(b, target))[0];
-      this.controlled = nearest?.id ?? null;
+      this.controlled = this.nearestDefender()?.id ?? null;
     }
   }
   setPlay(id) { if (OFFENSE_IDS.includes(id)) { this.offense[this.human < 0 ? this.possession : this.human] = id; this.playTime = 0; return true; } return false; }
@@ -114,6 +126,10 @@ export class Match {
   }
 
   action(name, payload = {}) {
+    // Input captures this token on press. A release from an earlier possession
+    // cannot become a shot, pass, or swipe in the new possession.
+    if (['shoot', 'steal', 'pass'].includes(name) && payload.possessionEpoch !== undefined
+      && payload.possessionEpoch !== this.possessionEpoch) return false;
     if (name === 'continue') {
       if (this.phase === 'halftime') {
         this.period = 2; this.clock = this.halfSeconds; this.teamFouls = [0, 0];
@@ -137,7 +153,7 @@ export class Match {
     }
     if (name === 'switch') {
       const list = this.active(this.human);
-      const chosen = list.find(p => p.id === payload.id) || list.filter(p => p.id !== this.controlled).sort((a, b) => distance(a, this.ball) - distance(b, this.ball))[0] || list[0];
+      const chosen = list.find(p => p.id === payload.id) || this.nearestDefender();
       if (chosen) this.controlled = chosen.id; return !!chosen;
     }
     if (name === 'timeout') {
@@ -153,7 +169,10 @@ export class Match {
     }
     if (this.phase !== 'live') return false;
     const p = this.controlledPlayer(); if (!p || !p.active) return false;
-    if (name === 'shoot' && this.ball.owner === p.id) return this._shoot(p, payload.timing ?? .65);
+    if (name === 'shoot' && this.ball.owner === p.id) {
+      if (p.team === this.human && this.elapsed < this.shootGraceUntil) return false;
+      return this._shoot(p, payload.timing ?? .65);
+    }
     if (name === 'pass' && this.ball.owner === p.id) return this._pass(p, payload.targetId, payload.aim);
     if (name === 'steal') return this._steal(p);
     if (name === 'block') return this._block(p);
@@ -165,9 +184,15 @@ export class Match {
   }
 
   _backcourtSpot(team) { return { x: 250, y: this.attackDir(team) < 0 ? 894 : 46 }; }
+  _setPossession(team) {
+    if (this.possession === team) return false;
+    this.possession = team; this.possessionEpoch++; this.possessionChangedAt = this.elapsed;
+    this.shootGraceUntil = team === this.human ? this.elapsed + POSSESSION_SHOT_GRACE : 0;
+    return true;
+  }
   _prepareInbound(team, spot, delay = .75, shotClock = 30, resetShape = false) {
     this._flushSubs();
-    this.phase = 'inbound'; this.phaseTime = delay; this.possession = team; this.shotClock = shotClock;
+    this.phase = 'inbound'; this.phaseTime = delay; this._setPossession(team); this.shotClock = shotClock;
     this.ball.flight = null; this.ball.owner = null; this.ball.z = 0; this.ball.vx = this.ball.vy = this.ball.vz = 0;
     this.ball.x = clamp(spot.x, 20, 480); this.ball.y = clamp(spot.y, 25, 915);
     this.inbound = { team, spot: { x: this.ball.x, y: this.ball.y } };
@@ -189,7 +214,7 @@ export class Match {
   _releaseInbound() {
     const t = this.inbound.team, candidates = this.active(t).sort((a, b) => a.slot - b.slot);
     const p = candidates[0]; if (!p) { this.winner = 1 - t; this.phase = 'finished'; return; }
-    p.x = this.inbound.spot.x; p.y = this.inbound.spot.y; p.vx = p.vy = 0;
+    p.x = this.inbound.spot.x; p.y = this.inbound.spot.y; p.vx = p.vy = 0; p.actionCooldown = 0;
     this.phase = 'live'; this.phaseTime = 0; this.inbound = null;
     this._giveBall(p, false); this.frontcourt = this._isFrontcourt(p, t);
   }
@@ -198,7 +223,9 @@ export class Match {
     const oldTeam = this.possession;
     this.ball.owner = p.id; this.ball.flight = null; this.ball.z = 0;
     this.ball.vx = this.ball.vy = this.ball.vz = 0; this.ball.x = p.x; this.ball.y = p.y;
-    this.possession = p.team; this.lastTouch = p.team; p.holdTime = 0;
+    const changedTeam = this._setPossession(p.team);
+    if (changedTeam) p.actionCooldown = 0;
+    this.lastTouch = p.team; p.holdTime = 0;
     p.aiTimer = .25 + this.random() * .35;
     if (change && oldTeam !== p.team) {
       this.shotClock = 30; this.backcourtTime = 0; this.frontcourt = this._isFrontcourt(p, p.team);
@@ -329,7 +356,7 @@ export class Match {
       q.x = 250 + (index % 2 ? 77 : -77); q.y = hoop.y - dir * (65 + Math.floor(index / 2) * 33); q.vx = q.vy = 0; index++;
     }
     this.ball.x = p.x; this.ball.y = p.y;
-    this.possession = p.team;
+    this._setPossession(p.team);
     if (p.team === this.human) this.controlled = p.id;
     this._emit('freeThrow', oneAndOne ? 'One-and-one. Earn the second at the line.' : `${count} free throw${count === 1 ? '' : 's'}.`, { team: p.team, playerId: p.id });
   }
@@ -468,7 +495,8 @@ export class Match {
     if (arrive) { dx = tx - p.x; dy = ty - p.y; const n = Math.hypot(dx, dy); const speed = Math.min(1, n / 22); const u = norm(dx, dy); dx = u.x * speed; dy = u.y * speed; }
     const running = Math.hypot(dx, dy) > .08;
     const burst = sprint && p.stamina > .12;
-    const speed = (92 + (p.ratings.speed - 50) * 1.14) * (burst ? 1.37 : 1) * (.81 + p.stamina * .19);
+    const offBall = this.ball.owner === p.id ? 1 : OFF_BALL_SPEED_MULTIPLIER;
+    const speed = (92 + (p.ratings.speed - 50) * 1.14) * offBall * (burst ? 1.37 : 1) * (.81 + p.stamina * .19);
     const acceleration = 1 - Math.exp(-dt * (running ? 13 : 19));
     p.vx = lerp(p.vx, dx * speed, acceleration); p.vy = lerp(p.vy, dy * speed, acceleration);
     p.x = clamp(p.x + p.vx * dt, 12, 488); p.y = clamp(p.y + p.vy * dt, 14, 926);
@@ -490,33 +518,73 @@ export class Match {
     const team = p.team, hoop = this.hoop(team), dir = this.attackDir(team), c = this.carrier();
     const depth = y => hoop.y - dir * y;
     const slot = p.slot, play = this.screenUntil > this.elapsed ? 'pickroll' : this.offense[team];
+    const weakSide = !c || c.x <= 250 ? 1 : -1;
+    const target = (x, y, purpose = 'space') => ({ x, y: depth(y), purpose });
     if (c && distance(c, hoop) > 430) {
       const side = slot % 2 ? -1 : 1;
-      return { x: slot === 0 ? 250 : clamp(250 + side * (slot < 3 ? 165 : 75), 20, 480),
-        y: clamp(c.y + dir * (slot < 3 ? 150 : 235), 70, 870) };
+      return { x: slot === 0 ? 250 : 250 + side * (slot < 3 ? 205 : 110),
+        y: clamp(c.y + dir * (slot === 0 ? 115 : slot < 3 ? 175 : 270), 70, 870), purpose: 'transition' };
     }
     if (play === 'pickroll' && (slot === 4 || slot === 3 && c?.slot === 4) && c) {
       const cycle = this.playTime % 7;
-      if (cycle < 2.9) return { x: clamp(c.x + (c.x > 250 ? -31 : 31), 50, 450), y: c.y + dir * 26 };
-      return { x: 250 + (slot === 4 ? 35 : -35), y: depth(60) };
+      // Once the handler gets into the paint, clear a finishing lane instead
+      // of following them under the rim with another body.
+      if (distance(c, hoop) < 125) return target(250 + weakSide * 165, 75, 'space');
+      if (cycle < 2.9) return { x: clamp(c.x + (c.x > 250 ? -34 : 34), 50, 450), y: c.y + dir * 24, purpose: 'screen' };
+      return target(250 + weakSide * 22, 65, 'roll');
     }
     if (play === 'post') {
-      const shape = [[250, 265], [52, 175], [448, 190], [345, 90], [205, 75]];
-      const a = shape[slot % 5]; return { x: a[0], y: depth(a[1]) };
+      const shape = [[250, 285], [55, 225], [465, 80], [250 + weakSide * 165, 145], [200, 85]];
+      const a = shape[slot % 5];
+      if (slot === 4 && c && distance(c, hoop) < 110) return target(250 + weakSide * 170, 65);
+      return target(a[0], a[1], slot === 4 ? 'post' : 'space');
     }
     if (play === 'spacing') {
-      const shape = [[250, 268], [38, 112], [462, 112], [90, 252], [300, 64]];
-      const a = shape[slot % 5]; return { x: a[0], y: depth(a[1]) };
+      const shape = [[250, 285], [34, 75], [466, 75], [250 + weakSide * 160, 255], [250 + weakSide * 65, 70]];
+      const a = shape[slot % 5];
+      if (slot === 4 && c && distance(c, hoop) < 115) return target(250 + weakSide * 165, 80);
+      return target(a[0], a[1], slot === 4 ? 'post' : 'space');
     }
     if (play === 'motion') {
-      const cycle = this.playTime % 9, angle = (slot - 1) * 1.25 + Math.sin(this.playTime * .55) * .28;
-      if ((slot === 1 && cycle > 4 && cycle < 6.8) || (slot === 2 && cycle > 1.5 && cycle < 4))
-        return { x: 250 + (slot === 1 ? 22 : -22), y: depth(55 + Math.abs(cycle - 4) * 12) };
-      if (slot === 4) return { x: 210 + Math.sin(this.playTime * .5) * 70, y: depth(90) };
-      return { x: clamp(250 + Math.cos(angle) * 206, 30, 470), y: depth(150 + Math.sin(angle) * 95) };
+      const cycle = this.playTime % 9, leftSlot = Math.floor(this.playTime / 9) % 2 ? 2 : 1, rightSlot = 3 - leftSlot;
+      const canCut = !c || distance(c, hoop) >= 120;
+      const cutter = canCut && cycle > 1.5 && cycle < 3.5 ? rightSlot : canCut && cycle > 5.5 && cycle < 7.5 ? leftSlot : -1;
+      if (slot === cutter) return target(cutter === leftSlot ? 275 : 225, 65, 'cut');
+      if (slot === 0) return target(250, 285);
+      if (slot === leftSlot) return target(34, 90);
+      if (slot === rightSlot) return target(466, 90);
+      if (slot === 3) return cutter >= 0 ? target(cutter === leftSlot ? 34 : 466, 90)
+        : target(250 + weakSide * 150, 260);
+      // The big clears away while a wing cuts, giving the pass a real lane.
+      if (cutter >= 0) return target(cutter === leftSlot ? 105 : 395, 105);
+      if (c && distance(c, hoop) < 115) return target(250 + weakSide * 165, 75);
+      return target(250 + weakSide * 65, 85, 'post');
     }
-    const shape = [[250, 260], [48, 150], [452, 165], [132, 234], [300, 65]];
-    const a = shape[slot % 5]; return { x: a[0], y: depth(a[1]) };
+    const shape = [[250, 285], [34, 90], [466, 90], [250 + weakSide * 155, 260], [250 + weakSide * 65, 75]];
+    const a = shape[slot % 5]; return target(a[0], a[1]);
+  }
+  _spaceOffensiveTarget(p, target) {
+    let x = target.x, y = target.y;
+    const inside = ['cut', 'roll', 'post'].includes(target.purpose);
+    for (const teammate of this.active(p.team)) {
+      if (teammate.id === p.id) continue;
+      const handler = teammate.id === this.ball.owner;
+      const desired = target.purpose === 'screen' && handler ? 35 : inside ? 60 : handler ? 100 : 78;
+      const dx = p.x - teammate.x, dy = p.y - teammate.y, gap = Math.hypot(dx, dy);
+      // This changes only the running target. No player is moved by spacing
+      // assistance; actual movement retains normal acceleration and collisions.
+      if (gap < desired) {
+        const away = gap > .01 ? norm(dx, dy) : norm(p.slot % 2 ? -1 : 1, -.25);
+        const strength = (desired - gap) * 1.35;
+        x += away.x * strength; y += away.y * strength;
+      }
+      const goalGap = Math.hypot(x - teammate.x, y - teammate.y);
+      if (goalGap < desired && target.purpose !== 'screen') {
+        const away = goalGap > .01 ? norm(x - teammate.x, y - teammate.y) : norm(p.slot % 2 ? -1 : 1, .5);
+        x = teammate.x + away.x * desired; y = teammate.y + away.y * desired;
+      }
+    }
+    return { ...target, x: clamp(x, 28, 472), y: clamp(y, 25, 915) };
   }
   _defensiveTarget(p) {
     const c = this.carrier(), offense = this.possession, hoop = this.hoop(offense), dir = this.attackDir(offense);
@@ -550,7 +618,14 @@ export class Match {
       return;
     }
     if (this.ball.owner === null && !this.ball.flight) {
-      this._move(p, this.ball.x, this.ball.y, distance(p, this.ball) > 80, dt, true); return;
+      const chasers = this.active(p.team).sort((a, b) => (distance(a, this.ball) - a.ratings.rebound * .15)
+        - (distance(b, this.ball) - b.ratings.rebound * .15)).slice(0, 2);
+      if (chasers.includes(p)) this._move(p, this.ball.x, this.ball.y, distance(p, this.ball) > 80, dt, true);
+      else {
+        const outlet = p.team === this.possession ? this._spaceOffensiveTarget(p, this._offensiveTarget(p)) : this._defensiveTarget(p);
+        this._move(p, outlet.x, outlet.y, false, dt, true);
+      }
+      return;
     }
     if (isCarrier) {
       const hoop = this.hoop(p.team), info = this.shotInfo(p), tempo = this.teams[p.team].tempo || 1;
@@ -570,7 +645,7 @@ export class Match {
         } else if (p.holdTime > 1.6 && this.random() < (crowded ? .48 : .25)) this._pass(p);
       }
     } else {
-      const target = p.team === this.possession ? this._offensiveTarget(p) : this._defensiveTarget(p);
+      const target = p.team === this.possession ? this._spaceOffensiveTarget(p, this._offensiveTarget(p)) : this._defensiveTarget(p);
       this._move(p, target.x, target.y, distance(p, target) > 220, dt, true);
       if (p.team !== this.possession && p.aiTimer <= 0) {
         p.aiTimer = .65 + this.random() * .8;
@@ -583,12 +658,13 @@ export class Match {
   }
   _separatePlayers(dt) {
     const list = this.active();
-    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+    // Two capped passes resolve crowded contacts without large position jumps.
+    for (let pass = 0; pass < 2; pass++) for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
       const a = list[i], b = list[j], dx = b.x - a.x, dy = b.y - a.y, n = Math.hypot(dx, dy);
-      const radius = 21;
+      const radius = a.team === b.team ? 30 : COURT.playerRadius * 2;
       if (n >= radius) continue;
       const u = n < .01 ? { x: i % 2 ? 1 : -1, y: .2 } : { x: dx / n, y: dy / n };
-      const push = (radius - n) * .5;
+      const push = Math.min((radius - n) * .5, dt * 75);
       a.x = clamp(a.x - u.x * push, 12, 488); a.y = clamp(a.y - u.y * push, 14, 926);
       b.x = clamp(b.x + u.x * push, 12, 488); b.y = clamp(b.y + u.y * push, 14, 926);
       if (a.team !== b.team && this.offense[this.possession] === 'pickroll') {
@@ -697,7 +773,9 @@ export class Match {
       teams: this.teams, players: this.players.map(p => ({ ...p, ratings: { ...p.ratings }, stats: { ...p.stats } })),
       ball: copy(this.ball), score: [...this.score], stats: this.stats.map(s => ({ ...s })),
       period: this.period, clock: this.clock, shotClock: this.shotClock, phase: this.phase, phaseTime: this.phaseTime,
-      controlled: this.controlled, possession: this.possession, human: this.human, teamFouls: [...this.teamFouls],
+      controlled: this.controlled, possession: this.possession, possessionEpoch: this.possessionEpoch,
+      possessionChangedAt: this.possessionChangedAt, shootGraceUntil: this.shootGraceUntil,
+      human: this.human, teamFouls: [...this.teamFouls],
       timeouts: [...this.timeouts], offense: [...this.offense], defense: [...this.defense],
       freeThrows: this.freeThrows ? { ...this.freeThrows } : null, shotFeedback: this.shotFeedback ? { ...this.shotFeedback } : null,
       lastEvent: this.lastEvent ? { ...this.lastEvent } : null, playTime: this.playTime, elapsed: this.elapsed,

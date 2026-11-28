@@ -2,6 +2,7 @@ import {TEAMS, getTeam, OFFENSE, DEFENSE} from './teams.js';
 import {Match} from './engine.js';
 import {CourtView} from './view.js';
 import {Controls} from './input.js';
+import {controlContext} from './control-context.js';
 import {HoopsAudio} from './audio.js';
 import {LocalStore, createCup, advanceCup, cupMatch, validCup, roundName} from './season.js';
 import {FixedClock} from './vendor/math.js';
@@ -24,7 +25,7 @@ if (!['full','follow'].includes(settings.camera)) settings.camera = 'full';
 settings.controlSize = Math.max(.8, Math.min(1.25, Number(settings.controlSize) || 1));
 let cup = store.read('cup', null); if (!validCup(cup)) cup = null;
 let mode = 'quick', game = null, previewGame, paused = false, replay = null, lastReplay = null;
-let history = [], replayAccumulator = 0, matchFinished = false, lastPhase = '', lastControlContext = '', messageUntil = 0, lastEventId = 0;
+let history = [], replayAccumulator = 0, matchFinished = false, lastPhase = '', messageUntil = 0, lastEventId = 0;
 let lastStamp = performance.now(), uiAccumulator = 0, matchMode = 'quick', pendingCupResult = false;
 const dialogStack = [];
 const audio = new HoopsAudio(), view = new CourtView($('court')), previewView = new CourtView($('preview'));
@@ -108,26 +109,23 @@ function selectPlay(id) {
 function closePlaybook() { $('playbook').classList.remove('open'); syncPause(); }
 function openPlaybook() { $('playbook').classList.add('open'); syncPause(); }
 
-const controls = new Controls({stick:$('joystick'),knob:$('stickKnob'),shoot:$('shootButton'),pass:$('passButton'),sprint:$('sprintButton'),steal:$('stealButton'),switcher:$('switchButton'),screen:$('screenButton'),active:isActive,
+const controls = new Controls({stick:$('joystick'),knob:$('stickKnob'),shoot:$('shootButton'),pass:$('passButton'),sprint:$('sprintButton'),screen:$('screenButton'),active:isActive,context:()=>controlContext(game),
   onPause:togglePause,
   onAction(name, payload = {}) {
     if (!isActive()) return;
     if (name === 'play') { selectPlay(OFFENSE[payload.index]?.id); return; }
-    if (name === 'shoot' && !game.inOffense()) name = 'block';
-    if (name === 'pass' && !game.inOffense()) name = 'switch';
     if (name === 'pass') payload.aim = view.screenDirection(controls.read());
     if (name === 'timeout') { callTimeout(); return; }
     const succeeded = game.action(name, payload);
     if (succeeded && (name === 'shoot' || name === 'pass' || name === 'switch')) controls.cancelShot();
     if (name === 'shoot' && !succeeded && game.phase === 'freeThrow' && game.phaseTime > 0) announce('Set at the line. Take your shot.', 1.5);
-    consumeEvents();
+    controls.syncContext(); consumeEvents(); updateUI();
   }
 });
 const fixed = new FixedClock(dt => {
   if (!isActive()) return;
   game.step(dt, view.screenDirection(controls.read()));
-  const context = `${game.possession}/${game.controlled}/${game.phase === 'freeThrow'}`;
-  if (context !== lastControlContext) { controls.cancelShot(); lastControlContext = context; }
+  controls.syncContext();
   replayAccumulator += dt;
   if (replayAccumulator >= .1) { replayAccumulator = 0; history.push(game.snapshot()); if (history.length > 65) history.shift(); }
   consumeEvents();
@@ -147,7 +145,7 @@ function startMatch({resume = false, next = false} = {}) {
     halfSeconds = cup.halfSeconds; difficulty = cup.difficulty;
   }
   game = new Match({home,away,halfSeconds,difficulty,practice:matchMode === 'practice',human:0,seed:Date.now() >>> 0});
-  paused = false; replay = null; lastReplay = null; history = []; replayAccumulator = 0; matchFinished = false; pendingCupResult = false; lastEventId = 0; lastPhase = ''; lastControlContext = ''; targetKey = '';
+  paused = false; replay = null; lastReplay = null; history = []; replayAccumulator = 0; matchFinished = false; pendingCupResult = false; lastEventId = 0; lastPhase = ''; targetKey = '';
   $('lobby').hidden = true; $('game').hidden = false; document.body.classList.add('playing');
   $('playbook').classList.remove('open'); $('replayBanner').hidden = true; $('showReplay').disabled = true;
   $('courtMessage').textContent = ''; messageUntil = 0; $('commentary').textContent = `${home.short} against ${away.short}. Call your first play.`;
@@ -248,19 +246,26 @@ function stopReplay() { replay = null; $('replayBanner').hidden = true; fixed.re
 let targetKey = '';
 function updateTargets() {
   if (!game) return;
-  const offense = game.inOffense();
+  const {offense, shotGuard} = controlContext(game);
   const receivers = offense ? game.receivers().slice(0,4) : [];
   const key = receivers.map(p=>p.id).join(',')+`/${offense}`;
   if (key !== targetKey) {
     targetKey = key;
-    $('passTargets').innerHTML = offense ? receivers.map((p,i)=>`<button data-receiver="${p.id}" aria-label="Pass to ${escape(p.name)}"><b>${'ABCD'[i]}</b>${escape(lastName(p.name))}</button>`).join('') : '<span class="defense-instruction">STAY BETWEEN YOUR MAN AND THE RIM</span>';
+    $('passTargets').innerHTML = offense ? receivers.map(p=>`<button data-receiver="${p.id}" aria-label="Pass to ${escape(p.name)}"><b>${['PG','SG','SF','PF','C'][p.slot] || p.position}</b>${escape(lastName(p.name))}</button>`).join('') : '<span class="defense-instruction">GET BETWEEN THE BALL AND THE RIM</span>';
     $('passTargets').querySelectorAll('[data-receiver]').forEach(b => bindGameButton(b,()=>{if(!isActive())return;controls.cancelShot();game.action('pass',{targetId:Number(b.dataset.receiver)});consumeEvents();}));
   }
-  $('shootButton').innerHTML = offense ? `SHOOT<small>${game.phase==='freeThrow'?'FREE THROW':'HOLD SPACE'}</small>` : 'BLOCK<small>SPACE</small>';
-  $('passButton').innerHTML = offense ? 'PASS<small>J</small>' : 'SWITCH<small>J / Q</small>';
-  $('screenButton').style.visibility = offense ? 'visible' : 'hidden';
-  $('stealButton').style.visibility = offense ? 'hidden' : 'visible';
-  $('switchButton').style.visibility = offense ? 'hidden' : 'visible';
+  const settingFreeThrow = game.phase === 'freeThrow' && game.phaseTime > 0 && !game.ball.flight;
+  $('shootAction').textContent = offense ? shotGuard ? 'SETTLE' : settingFreeThrow ? 'GET SET' : 'SHOOT' : 'STEAL';
+  $('shootKey').textContent = offense ? 'HOLD SPACE' : 'TAP SPACE';
+  $('passAction').textContent = offense ? 'PASS' : 'SWITCH';
+  $('screenAction').textContent = offense ? 'SCREEN' : 'BLOCK';
+  $('screenKey').textContent = offense ? 'L' : 'L / R';
+  $('shootButton').setAttribute('aria-label', offense ? shotGuard ? 'X: settle possession, then press again to shoot' : settingFreeThrow ? 'X: get set for the free throw' : 'X: shoot, hold and release Space' : 'X: steal, tap Space');
+  $('passButton').setAttribute('aria-label', offense ? 'A: pass, J' : 'A: switch to player closest to ball, J or Q');
+  $('screenButton').setAttribute('aria-label', offense ? 'Y: call a screen, L' : 'Y: block, L or R');
+  $('primaryKeyLabel').textContent = offense ? 'SHOOT' : 'STEAL';
+  $('primaryKeyValue').textContent = offense ? 'HOLD SPACE' : 'TAP SPACE';
+  $('primaryKeyHint').textContent = offense ? 'release in green' : 'R to block a shot';
 }
 function updateUI() {
   if (!game) return;
@@ -291,10 +296,11 @@ function updateUI() {
   $('callTimeout').innerHTML = `Timeout (${game.timeouts[0]}) <kbd>T</kbd>`;
   let coach = '';
   if (settings.guidance!=='expert') {
-    if (game.phase==='freeThrow') coach=game.freeThrows?.team===0?'At the line: hold SHOOT, then release in green.':'Get ready to rebound a missed final free throw.';
-    else if (!game.inOffense()) coach='Q / SWITCH selects a defender. E / STEAL reaches; Space / BLOCK contests.';
+    if (game.phase==='freeThrow') coach=game.freeThrows?.team===0?game.phaseTime>0?'Get set at the line. Wait for X to show SHOOT.':'At the line: hold X / Space, then release in green.':'Get ready to rebound a missed final free throw.';
+    else if (!controlContext(game).offense) coach='A / J switches nearest. X / Space steals. Y / R blocks.';
+    else if (controlContext(game).shotGuard) coach='Ball won. Move or pass now; release X, then press again after a moment.';
     else if (game.shotClock<7) coach='Shot clock is low. Get a shot up before the horn.';
-    else if (settings.guidance==='simple') coach='Hold SHOOT and release in green. J / PASS or tap a teammate to move the ball.';
+    else if (settings.guidance==='simple') coach='Hold X / Space, release in green. A / J passes; Y calls a screen.';
     else coach=play.hint;
   }
   $('coachLine').textContent = coach || `${game.teams[0].arena} · ${matchMode==='cup'?roundName(cup?.round||0):'Pocket College Hoops'}`;
@@ -322,7 +328,7 @@ for(const id of ['showBoxScore','pauseStats','breakBoxScore']) $(id).addEventLis
 $('pauseGame').addEventListener('click',togglePause); $('resumeGame').addEventListener('click',()=>closeDialog($('pauseDialog')));
 $('quitGame').addEventListener('click',()=>{if(window.confirm('Leave this game? Completed tournament rounds stay saved.'))leaveGame();});
 $('backToLobby').addEventListener('click',leaveGame);
-$('continueGame').addEventListener('click',()=>{if(!game)return;if(game.phase==='halftime'){game.action('continue');closeDialog($('breakDialog'));lastPhase=game.phase;lastControlContext='';updateUI();}else if(matchMode==='cup'&&cup&&!cup.completed){startMatch({next:true});}else{if(matchMode==='cup')mode='quick';startMatch();}});
+$('continueGame').addEventListener('click',()=>{if(!game)return;if(game.phase==='halftime'){game.action('continue');closeDialog($('breakDialog'));lastPhase=game.phase;controls.syncContext();updateUI();}else if(matchMode==='cup'&&cup&&!cup.completed){startMatch({next:true});}else{if(matchMode==='cup')mode='quick';startMatch();}});
 $('breakDialog').addEventListener('cancel',e=>e.preventDefault());
 $('openPlays').addEventListener('click',openPlaybook); $('closePlays').addEventListener('click',closePlaybook);
 $('callTimeout').addEventListener('click',callTimeout); $('showReplay').addEventListener('click',startReplay); $('skipReplay').addEventListener('click',stopReplay);
@@ -332,7 +338,7 @@ document.querySelectorAll('dialog').forEach(d=>d.addEventListener('close',()=>{c
 $('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('game').requestFullscreen();}catch{announce('Full screen is unavailable in this browser.',2);}});
 let pointerStart = null;
 $('court').addEventListener('pointerdown',e=>{pointerStart={x:e.clientX,y:e.clientY,id:e.pointerId};});
-$('court').addEventListener('pointerup',e=>{if(!pointerStart||pointerStart.id!==e.pointerId||Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>12||!isActive())return;pointerStart=null;const id=view.hitPlayer(e.clientX,e.clientY,game);const p=game.player(id);if(!p||p.team!==0)return;controls.cancelShot();game.action(game.inOffense()?'pass':'switch',game.inOffense()?{targetId:id}:{id});consumeEvents();});
+$('court').addEventListener('pointerup',e=>{if(!pointerStart||pointerStart.id!==e.pointerId||Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>12||!isActive())return;pointerStart=null;const id=view.hitPlayer(e.clientX,e.clientY,game);const p=game.player(id);if(!p||p.team!==0)return;const {offense}=controlContext(game);controls.cancelShot();game.action(offense?'pass':'switch',offense?{targetId:id}:{id});controls.syncContext();consumeEvents();updateUI();});
 $('court').addEventListener('pointercancel',()=>{pointerStart=null;});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&game&&!anyDialog()&&!replay&&game.phase!=='finished'&&game.phase!=='halftime')togglePause();lastStamp=performance.now();fixed.reset();});
 window.addEventListener('blur',()=>{if(game&&!anyDialog()&&!replay&&game.phase!=='finished'&&game.phase!=='halftime')togglePause();});
