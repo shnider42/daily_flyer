@@ -36,7 +36,7 @@ function setup({ context, onAction } = {}) {
   const win = globalThis.window = new Surface();
   const doc = globalThis.document = new Surface();
   doc.hidden = false;
-  const nodes = Object.fromEntries(['stick','knob','shoot','pass','sprint','steal','block','switcher','screen']
+  const nodes = Object.fromEntries(['stick','knob','shoot','pass','sprint','steal','block','switcher','through','screen']
     .map((name) => [name, new Surface()]));
   const actions = [];
   const state = { active: true, pauses: 0 };
@@ -56,6 +56,7 @@ function faceSurfaces(harness, layout) {
 
 test('default X holds sprint while B charges and releases a shot on the actual Controls surfaces', () => {
   const h = setup(), face = faceSurfaces(h);
+  assert.equal(face.Y, h.through);
   assert.equal(face.X, h.sprint); assert.equal(face.B, h.shoot);
   face.X.emit('pointerdown', { pointerId: 11 });
   face.B.emit('pointerdown', { pointerId: 12 });
@@ -218,7 +219,7 @@ test('keyboard mappings act once and holding sprint is independent of movement',
   const { win, input, actions, state } = setup();
   for (const key of ['j','e','q','Tab','l','t','1','4']) win.emit('keydown', { key });
   win.emit('keydown', { key: 'j', repeat: true });
-  assert.deepEqual(actions.map((event) => event.name), ['pass','steal','switch','switch','screen','timeout','play','play']);
+  assert.deepEqual(actions.map((event) => event.name), ['pass','steal','switch','switch','through','timeout','play','play']);
   assert.deepEqual(actions.slice(-2).map((event) => event.payload.index), [0, 3]);
   win.emit('keydown', { key: 'Shift' });
   win.emit('keydown', { key: 'a' });
@@ -232,8 +233,8 @@ test('keyboard mappings act once and holding sprint is independent of movement',
 
 test('the same pass key and touch surface switch on defense, with block kept separate', () => {
   let context = { offense: true, canShoot: true, token: 'offense', possessionEpoch: 2 };
-  const { win, pass, block, screen, actions } = setup({ context: () => context });
-  screen.emit('pointerdown', { pointerId: 9 });
+  const { win, pass, block, through, actions } = setup({ context: () => context });
+  through.emit('pointerdown', { pointerId: 9 });
   win.emit('keydown', { key: 'j' });
   win.emit('keyup', { key: 'j' });
   context = { offense: false, canShoot: false, token: 'defense', possessionEpoch: 3 };
@@ -241,11 +242,42 @@ test('the same pass key and touch surface switch on defense, with block kept sep
   win.emit('keyup', { key: 'j' });
   pass.emit('pointerdown', { pointerId: 1 });
   block.emit('pointerdown', { pointerId: 2 });
-  screen.emit('pointerdown', { pointerId: 10 });
+  through.emit('pointerdown', { pointerId: 10 });
   win.emit('keydown', { key: 'r' });
-  assert.deepEqual(actions.map(a => a.name), ['screen', 'pass', 'switch', 'switch', 'block', 'block', 'block']);
+  assert.deepEqual(actions.map(a => a.name), ['through', 'pass', 'switch', 'switch', 'block', 'block', 'block']);
   assert.equal(actions[1].payload.possessionEpoch, 2);
   assert.equal(actions[2].payload.possessionEpoch, 3);
+});
+
+test('L and a migrated through-pass surface follow possession without release or repeat actions', () => {
+  let context = { offense: true, canShoot: true, token: 'offense', possessionEpoch: 6 };
+  const h = setup({ context: () => context });
+  const face = faceSurfaces(h, { Y: 'pass', X: 'screen', B: 'sprint', A: 'shoot' });
+  assert.equal(face.X, h.through, 'the saved screen position now owns through-pass');
+  face.X.emit('pointerdown', { pointerId: 41 });
+  face.X.emit('click', { detail: 1 });
+  h.win.emit('keydown', { key: 'l' });
+  h.win.emit('keydown', { key: 'l', repeat: true });
+  assert.deepEqual(h.actions.map(a => a.name), ['through', 'through']);
+
+  context = { offense: false, canShoot: false, token: 'defense', possessionEpoch: 7 };
+  h.input.syncContext();
+  h.win.emit('keyup', { key: 'l' });
+  face.X.emit('pointerup', { pointerId: 41 });
+  assert.equal(h.actions.length, 2, 'an earlier through press is not reinterpreted on release');
+  h.win.emit('keydown', { key: 'l' });
+  h.win.emit('keydown', { key: 'r' });
+  face.X.emit('click', { detail: 0 });
+  assert.deepEqual(h.actions.map(a => a.name), ['through', 'through', 'block', 'block', 'block']);
+  assert.deepEqual(h.actions.map(a => a.payload.possessionEpoch), [6, 6, 7, 7, 7]);
+
+  h.state.active = false; h.input.clear();
+  face.X.emit('pointerdown', { pointerId: 42 });
+  h.win.emit('keydown', { key: 'l' });
+  h.state.active = true;
+  face.X.emit('pointerup', { pointerId: 42 });
+  h.win.emit('keyup', { key: 'l' });
+  assert.equal(h.actions.length, 5, 'menu presses never queue an action for return to play');
 });
 
 test('a touch steal acts on press and its held thumb cannot shoot after winning the ball', () => {

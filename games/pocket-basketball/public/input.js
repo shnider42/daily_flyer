@@ -7,7 +7,7 @@ const editable = (target) => !!target?.closest?.('input, select, textarea, [cont
 
 /** Pocket Sports input. Coordinates are screen coordinates: positive Y is down. */
 export class Controls {
-  constructor({ stick, knob, shoot, pass, sprint, steal, block, switcher, screen,
+  constructor({ stick, knob, shoot, pass, sprint, steal, block, switcher, through, screen,
     onAction = () => {}, onPause = () => {}, active = () => true, settings = {},
     context = () => ({ offense: true, canShoot: true, token: 'default' }) } = {}) {
     Object.assign(this, { stick, knob, shoot, sprint, onAction, onPause, active, settings, context });
@@ -37,6 +37,8 @@ export class Controls {
     actionButton(steal, 'steal');
     actionButton(block, 'block');
     actionButton(switcher, 'switch');
+    actionButton(through, 'through');
+    // Optional legacy surface; L and the main secondary button now use through.
     actionButton(screen, 'screen');
 
     if (stick) {
@@ -133,7 +135,7 @@ export class Controls {
     if (!this._isActive()) return;
     const context = this.syncContext();
     if (name === 'pass' && !context.offense) name = 'switch';
-    if (name === 'screen' && !context.offense) name = 'block';
+    if ((name === 'through' || name === 'screen') && !context.offense) name = 'block';
     // Assistive clicks do not have a physical hold/release pair.
     if (name === 'shoot') {
       if (!context.offense) name = 'steal';
@@ -242,7 +244,7 @@ export class Controls {
     else if (key === 'e') this._emit('steal');
     else if (key === 'r') this._emit('block');
     else if (key === 'q' || key === 'tab') this._emit('switch');
-    else if (key === 'l') this._emit('screen');
+    else if (key === 'l') this._emit('through');
     else if (key === 't') this._emit('timeout');
     else if (/^[1-4]$/.test(key)) this._emit('play', { index: Number(key) - 1 });
   }

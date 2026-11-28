@@ -196,7 +196,8 @@ export class CourtView {
     const speed = Math.hypot(p.vx || 0, p.vy || 0), running = Math.min(1, speed / 100);
     const stride = Math.sin(time * 17 + p.id * 1.9) * running;
     const jumping = Math.max(0, p.jump || 0), lift = Math.min(9, jumping * 19) * u;
-    const shooting = ['jumper', 'dunk', 'layup', 'block'].includes(p.anim) && p.animTime > 0;
+    const alley = p.anim === 'alley-oop' && p.animTime > 0;
+    const shooting = ['jumper', 'dunk', 'layup', 'block', 'alley-oop'].includes(p.anim) && p.animTime > 0;
     const jersey = p.team === 0 ? (team.primary || '#103559') : '#f0eee5';
     const trim = p.team === 0 ? (team.secondary || '#eab76d') : (team.primary || '#2356a8');
     const number = p.team === 0 ? '#fffdf4' : '#192637';
@@ -212,7 +213,7 @@ export class CourtView {
     ctx.translate(0, -lift); ctx.scale(u, u);
     const skin = p.skin || '#b78058';
     // Pixel-inspired silhouettes with independent legs, arms and a clear jersey.
-    const armTop = shooting ? -29 : -21;
+    const armTop = alley ? -35 : shooting ? -29 : -21;
     ctx.beginPath();
     [[-5,-32],[5,-32],[5,-24],[7,-23],[9,armTop],[9,-10],[7,-9],[7,-4],[9,-2],[9,1],
       [2,1],[2,-5],[-2,-5],[-2,1],[-9,1],[-9,-2],[-7,-4],[-7,-9],[-9,-10],[-9,armTop],[-7,-23],[-5,-24]]
@@ -222,8 +223,8 @@ export class CourtView {
     ctx.fillStyle = '#18202b'; ctx.fillRect(-7, -7 + stride * 2, 5, 7); ctx.fillRect(2, -7 - stride * 2, 5, 7);
     ctx.fillStyle = '#f3f0df'; ctx.fillRect(-8, -2 + stride * 2, 7, 3); ctx.fillRect(2, -2 - stride * 2, 7, 3);
     ctx.fillStyle = skin;
-    ctx.fillRect(-9, shooting ? -29 : -21 + stride * 2, 3, shooting ? 13 : 11);
-    ctx.fillRect(6, shooting ? -29 : -21 - stride * 2, 3, shooting ? 13 : 11);
+    ctx.fillRect(-9, shooting ? armTop : -21 + stride * 2, 3, shooting ? 13 : 11);
+    ctx.fillRect(6, shooting ? armTop : -21 - stride * 2, 3, shooting ? 13 : 11);
     ctx.fillStyle = '#111923'; ctx.fillRect(-8, -23, 16, 17);
     ctx.fillStyle = jersey; ctx.fillRect(-7, -23, 14, 14);
     ctx.fillRect(-7, -11, 6, 6); ctx.fillRect(1, -11, 6, 6);
@@ -337,7 +338,14 @@ export class CourtView {
     const x = point.x + (ball.owner !== null ? radius * .8 : 0), y = point.y - elevation - 4;
     if (ball.flight) {
       const f = ball.flight, heading = this._point(ball.x - (f.end.x - f.start.x) * .018, ball.y - (f.end.y - f.start.y) * .018);
-      ctx.strokeStyle = '#ffdc8b42'; ctx.lineWidth = radius * 1.4; ctx.lineCap = 'round';
+      if (f.style === 'bounce') {
+        const contact = 1 - Math.min(1, Math.abs(f.time / f.duration - .6) / .09);
+        if (contact > 0) {
+          ctx.save(); ctx.globalAlpha = contact * .75; ctx.strokeStyle = '#f6be74'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.ellipse(point.x, point.y + 3, radius * 2.2, radius * .8, 0, 0, TAU); ctx.stroke(); ctx.restore();
+        }
+      }
+      ctx.strokeStyle = f.style === 'lob' ? '#ffe99b88' : '#ffdc8b42'; ctx.lineWidth = radius * (f.style === 'lob' ? 1.7 : 1.4); ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(heading.x, heading.y - elevation - 4); ctx.lineTo(x, y); ctx.stroke(); ctx.lineCap = 'butt';
     }
     circle(ctx, x, y, radius + 1, '#1d1a19'); circle(ctx, x, y, radius, '#ee792d', '#ffd18c', .8);

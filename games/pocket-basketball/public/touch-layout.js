@@ -1,10 +1,11 @@
 /** Semantic touch actions stay attached to their buttons; only face positions move. */
 export const TOUCH_SLOTS = Object.freeze(['Y', 'X', 'B', 'A']);
-export const DEFAULT_TOUCH_LAYOUT = Object.freeze({ Y: 'screen', X: 'sprint', B: 'shoot', A: 'pass' });
+export const DEFAULT_TOUCH_LAYOUT = Object.freeze({ Y: 'through', X: 'sprint', B: 'shoot', A: 'pass' });
 const ACTIONS = Object.freeze(Object.values(DEFAULT_TOUCH_LAYOUT));
 
 /**
  * Preserve valid unique assignments in face order, then repair empty slots.
+ * Legacy screen assignments become through passes in the same physical slot.
  * Missing settings use the new defaults. A partial or damaged save cannot
  * remove an action, assign it twice, or invoke an inherited property/getter.
  */
@@ -15,6 +16,7 @@ export function normalizeTouchLayout(value) {
   for (const slot of TOUCH_SLOTS) {
     let action;
     try { action = source ? Object.getOwnPropertyDescriptor(source, slot)?.value : undefined; } catch { /* Treat unreadable slots as missing. */ }
+    if (action === 'screen') action = 'through';
     if (ACTIONS.includes(action) && !used.has(action)) {
       layout[slot] = action;
       used.add(action);

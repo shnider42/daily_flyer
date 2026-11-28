@@ -5,7 +5,8 @@ export function controlContext(game) {
   const carrier = game.carrier();
   const ownBall = human >= 0 && carrier?.team === human;
   const ownPass = ball.flight?.kind === 'pass' && ball.flight.team === human;
-  const ownRestart = game.inOffense() && (phase === 'inbound' || phase === 'freeThrow');
+  const ownRestart = game.inOffense() &&
+    (phase === 'afterScore' || phase === 'inbound' || phase === 'freeThrow');
   // A pass remains our team's play. A shot or loose ball is a recovery situation;
   // a held defensive input must never queue a shot for the eventual rebounder.
   const offense = ownBall || ownPass || ownRestart;

@@ -6,6 +6,8 @@ export const COURT = Object.freeze({ width: 500, height: 940, W: 500, H: 940,
   laneWidth: 120, freeThrowLine: 190, playerRadius: 14 });
 export const POSSESSION_SHOT_GRACE = .5;
 export const OFF_BALL_SPEED_MULTIPLIER = 1.25;
+export const AFTER_SCORE_HOLD_SECONDS = 1;
+export const MADE_BASKET_INBOUND_SECONDS = 1.25;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const norm = (x, y) => { const n = Math.hypot(x, y) || 1; return { x: x / n, y: y / n }; };
@@ -26,14 +28,15 @@ export function isThreePoint(x, y, hoop) {
 export function shotQuality({ range = 100, contest = 0, shooting = 75, inside = 75,
   stamina = 1, timing = .65, value = 2, type = 'jumper' } = {}) {
   const accuracy = 1 - clamp(Math.abs(timing - .65) / .65, 0, 1);
-  let base = type === 'dunk' ? .87 + (inside - 75) * .003
+  const atRim = type === 'dunk' || type === 'alley-oop';
+  let base = atRim ? .87 + (inside - 75) * .003
     : range < 75 ? .72 + (inside - 75) * .004
       : value === 3 ? .36 + (shooting - 75) * .006
         : .49 + (shooting - 75) * .004;
   if (range > 265) base -= (range - 265) * .0022;
   if (range > 460) base *= .2;
   base += (accuracy - .75) * .35;
-  base -= clamp(contest, 0, 1) * (type === 'dunk' ? .2 : .31);
+  base -= clamp(contest, 0, 1) * (atRim ? .2 : .31);
   base -= (1 - clamp(stamina, 0, 1)) * .15;
   return clamp(base, range > 500 ? .004 : .025, .97);
 }
@@ -54,7 +57,7 @@ export class Match {
     this.shootGraceUntil = 0; this.controlled = null; this.teamFouls = [0, 0];
     this.timeouts = [3, 3]; this.offense = this.teams.map(t => OFFENSE_IDS.includes(t.offense) ? t.offense : 'motion');
     this.defense = this.teams.map(t => DEFENSE_IDS.includes(t.defense) ? t.defense : 'man');
-    this.events = []; this.lastEvent = null; this.shotFeedback = null; this.freeThrows = null; this.pendingSubs = [];
+    this.events = []; this.lastEvent = null; this.shotFeedback = null; this.freeThrows = null; this.pendingSubs = []; this.afterScore = null;
     this.winner = null; this.endPending = false; this.lastTouch = 0;
     this.backcourtTime = 0; this.frontcourt = false; this.lastPass = null;
     this.reboundWait = 0; this.screenUntil = 0; this._eventId = 0;
@@ -125,10 +128,58 @@ export class Match {
     return { range, contest: clamp(contest, 0, 1), quality, value, type };
   }
 
+  // Preview is pure: it shares the release planner but never consumes RNG or
+  // changes a receiver's assignment. Both styles travel to this fixed point.
+  throughPassInfo(p = this.carrier(), aim) {
+    const holder = this.carrier();
+    if (this.phase !== 'live' || !holder || !p || p.id !== holder.id || !holder.active
+      || this.ball.flight || holder.actionCooldown > 0) return null;
+    p = holder;
+    const ax = Number.isFinite(aim?.x) ? aim.x : 0, ay = Number.isFinite(aim?.y) ? aim.y : 0;
+    const magnitude = Math.hypot(ax, ay), direction = magnitude >= .2 ? norm(ax, ay) : null;
+    const hoop = this.hoop(p.team), towardHoop = norm(hoop.x - p.x, hoop.y - p.y);
+    const teammates = this.active(p.team).filter(t => t.id !== p.id);
+    if (!teammates.length) return null;
+    const lobIntent = magnitude >= .35 && direction.x * towardHoop.x + direction.y * towardHoop.y >= .7;
+    if (lobIntent && this._isFrontcourt(p, p.team) && distance(p, hoop) <= 280) {
+      const lobs = teammates.filter(t => distance(t, hoop) <= 90).map(t => {
+        const predicted = { x: t.x + t.vx * .2, y: t.y + t.vy * .2 };
+        let radial = norm(predicted.x - hoop.x, predicted.y - hoop.y);
+        if (!radial.x && !radial.y) radial = { x: 0, y: -this.attackDir(p.team) };
+        const radius = clamp(distance(predicted, hoop), 30, 52);
+        const end = { x: clamp(hoop.x + radial.x * radius, 22, 478), y: clamp(hoop.y + radial.y * radius, 25, 915) };
+        const range = distance(p, end), duration = clamp(.55 + range / 550, .62, 1.1);
+        const footSpeed = (92 + (t.ratings.speed - 50) * 1.14) * OFF_BALL_SPEED_MULTIPLIER * (.81 + t.stamina * .19);
+        return { type: 'lob', targetId: t.id, end, duration, range, arc: 105 + range * .12,
+          catchHeight: 42, catchRadius: 30, finishRange: 80,
+          reachable: distance(t, end) <= footSpeed * duration * .72 + 18,
+          grade: t.ratings.inside * .5 + this._nearestDefenderDistance(t) * .3 - distance(t, hoop) * .3 };
+      }).filter(plan => plan.reachable && plan.range >= 40).sort((a, b) => b.grade - a.grade);
+      if (lobs.length) {
+        const { grade, reachable, ...plan } = lobs[0];
+        return plan;
+      }
+    }
+    const plans = teammates.map(t => {
+      const initialDuration = clamp(distance(p, t) / 440 + .1, .28, 1.05);
+      const speed = Math.hypot(t.vx, t.vy), leadDirection = speed > 15 ? norm(t.vx, t.vy) : norm(hoop.x - t.x, hoop.y - t.y);
+      const leadDistance = speed > 15 ? clamp(speed * (initialDuration * .8 + .16), 24, 88) : 28;
+      const end = { x: clamp(t.x + leadDirection.x * leadDistance, 22, 478), y: clamp(t.y + leadDirection.y * leadDistance, 22, 918) };
+      const range = distance(p, end), duration = clamp(range / 440 + .1, .28, 1.1);
+      const lane = norm(end.x - p.x, end.y - p.y);
+      const grade = (direction ? (lane.x * direction.x + lane.y * direction.y) * 170 : (distance(p, hoop) - distance(end, hoop)) * .3)
+        + Math.min(110, this._nearestDefenderDistance({ ...end, team: p.team })) * .55 - range * .08 - (range < 60 ? 30 : 0);
+      return { type: 'bounce', targetId: t.id, end, duration, range, bounceAt: .6, catchHeight: 14, catchRadius: 36,
+        lead: { x: end.x - t.x, y: end.y - t.y }, grade };
+    }).sort((a, b) => b.grade - a.grade);
+    const { grade, ...plan } = plans[0];
+    return plan;
+  }
+
   action(name, payload = {}) {
     // Input captures this token on press. A release from an earlier possession
     // cannot become a shot, pass, or swipe in the new possession.
-    if (['shoot', 'steal', 'pass'].includes(name) && payload.possessionEpoch !== undefined
+    if (['shoot', 'steal', 'pass', 'through'].includes(name) && payload.possessionEpoch !== undefined
       && payload.possessionEpoch !== this.possessionEpoch) return false;
     if (name === 'continue') {
       if (this.phase === 'halftime') {
@@ -174,6 +225,7 @@ export class Match {
       return this._shoot(p, payload.timing ?? .65);
     }
     if (name === 'pass' && this.ball.owner === p.id) return this._pass(p, payload.targetId, payload.aim);
+    if (name === 'through' && this.ball.owner === p.id) return this._throughPass(p, payload.aim);
     if (name === 'steal') return this._steal(p);
     if (name === 'block') return this._block(p);
     if (name === 'screen' && p.team === this.possession) {
@@ -192,8 +244,10 @@ export class Match {
   }
   _prepareInbound(team, spot, delay = .75, shotClock = 30, resetShape = false) {
     this._flushSubs();
+    this.afterScore = null;
     this.phase = 'inbound'; this.phaseTime = delay; this._setPossession(team); this.shotClock = shotClock;
     this.ball.flight = null; this.ball.owner = null; this.ball.z = 0; this.ball.vx = this.ball.vy = this.ball.vz = 0;
+    this.ball.passTurnover = null;
     this.ball.x = clamp(spot.x, 20, 480); this.ball.y = clamp(spot.y, 25, 915);
     this.inbound = { team, spot: { x: this.ball.x, y: this.ball.y } };
     this.freeThrows = null; this.playTime = 0; this.backcourtTime = 0; this.frontcourt = false; this.lastPass = null;
@@ -211,6 +265,18 @@ export class Match {
     }
     this._controlledForPossession();
   }
+  _beginAfterScore({ team, value, shooter, type }) {
+    const nextTeam = 1 - team, hoop = this.hoop(team);
+    this.phase = 'afterScore'; this.phaseTime = AFTER_SCORE_HOLD_SECONDS;
+    this.afterScore = { scoringTeam: team, points: value, scorerId: shooter, nextTeam, shotType: type,
+      hoop: { ...hoop }, holdSeconds: AFTER_SCORE_HOLD_SECONDS, inboundSeconds: MADE_BASKET_INBOUND_SECONDS };
+    this.inbound = null; this.freeThrows = null;
+    this.ball.owner = null; this.ball.flight = null; this.ball.x = hoop.x; this.ball.y = hoop.y; this.ball.z = 0;
+    this.ball.vx = this.ball.vy = this.ball.vz = 0;
+    this._setPossession(nextTeam); this.shotClock = 30;
+    this.active().forEach(p => { p.vx = 0; p.vy = 0; });
+    this._controlledForPossession();
+  }
   _releaseInbound() {
     const t = this.inbound.team, candidates = this.active(t).sort((a, b) => a.slot - b.slot);
     const p = candidates[0]; if (!p) { this.winner = 1 - t; this.phase = 'finished'; return; }
@@ -222,6 +288,7 @@ export class Match {
   _giveBall(p, change = true) {
     const oldTeam = this.possession;
     this.ball.owner = p.id; this.ball.flight = null; this.ball.z = 0;
+    this.ball.passTurnover = null;
     this.ball.vx = this.ball.vy = this.ball.vz = 0; this.ball.x = p.x; this.ball.y = p.y;
     const changedTeam = this._setPossession(p.team);
     if (changedTeam) p.actionCooldown = 0;
@@ -270,30 +337,47 @@ export class Match {
     this._emit('pass', `${p.name.split(' ').at(-1)} finds ${target.name.split(' ').at(-1)}.`, { team: p.team, playerId: p.id });
     return true;
   }
+  _throughPass(p, aim) {
+    const plan = this.throughPassInfo(p, aim);
+    if (!plan) return false;
+    const target = this.player(plan.targetId);
+    this.ball.owner = null; this.ball.x = p.x; this.ball.y = p.y; this.ball.z = 18;
+    this.ball.flight = { ...plan, kind: 'pass', style: plan.type, from: p.id, target: target.id, team: p.team,
+      start: { x: p.x, y: p.y }, startZ: 18, endZ: plan.catchHeight, time: 0,
+      passing: p.ratings.passing, interceptedBy: [], bounced: false };
+    p.actionCooldown = .35; p.anim = 'pass'; p.animTime = .4;
+    this.lastPass = { from: p.id, to: target.id, team: p.team, time: this.elapsed };
+    this._emit('pass', plan.type === 'lob' ? `Up for ${target.name.split(' ').at(-1)}!` : `Lead bounce pass for ${target.name.split(' ').at(-1)}.`,
+      { team: p.team, playerId: p.id, targetId: target.id, style: plan.type });
+    return true;
+  }
   _nearestDefenderDistance(p) { return Math.min(250, ...this.active(1 - p.team).map(d => distance(d, p))); }
-  _shoot(p, timing = .65) {
+  _shoot(p, timing = .65, options = {}) {
     if (this.ball.owner !== p.id || p.actionCooldown > 0) return false;
     const info = this.shotInfo(p), hoop = this.hoop(p.team);
+    if (options.type === 'alley-oop') { info.type = 'alley-oop'; info.value = 2; }
     const t = clamp(Number(timing) || 0, 0, 1);
-    const quality = shotQuality({ ...info, ...p.ratings, stamina: p.stamina, timing: t });
+    const quality = shotQuality({ ...info, ...p.ratings, stamina: p.stamina, timing: t }) * (info.type === 'alley-oop' ? .92 : 1);
     const made = this.random() < quality;
     const defender = this.active(1 - p.team).sort((a, b) => distance(a, p) - distance(b, p))[0];
     const foul = defender && distance(defender, p) < 42 && this.random() < .055 + Math.max(0, 75 - defender.ratings.defense) * .0015;
     this._stat(p.team, p, 'fga'); if (info.value === 3) this._stat(p.team, p, 'threesAttempted');
     if (foul && !made) { this.stats[p.team].fga--; p.stats.fga--; if (info.value === 3) { this.stats[p.team].threesAttempted--; p.stats.threesAttempted--; } }
-    this.ball.owner = null; this.ball.x = p.x; this.ball.y = p.y; this.ball.z = 22;
-    const duration = clamp(.4 + info.range / 430, .5, 1.65);
+    const alley = info.type === 'alley-oop', startZ = alley ? Math.max(35, this.ball.z) : 22;
+    this.ball.owner = null; this.ball.x = p.x; this.ball.y = p.y; this.ball.z = startZ;
+    const duration = alley ? .4 : clamp(.4 + info.range / 430, .5, 1.65);
     const missAngle = this.random() * Math.PI * 2, missAmount = 13 + this.random() * 24;
     this.ball.flight = { kind: 'shot', team: p.team, shooter: p.id, start: { x: p.x, y: p.y }, end: hoop,
-      time: 0, duration, arc: info.type === 'dunk' ? 40 : 58 + info.range * .17,
+      time: 0, duration, startZ, endZ: 0, arc: alley ? 32 : info.type === 'dunk' ? 40 : 58 + info.range * .17,
       made, value: info.value, type: info.type, quality, timing: t, contest: info.contest,
       rim: info.range < 430 || this.random() < .6,
       miss: { x: Math.cos(missAngle) * missAmount, y: Math.sin(missAngle) * missAmount },
       foul: foul ? defender.id : null, blocked: false };
     p.actionCooldown = .8; p.anim = info.type; p.animTime = .65; p.jump = .45;
-    this.shotFeedback = { text: Math.abs(t - .65) < .09 ? 'GREAT RELEASE' : t < .48 ? 'EARLY' : t > .82 ? 'LATE' : 'GOOD RELEASE',
+    this.shotFeedback = { text: alley ? 'ALLEY-OOP' : Math.abs(t - .65) < .09 ? 'GREAT RELEASE' : t < .48 ? 'EARLY' : t > .82 ? 'LATE' : 'GOOD RELEASE',
       team: p.team, playerId: p.id, timing: t, quality, contest: info.contest, value: info.value, type: info.type, expires: this.elapsed + 2 };
-    this._emit('shot', `${p.name.split(' ').at(-1)} ${info.type === 'dunk' ? 'goes up strong!' : info.value === 3 ? 'for three…' : 'puts it up…'}`, { team: p.team, playerId: p.id });
+    this._emit('shot', `${p.name.split(' ').at(-1)} ${alley ? 'goes up for the alley-oop!' : info.type === 'dunk' ? 'goes up strong!' : info.value === 3 ? 'for three…' : 'puts it up…'}`,
+      { team: p.team, playerId: p.id, shotType: info.type });
     return true;
   }
   _steal(p) {
@@ -345,6 +429,7 @@ export class Match {
   }
   _startFreeThrows(p, count, oneAndOne = false) {
     this._flushSubs(p.id);
+    this.afterScore = null;
     this.phase = 'freeThrow'; this.phaseTime = .8;
     this.freeThrows = { team: p.team, shooter: p.id, remaining: count, total: count, taken: 0,
       made: 0, oneAndOne, awaiting: true };
@@ -389,7 +474,7 @@ export class Match {
     }
     this.freeThrows = null;
     if (this.endPending) { this._endPeriod(); return; }
-    if (f.made) this._prepareInbound(1 - f.team, this._backcourtSpot(1 - f.team), .9, 30, true);
+    if (f.made) this._beginAfterScore({ ...f, type: 'freeThrow' });
     else {
       this.phase = 'live'; this.shotClock = 20;
       this._looseBall(f.end.x + (this.random() - .5) * 32, f.end.y - this.attackDir(f.team) * 22,
@@ -431,6 +516,14 @@ export class Match {
       if (!p.active) p.stamina = Math.min(1, p.stamina + dt * .026);
     }
     if (this.shotFeedback && this.shotFeedback.expires < this.elapsed) this.shotFeedback = null;
+    if (this.phase === 'afterScore') {
+      this.phaseTime = Math.max(0, this.phaseTime - dt);
+      if (this.phaseTime <= 0) {
+        const nextTeam = this.afterScore.nextTeam;
+        this._prepareInbound(nextTeam, this._backcourtSpot(nextTeam), MADE_BASKET_INBOUND_SECONDS, 30, true);
+      }
+      return;
+    }
     if (this.phase === 'inbound') {
       this.phaseTime -= dt;
       if (this.phaseTime <= 0) this._releaseInbound();
@@ -474,7 +567,7 @@ export class Match {
     if (this.phase === 'live') this._stepBall(dt);
   }
   _endPeriod() {
-    this.ball.flight = null; this.ball.owner = null; this.ball.z = 0; this.endPending = false;
+    this.ball.flight = null; this.ball.owner = null; this.ball.z = 0; this.endPending = false; this.afterScore = null;
     if (this.period === 1) {
       this._flushSubs();
       this.phase = 'halftime'; this.clock = 0;
@@ -615,6 +708,9 @@ export class Match {
     const pass = this.ball.flight;
     if (pass?.kind === 'pass' && pass.target === p.id) {
       this._move(p, pass.end.x, pass.end.y, false, dt, true);
+      if (pass.style === 'lob' && pass.time / pass.duration > .75 && distance(p, pass.end) < 35) {
+        p.jump = Math.max(p.jump, .25); p.anim = 'catch'; p.animTime = .25;
+      }
       return;
     }
     if (this.ball.owner === null && !this.ball.flight) {
@@ -653,6 +749,8 @@ export class Match {
         const opponentScale = p.team !== this.human ? this.difficultyScale : 1;
         if (c && distance(p, c) < 34 && this.random() < (this.defense[p.team] === 'press' ? .24 : .12) * opponentScale) this._steal(p);
         else if (this.ball.flight?.kind === 'shot' && distance(p, this.ball) < 58 && this.random() < .45) this._block(p);
+        else if (this.ball.flight?.style === 'lob' && this.ball.flight.time / this.ball.flight.duration > .6
+          && distance(p, this.ball) < 65 && this.random() < .55) this._block(p);
       }
     }
   }
@@ -682,16 +780,23 @@ export class Match {
       this.ball.z = 3 + Math.abs(Math.sin(this.elapsed * 12)) * 12; return; }
     const f = this.ball.flight;
     if (f) {
+      const oldZ = this.ball.z;
       f.time += dt; const t = clamp(f.time / f.duration, 0, 1), old = { x: this.ball.x, y: this.ball.y };
       this.ball.x = lerp(f.start.x, f.end.x, t); this.ball.y = lerp(f.start.y, f.end.y, t);
-      this.ball.z = Math.sin(t * Math.PI) * (f.arc || 22) + (1 - t) * 15;
+      if (f.style === 'bounce') {
+        const split = f.bounceAt;
+        if (t < split) this.ball.z = 18 * (1 - (t / split) ** 2);
+        else { const u = (t - split) / (1 - split); this.ball.z = u * (30 - 16 * u); }
+        if (!f.bounced && t >= split) { f.bounced = true; if (t < 1) this.ball.z = 0; }
+      } else this.ball.z = Math.sin(t * Math.PI) * (f.arc || 22) + lerp(f.startZ ?? 15, f.endZ ?? 0, t);
       if (f.kind === 'pass') {
         if (t > .15) for (const p of this.active(1 - f.team)) {
           if (f.interceptedBy.includes(p.id)) continue;
           const vx = this.ball.x - old.x, vy = this.ball.y - old.y;
           const q = clamp(((p.x - old.x) * vx + (p.y - old.y) * vy) / (vx * vx + vy * vy || 1), 0, 1);
           const gap = Math.hypot(p.x - old.x - q * vx, p.y - old.y - q * vy);
-          if (gap < 17) {
+          const reach = f.style ? this._passReach(p) : Infinity;
+          if (gap < 17 && lerp(oldZ, this.ball.z, q) <= reach) {
             f.interceptedBy.push(p.id);
             if (this.random() < .18 + p.ratings.defense / 500) {
               this._stat(p.team, p, 'steals'); this._stat(f.team, this.player(f.from), 'turnovers'); this._giveBall(p);
@@ -699,15 +804,7 @@ export class Match {
             }
           }
         }
-        if (t >= 1) {
-          const receivers = this.active().filter(p => distance(p, this.ball) < 46).sort((a, b) => distance(a, this.ball) - distance(b, this.ball));
-          if (receivers.length) {
-            const receiver = receivers[0];
-            if (receiver.team !== f.team) { this._stat(receiver.team, receiver, 'steals'); this._stat(f.team, this.player(f.from), 'turnovers');
-              this._emit('steal', `${receiver.name.split(' ').at(-1)} takes away the pass.`, { team: receiver.team, playerId: receiver.id }); }
-            this._giveBall(receiver);
-          } else this._looseBall(this.ball.x, this.ball.y, (f.end.x - f.start.x) * .25, (f.end.y - f.start.y) * .25, 20, false, f.team, false);
-        }
+        if (t >= 1) this._receivePass(f);
       } else if (t >= 1) {
         this.ball.flight = null;
         if (f.kind === 'freeThrow') this._resolveFreeThrow(f);
@@ -722,6 +819,8 @@ export class Match {
     if (this.ball.z < 0) { this.ball.z = 0; this.ball.vz = Math.abs(this.ball.vz) > 30 ? -this.ball.vz * .48 : 0; }
     if (this.ball.x < 0 || this.ball.x > 500 || this.ball.y < 0 || this.ball.y > 940) {
       const team = this.lastTouch; this._emit('out', 'Out of bounds.', { team: 1 - team });
+      if (this.ball.passTurnover && this.ball.passTurnover.team !== 1 - team)
+        this._stat(this.ball.passTurnover.team, this.player(this.ball.passTurnover.from), 'turnovers');
       this._prepareInbound(1 - team, { x: clamp(this.ball.x, 25, 475), y: clamp(this.ball.y, 30, 910) }, .75,
         1 - team === this.possession ? this.shotClock : this._isFrontcourt(this.ball, 1 - team) ? 20 : 30, false); return;
     }
@@ -734,16 +833,63 @@ export class Match {
         if (isRebound) { this._stat(winner.team, winner, 'rebounds');
           this._emit('rebound', `${winner.name.split(' ').at(-1)} ${winner.team === shotTeam ? 'keeps it alive!' : 'secures the rebound.'}`, { team: winner.team, playerId: winner.id }); }
         const rim = this.ball.rim;
+        const failedPass = this.ball.passTurnover;
+        if (failedPass && winner.team !== failedPass.team) {
+          this._stat(failedPass.team, this.player(failedPass.from), 'turnovers');
+          this._stat(winner.team, winner, 'steals');
+          this._emit('steal', `${winner.name.split(' ').at(-1)} gathers the loose pass.`, { team: winner.team, playerId: winner.id });
+        }
         this._giveBall(winner);
         if (isRebound && winner.team === shotTeam && rim) this.shotClock = 20;
         this.ball.isRebound = false; this.ball.reboundTeam = null;
       }
     }
   }
+  _passReach(p) { return 31 + Math.max(0, (p.height || 76) - 72) * .5 + (p.jump > 0 ? 29 : 0); }
+  _receivePass(f) {
+    const radius = f.catchRadius || 46;
+    const receivers = this.active().filter(p => distance(p, this.ball) < radius
+      && (f.style !== 'lob' || p.id === f.target || this.ball.z <= this._passReach(p)))
+      .sort((a, b) => distance(a, this.ball) - distance(b, this.ball));
+    const receiver = receivers[0];
+    if (!receiver) { this._dropPass(f); return; }
+    if (receiver.team !== f.team) {
+      this._stat(receiver.team, receiver, 'steals'); this._stat(f.team, this.player(f.from), 'turnovers');
+      this._emit('steal', `${receiver.name.split(' ').at(-1)} takes away the pass.`, { team: receiver.team, playerId: receiver.id });
+      this._giveBall(receiver); return;
+    }
+    if (f.style) {
+      const gap = distance(receiver, this.ball), contest = this.shotInfo(receiver).contest;
+      const catchChance = f.style === 'lob'
+        ? clamp(.7 + (f.passing - 70) * .003 + (receiver.ratings.inside - 70) * .003
+          + (receiver.ratings.handle - 70) * .0015 + ((receiver.height || 76) - 76) * .002 - contest * .28 - gap * .002, .25, .97)
+        : clamp(.92 + (f.passing - 70) * .0015 + (receiver.ratings.handle - 70) * .001 - gap * .0015, .8, .995);
+      if (this.random() >= catchChance) {
+        this._emit('passMiss', f.style === 'lob' ? 'Could not gather the lob. Loose ball!' : 'The bounce skips through. Loose ball!', { team: f.team, playerId: receiver.id });
+        this._dropPass(f); return;
+      }
+    }
+    const height = this.ball.z;
+    this._giveBall(receiver);
+    if (f.style === 'lob' && receiver.id === f.target && distance(receiver, this.hoop(receiver.team)) <= f.finishRange
+      && (this.practice || this.clock > 0) && this.shotClock > 0) {
+      // The catch occurred within reach; only now does an actual two-point
+      // attempt begin. A lob in flight can never itself count as a shot.
+      receiver.actionCooldown = 0; this.ball.z = height;
+      this._shoot(receiver, .65, { type: 'alley-oop' });
+    }
+  }
+  _dropPass(f) {
+    const height = this.ball.z;
+    this._looseBall(this.ball.x, this.ball.y, (f.end.x - f.start.x) * .25, (f.end.y - f.start.y) * .25,
+      f.style === 'lob' ? -25 : 20, false, f.team, false);
+    if (f.style) { this.ball.z = height; this.ball.passTurnover = { from: f.from, team: f.team }; }
+  }
   _looseBall(x, y, vx, vy, vz, rim = false, shotTeam = this.possession, isRebound = true) {
     this.ball.owner = null; this.ball.flight = null; this.ball.x = x; this.ball.y = y; this.ball.z = 32;
     this.ball.vx = vx; this.ball.vy = vy; this.ball.vz = vz; this.ball.rim = rim;
     this.ball.isRebound = isRebound; this.ball.reboundTeam = shotTeam; this.reboundWait = .12;
+    this.ball.passTurnover = null;
     if (rim) this.shotClock = 20;
   }
   _resolveShot(f) {
@@ -753,11 +899,11 @@ export class Match {
       if (f.value === 3) this._stat(f.team, p, 'threesMade');
       if (this.lastPass && this.lastPass.team === f.team && this.lastPass.to === p.id && this.elapsed - this.lastPass.time < 4)
         this._stat(f.team, this.player(this.lastPass.from), 'assists');
-      this._emit('score', f.type === 'dunk' ? 'THROW IT DOWN!' : f.value === 3 ? 'THREE! Nothing but net.' : 'Bucket!',
+      this._emit('score', f.type === 'alley-oop' ? 'ALLEY-OOP!' : f.type === 'dunk' ? 'THROW IT DOWN!' : f.value === 3 ? 'THREE! Nothing but net.' : 'Bucket!',
         { team: f.team, playerId: p.id, points: f.value, shotType: f.type });
       if (defender) { this._foul(defender, p, { shooting: true, shots: 1, scored: true }); return; }
       if (this.endPending) { this._endPeriod(); return; }
-      this._prepareInbound(1 - f.team, this._backcourtSpot(1 - f.team), .85, 30, true);
+      this._beginAfterScore(f);
     } else {
       this._emit('miss', f.rim ? 'Off the iron. Get the rebound!' : 'Airball. The clock keeps running.', { team: f.team, playerId: p.id });
       if (defender) { this._foul(defender, p, { shooting: true, shots: f.value }); return; }
@@ -778,6 +924,7 @@ export class Match {
       human: this.human, teamFouls: [...this.teamFouls],
       timeouts: [...this.timeouts], offense: [...this.offense], defense: [...this.defense],
       freeThrows: this.freeThrows ? { ...this.freeThrows } : null, shotFeedback: this.shotFeedback ? { ...this.shotFeedback } : null,
+      afterScore: this.afterScore ? { ...this.afterScore, hoop: { ...this.afterScore.hoop } } : null,
       lastEvent: this.lastEvent ? { ...this.lastEvent } : null, playTime: this.playTime, elapsed: this.elapsed,
       winner: this.winner, practice: this.practice, attackDirs: [this.attackDir(0), this.attackDir(1)],
       halfSeconds: this.halfSeconds, endPending: this.endPending,

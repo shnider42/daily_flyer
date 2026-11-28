@@ -35,7 +35,7 @@ function setup({ defense = false } = {}) {
   const game = new Match({ home: getTeam('uconn'), away: getTeam('duke'), human: 0, seed: 7 });
   game._releaseInbound();
   game.elapsed = 5;
-  const nodes = Object.fromEntries(['stick','knob','shoot','pass','sprint','steal','block','switcher','screen']
+  const nodes = Object.fromEntries(['stick','knob','shoot','pass','sprint','steal','block','switcher','through','screen']
     .map(name => [name, new InputSurface()]));
   for (const p of game.players) p.aiTimer = 100;
   if (defense) {
@@ -54,7 +54,7 @@ function setup({ defense = false } = {}) {
     onAction(name, payload) {
       const result = game.action(name, payload);
       actions.push({ name, payload, result });
-      if (result && ['shoot', 'pass', 'switch'].includes(name)) controls.cancelShot();
+      if (result && ['shoot', 'pass', 'through', 'switch'].includes(name)) controls.cancelShot();
       controls.syncContext();
     },
   });
@@ -189,4 +189,54 @@ test('a live-shot hold cannot leak into free throws; a ready free throw accepts 
   assert.equal(controlContext(game).offense, true);
   assert.equal(controlContext(game).canShoot, false);
   controls.destroy();
+});
+
+test('afterScore keeps the incoming team on offense without queuing a shot or pass', () => {
+  const { game, controls, down, up, through, pass, actions } = setup();
+  game.phase = 'afterScore'; game.phaseTime = 1;
+  game.ball.owner = null; game.ball.flight = null;
+  game.possession = 1;
+  assert.equal(controlContext(game).offense, false, 'the scoring team is preparing to defend');
+  game.possession = 0;
+  assert.equal(controlContext(game).offense, true, 'the incoming team retains offensive labels');
+  assert.equal(controlContext(game).canShoot, false);
+  const afterScoreToken = controlContext(game).token;
+
+  down('w'); down('Shift'); down(' ');
+  through.emit('pointerdown', { pointerId: 51 });
+  pass.emit('pointerdown', { pointerId: 52 });
+  assert.equal(controls.charging, false);
+  assert.deepEqual(actions.map(a => [a.name, a.result]), [['through', false], ['pass', false]]);
+
+  game._prepareInbound(0, { x: 250, y: 400 }, .1, 30, false);
+  assert.notEqual(controlContext(game).token, afterScoreToken);
+  controls.read();
+  game._releaseInbound();
+  game.elapsed = Math.max(game.elapsed, game.shootGraceUntil + .01);
+  controls.syncContext(); up(' ');
+  assert.equal(game.ball.flight, null);
+  assert.equal(game.stats[0].fga, 0, 'a held restart input cannot fire when play resumes');
+  assert.equal(actions.length, 2, 'discarded actions are not replayed');
+  assert.equal(controls.read().y, -1);
+  assert.equal(controls.read().sprint, true);
+  down(' '); up(' ');
+  assert.equal(game.stats[0].fga, 1, 'a fresh live press can shoot');
+  controls.destroy();
+});
+
+test('own bounce and lob passes keep offensive labels but cannot queue a shot before the catch', () => {
+  for (const style of ['bounce', 'lob']) {
+    const { game, controls, pass, down, up } = setup();
+    pass.emit('pointerdown', { pointerId: 61 });
+    assert.equal(game.ball.flight?.kind, 'pass');
+    game.ball.flight.style = style;
+    assert.equal(controlContext(game).offense, true, `${style} flight retains our offensive context`);
+    assert.equal(controlContext(game).canShoot, false);
+    down(' ');
+    game._giveBall(game.player(1));
+    controls.syncContext(); up(' ');
+    assert.equal(game.stats[0].fga, 0, `${style} catch cannot execute a pre-catch press`);
+    assert.equal(game.ball.flight, null);
+    controls.destroy();
+  }
 });

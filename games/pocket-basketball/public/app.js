@@ -1,9 +1,9 @@
 import {TEAMS, getTeam, OFFENSE, DEFENSE} from './teams.js';
-import {Match} from './engine.js';
-import {CourtView} from './view.js';
-import {Controls} from './input.js';
-import {controlContext} from './control-context.js';
-import {TOUCH_SLOTS, normalizeTouchLayout, assignTouchAction, touchButtonFor} from './touch-layout.js';
+import {Match} from './engine.js?v=5';
+import {CourtView} from './view.js?v=5';
+import {Controls} from './input.js?v=5';
+import {controlContext} from './control-context.js?v=5';
+import {TOUCH_SLOTS, normalizeTouchLayout, assignTouchAction, touchButtonFor} from './touch-layout.js?v=5';
 import {HoopsAudio} from './audio.js';
 import {LocalStore, createCup, advanceCup, cupMatch, validCup, roundName} from './season.js';
 import {FixedClock} from './vendor/math.js';
@@ -16,7 +16,7 @@ const lastName = name => name.split(' ').at(-1);
 let browserStorage; try { browserStorage = localStorage; } catch { browserStorage = null; }
 const store = new LocalStore(browserStorage);
 const saved = store.read('settings', {});
-const settings = {home: 'boston-college', away: 'duke', difficulty: 'varsity', guidance: 'simple', halfSeconds: 180, camera: 'full', controlSize: 1, leftHanded: false, showNames: true, sound: false, ...((saved && typeof saved === 'object') ? saved : {})};
+const settings = {home: 'boston-college', away: 'duke', difficulty: 'varsity', guidance: 'simple', halfSeconds: 180, camera: 'full', controlSize: 1, controlOpacity: .45, leftHanded: false, showNames: true, sound: false, ...((saved && typeof saved === 'object') ? saved : {})};
 if (!TEAMS.some(t => t.id === settings.home)) settings.home = 'boston-college';
 if (!TEAMS.some(t => t.id === settings.away) || settings.home === settings.away) settings.away = settings.home === 'duke' ? 'uconn' : 'duke';
 if (!['freshman','varsity','all-american'].includes(settings.difficulty)) settings.difficulty = 'varsity';
@@ -24,11 +24,12 @@ if (!['simple','moderate','expert'].includes(settings.guidance)) settings.guidan
 if (![90,180,360,1200].includes(Number(settings.halfSeconds))) settings.halfSeconds = 180;
 if (!['full','follow'].includes(settings.camera)) settings.camera = 'full';
 settings.controlSize = Math.max(.8, Math.min(1.25, Number(settings.controlSize) || 1));
+settings.controlOpacity = Math.max(.1, Math.min(1, Number(settings.controlOpacity) || .45));
 settings.touchLayout = normalizeTouchLayout(settings.touchLayout);
 const touchActions = {
   pass: {name:'Pass / Switch', label:'pass, J'},
   shoot: {name:'Shoot / Steal', label:'shoot, hold and release Space'},
-  screen: {name:'Screen / Block', label:'call a screen, L'},
+  through: {name:'Thru pass / Block', label:'leading bounce pass or alley-oop, L'},
   sprint: {name:'Sprint', label:'sprint, hold Shift or K'}
 };
 const touchLetter = action => touchButtonFor(settings.touchLayout, action);
@@ -68,9 +69,12 @@ function showDialog(dialog) {
 function closeDialog(dialog) { if (dialog.open) dialog.close(); syncPause(); }
 function applySettings() {
   document.documentElement.style.setProperty('--control-scale', settings.controlSize);
+  document.documentElement.style.setProperty('--touch-opacity', settings.controlOpacity);
   document.body.classList.toggle('left-handed', settings.leftHanded);
   $('guidance').value = settings.guidance; $('pauseGuidance').value = settings.guidance;
   $('cameraSetting').value = settings.camera; $('controlSize').value = settings.controlSize;
+  $('controlOpacity').value = settings.controlOpacity;
+  $('controlOpacityValue').textContent = `${Math.round(settings.controlOpacity * 100)}%`;
   $('leftHanded').checked = !!settings.leftHanded; $('namesSetting').checked = !!settings.showNames;
   $('soundSetting').checked = !!settings.sound; $('soundToggle').setAttribute('aria-pressed', String(!!settings.sound));
   $('soundToggle').textContent = settings.sound ? 'Sound on' : 'Sound off';
@@ -89,7 +93,7 @@ function applyTouchLayout() {
     group.append(button);
     $(`touch${slot}`).value = action;
   }
-  $('touchMappingHelp').textContent = `${touchLetter('pass')} passes on offense and switches to the nearest player on defense. ${touchLetter('shoot')} shoots on offense and steals on defense. ${touchLetter('screen')} calls a screen on offense and blocks on defense. Hold ${touchLetter('sprint')} to sprint.`;
+  $('touchMappingHelp').textContent = `${touchLetter('pass')} passes on offense and switches to the nearest player on defense. ${touchLetter('shoot')} shoots on offense and steals on defense. ${touchLetter('through')} sends a leading bounce pass, or sets up an alley-oop when aimed toward the rim with a teammate in range; on defense it blocks. Hold ${touchLetter('sprint')} to sprint.`;
   updateTargets();
 }
 function saveTouchSettings(message) {
@@ -145,15 +149,15 @@ function selectPlay(id) {
 function closePlaybook() { $('playbook').classList.remove('open'); syncPause(); }
 function openPlaybook() { $('playbook').classList.add('open'); syncPause(); }
 
-const controls = new Controls({stick:$('joystick'),knob:$('stickKnob'),shoot:$('shootButton'),pass:$('passButton'),sprint:$('sprintButton'),screen:$('screenButton'),active:isActive,context:()=>controlContext(game),
+const controls = new Controls({stick:$('joystick'),knob:$('stickKnob'),shoot:$('shootButton'),pass:$('passButton'),sprint:$('sprintButton'),through:$('throughButton'),active:isActive,context:()=>controlContext(game),
   onPause:togglePause,
   onAction(name, payload = {}) {
     if (!isActive()) return;
     if (name === 'play') { selectPlay(OFFENSE[payload.index]?.id); return; }
-    if (name === 'pass') payload.aim = view.screenDirection(controls.read());
+    if (name === 'pass' || name === 'through') payload.aim = view.screenDirection(controls.read());
     if (name === 'timeout') { callTimeout(); return; }
     const succeeded = game.action(name, payload);
-    if (succeeded && (name === 'shoot' || name === 'pass' || name === 'switch')) controls.cancelShot();
+    if (succeeded && ['shoot','pass','through','switch'].includes(name)) controls.cancelShot();
     if (name === 'shoot' && !succeeded && game.phase === 'freeThrow' && game.phaseTime > 0) announce('Set at the line. Take your shot.', 1.5);
     controls.syncContext(); consumeEvents(); updateUI();
   }
@@ -294,11 +298,14 @@ function updateTargets() {
   $('shootAction').textContent = offense ? shotGuard ? 'SETTLE' : settingFreeThrow ? 'GET SET' : 'SHOOT' : 'STEAL';
   $('shootKey').textContent = offense ? 'HOLD SPACE' : 'TAP SPACE';
   $('passAction').textContent = offense ? 'PASS' : 'SWITCH';
-  $('screenAction').textContent = offense ? 'SCREEN' : 'BLOCK';
-  $('screenKey').textContent = offense ? 'L' : 'L / R';
+  const throughInfo = offense && game.phase === 'live' && game.ball.owner === game.controlled
+    ? game.throughPassInfo(game.controlledPlayer(), view.screenDirection(controls.read())) : null;
+  const canLob = throughInfo?.type === 'lob';
+  $('throughAction').textContent = offense ? canLob ? 'LOB' : 'THRU' : 'BLOCK';
+  $('throughKey').textContent = offense ? 'L' : 'L / R';
   $('shootButton').setAttribute('aria-label', `${touchLetter('shoot')}: ${offense ? shotGuard ? 'settle possession, then press again to shoot' : settingFreeThrow ? 'get set for the free throw' : 'shoot, hold and release Space' : 'steal, tap Space'}`);
   $('passButton').setAttribute('aria-label', `${touchLetter('pass')}: ${offense ? 'pass, J' : 'switch to player closest to ball, J or Q'}`);
-  $('screenButton').setAttribute('aria-label', `${touchLetter('screen')}: ${offense ? 'call a screen, L' : 'block, L or R'}`);
+  $('throughButton').setAttribute('aria-label', `${touchLetter('through')}: ${offense ? canLob ? 'alley-oop setup, L' : 'leading bounce pass, L' : 'block, L or R'}`);
   $('primaryKeyLabel').textContent = offense ? 'SHOOT' : 'STEAL';
   $('primaryKeyValue').textContent = offense ? 'HOLD SPACE' : 'TAP SPACE';
   $('primaryKeyHint').textContent = offense ? 'release in green' : 'R to block a shot';
@@ -317,7 +324,7 @@ function updateUI() {
   const dir = game.attackDir(0), world = view.screenDirection({x:1,y:0});
   const toward = Math.abs(world.y)>.5 ? (dir*world.y>0?'RIGHT':'LEFT') : (dir<0?'UP':'DOWN');
   $('possession').textContent = game.inOffense() ? `ATTACK ${toward}` : 'ON DEFENSE';
-  $('situation').textContent = replay ? 'INSTANT REPLAY' : game.phase==='freeThrow' ? `${game.freeThrows?.team===0?'YOUR':'OPPONENT'} FREE THROW` : game.phase==='inbound' ? `${game.teams[game.possession].short} INBOUND` : game.ball.flight?.kind==='shot' ? 'SHOT IN THE AIR' : game.ball.owner===null ? 'LOOSE BALL' : game.inOffense() ? 'YOUR POSSESSION' : 'GET A STOP';
+  $('situation').textContent = replay ? 'INSTANT REPLAY' : game.phase==='afterScore' ? 'BASKET · RESETTING' : game.phase==='freeThrow' ? `${game.freeThrows?.team===0?'YOUR':'OPPONENT'} FREE THROW` : game.phase==='inbound' ? `${game.teams[game.possession].short} INBOUND` : game.ball.flight?.kind==='shot' ? 'SHOT IN THE AIR' : game.ball.flight?.style==='lob' ? 'ALLEY-OOP SETUP' : game.ball.flight?.style==='bounce' ? 'LEADING BOUNCE PASS' : game.ball.flight?.kind==='pass' ? 'PASS IN FLIGHT' : game.ball.owner===null ? 'LOOSE BALL' : game.inOffense() ? 'YOUR POSSESSION' : 'GET A STOP';
   const play = OFFENSE.find(p=>p.id===game.offense[0]) || OFFENSE[0];
   $('playName').textContent = play.name.toUpperCase(); $('playHint').textContent = play.hint;
   document.querySelectorAll('[data-play]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.play===game.offense[0])));
@@ -332,11 +339,14 @@ function updateUI() {
   $('callTimeout').innerHTML = `Timeout (${game.timeouts[0]}) <kbd>T</kbd>`;
   let coach = '';
   if (settings.guidance!=='expert') {
-    if (game.phase==='freeThrow') coach=game.freeThrows?.team===0?game.phaseTime>0?`Get set at the line. Wait for ${touchLetter('shoot')} to show SHOOT.`:`At the line: hold ${touchLetter('shoot')} / Space, then release in green.`:'Get ready to rebound a missed final free throw.';
-    else if (!controlContext(game).offense) coach=`${touchLetter('pass')} / J switches nearest. ${touchLetter('shoot')} / Space steals. ${touchLetter('screen')} / R blocks.`;
+    if (game.phase==='afterScore') coach=`${game.teams[game.possession].short} ball next. Resetting for the inbound.`;
+    else if (game.phase==='inbound') coach=`${game.teams[game.possession].short} inbound. Get set for the next possession.`;
+    else if (game.phase==='freeThrow') coach=game.freeThrows?.team===0?game.phaseTime>0?`Get set at the line. Wait for ${touchLetter('shoot')} to show SHOOT.`:`At the line: hold ${touchLetter('shoot')} / Space, then release in green.`:'Get ready to rebound a missed final free throw.';
+    else if (!controlContext(game).offense) coach=`${touchLetter('pass')} / J switches nearest. ${touchLetter('shoot')} / Space steals. ${touchLetter('through')} / R blocks.`;
     else if (controlContext(game).shotGuard) coach=`Ball won. Move or pass now; release ${touchLetter('shoot')}, then press again after a moment.`;
     else if (game.shotClock<7) coach='Shot clock is low. Get a shot up before the horn.';
-    else if (settings.guidance==='simple') coach=`Hold ${touchLetter('shoot')} / Space, release in green. ${touchLetter('pass')} / J passes; ${touchLetter('screen')} calls a screen.`;
+    else if (game.ball.flight?.style==='lob') coach='Lob is up. Your teammate attacks the rim for the finish.';
+    else if (settings.guidance==='simple') coach=`Hold ${touchLetter('shoot')} to shoot. ${touchLetter('pass')} passes; aim + ${touchLetter('through')} leads a teammate.`;
     else coach=play.hint;
   }
   $('coachLine').textContent = coach || `${game.teams[0].arena} · ${matchMode==='cup'?roundName(cup?.round||0):'Pocket College Hoops'}`;
@@ -353,6 +363,7 @@ for(const id of ['guidance','pauseGuidance']) $(id).addEventListener('change',()
 $('cameraSetting').addEventListener('change',()=>{settings.camera=$('cameraSetting').value;applySettings();persist();});
 $('viewToggle').addEventListener('click',()=>{settings.camera=settings.camera==='full'?'follow':'full';applySettings();persist();});
 $('controlSize').addEventListener('input',()=>{settings.controlSize=Number($('controlSize').value);applySettings();saveTouchSettings('Control size updated.');});
+$('controlOpacity').addEventListener('input',()=>{settings.controlOpacity=Number($('controlOpacity').value);applySettings();saveTouchSettings('Control opacity updated.');});
 $('leftHanded').addEventListener('change',()=>{settings.leftHanded=$('leftHanded').checked;applySettings();saveTouchSettings('Handedness updated.');});
 for (const slot of TOUCH_SLOTS) $(`touch${slot}`).addEventListener('change',()=>{
   controls.clear();

@@ -10,7 +10,7 @@ Keep the same keyboard key and touch surface in the same place as possession cha
 | --- | --- | --- | --- |
 | **A · bottom** | Pass / select | Pass to a teammate | Select the nearest eligible teammate to the ball |
 | **X · left** | Sprint / burst | Sprint or burst | Sprint or burst |
-| **Y · top** | Secondary team / defensive action | Basketball screen, or a sport-specific secondary action | Basketball block, or a sport-specific secondary action |
+| **Y · top** | Secondary team / defensive action | Basketball through pass, or a sport-specific secondary action | Basketball block, or a sport-specific secondary action |
 | **B · right** | Primary attack / pressure | Shoot, or the sport's main attacking action | Steal, check, or the sport's main defensive pressure action |
 
 Movement stays on the left stick. Portrait, landscape, and left-handed layouts may relocate the whole action cluster, but must preserve the diamond's internal positions. Do not mirror X and B or rearrange the letters when possession changes.
@@ -21,11 +21,13 @@ Keep label changes immediate and understandable. With the defaults, A remains A 
 
 ## Touch customization
 
-Keep touch preferences together in a **Touch controls** dialog. In Pocket College Hoops, it is available from **Touch controls** in the lobby, **Pause > Touch controls**, and **Controls & rules > Customize touch controls**. The same dialog contains **Controls size**, **Left-handed layout**, and the action assignments.
+Keep touch preferences together in a **Touch controls** dialog. In Pocket College Hoops, it is available from **Touch controls** in the lobby, **Pause > Touch controls**, and **Controls & rules > Customize touch controls**. The same dialog contains **Controls size**, **Control opacity**, **Left-handed layout**, and the action assignments. Control opacity defaults to **45%**, adjustable from **10% to 100%**. It changes button and joystick fills and outlines; face letters and action text retain their contrast.
 
-The letters retain their fixed Xbox positions; the player assigns the action pairs to those positions. Move each possession-sensitive pair together: PASS/SWITCH, SHOOT/STEAL, SCREEN/BLOCK, and SPRINT. Choosing an action already assigned elsewhere swaps the two assignments, keeping all four pairs reachable exactly once.
+The letters retain their fixed Xbox positions; the player assigns the action pairs to those positions. Move each possession-sensitive pair together: PASS/SWITCH, SHOOT/STEAL, THRU PASS/BLOCK, and SPRINT. Choosing an action already assigned elsewhere swaps the two assignments, keeping all four pairs reachable exactly once.
 
-Save preferences automatically in the same browser and restore them on the next visit. **Reset button mapping** resets only the four action assignments to **A = PASS/SWITCH, B = SHOOT/STEAL, Y = SCREEN/BLOCK, X = SPRINT**; controls size and handedness retain their saved values. These are the defaults for basketball and future games or control revisions adopting this standard. Touch customization does not remap keyboard shortcuts or the diamond's letter positions.
+Save preferences automatically in the same browser and restore them on the next visit. **Reset button mapping** resets only the four action assignments to **A = PASS/SWITCH, B = SHOOT/STEAL, Y = THRU PASS/BLOCK, X = SPRINT**; controls size, opacity, and handedness retain their saved values. These are the defaults for basketball and future games or control revisions adopting this standard. Touch customization does not remap keyboard shortcuts or the diamond's letter positions.
+
+For existing Pocket College Hoops preferences, migrate a saved SCREEN/BLOCK assignment to THRU PASS/BLOCK in the **same physical slot**. Preserve the rest of the player's valid custom layout.
 
 Update visible actions, accessible names, and touch help to match the saved assignments. After a swap, each pair still follows possession on its newly assigned button. Changing an assignment while paused must not carry a held or queued action back into play.
 
@@ -56,10 +58,14 @@ The guard suppresses accidental shooting, not movement or a deliberate pass. Cle
 | --- | --- | --- | --- |
 | **A · bottom** | PASS | SWITCH: select nearest eligible teammate to the ball | `J` |
 | **X · left** | SPRINT | SPRINT | Hold `Shift` or `K` |
-| **Y · top** | SCREEN | BLOCK | `L` for screen/block; `R` also blocks |
+| **Y · top** | THRU PASS: lead a teammate with a bounce pass; an eligible near-rim opportunity becomes an alley-oop | BLOCK | `L` for through pass/block; `R` also blocks |
 | **B · right** | SHOOT: hold and release; also used for free throws | STEAL: one attempt on press, never a shot charge | `Space` |
 
 `E` remains a legacy steal shortcut; `Q` and `Tab` remain switch aliases. Blocking defaults to Y, separate from the B SHOOT/STEAL surface; customization preserves that separation. Direct teammate passing and receiver buttons remain available on offense. Keyboard shortcuts retain their actions regardless of the touch assignments.
+
+Steer toward the intended runner before pressing THRU PASS. An alley-oop requires a suitable teammate near the rim and an attack aimed toward the basket from close enough range. The button changes from **THRU** to **LOB** when the current aim and positions allow that pass. The lob is a pass until the teammate reaches it; it must not count as a shot or score merely because it travels toward the hoop. Call **High pick & roll** in the playbook to bring a screener up; Y no longer calls the screen directly.
+
+Give a made basket a readable beat before restarting the next possession. Pocket College Hoops holds the scoring scene for **1.0 second**, followed by a **1.25-second** assisted inbound. This also follows a made final free throw. Pause both clocks during that reset and inbound. Preserve steering and sprint holds, but do not accept or queue a shot during the reset. A made basket with an additional free throw keeps the free-throw sequence; a basket that ends the period proceeds to the period break.
 
 The face-button letters describe the **on-screen touch layout**. Pocket College Hoops supports keyboard and touch input; the diamond alone does not add physical gamepad support. Only advertise connected-controller support after that input path is implemented and verified.
 
@@ -77,7 +83,10 @@ When implementing or revising a controller, verify these behaviors in the actual
 - Change ballhandler, pause, or lose focus during a charge: the old release cannot shoot.
 - Hold movement with one finger and use an action with another: both retain independent ownership.
 - Swap two touch assignments: all four action pairs remain available, and their labels and accessible names follow the new positions.
-- Reload in the same browser: custom preferences return. Use Reset button mapping: B returns to SHOOT/STEAL and X to SPRINT, with A PASS/SWITCH and Y SCREEN/BLOCK; controls size and handedness stay as chosen.
+- Reload in the same browser: custom preferences return. Use Reset button mapping: B returns to SHOOT/STEAL and X to SPRINT, with A PASS/SWITCH and Y THRU PASS/BLOCK; controls size, opacity, and handedness stay as chosen.
+- Load an older saved SCREEN/BLOCK assignment: THRU PASS/BLOCK takes its existing slot without rearranging the other actions.
+- Use THRU PASS with a teammate running ahead: a pass leads that player. An alley-oop needs a real catch and finish; a missed lob or a horn before the catch must not register an automatic shot or basket.
+- After a made basket, score once and pause both clocks through the reset and inbound. Preserve the additional free throw on an and-one and end the period correctly on a buzzer-beating finish.
 - Confirm touch customization leaves keyboard actions unchanged, the internal Y/X/B/A diamond stays fixed, and portrait/landscape preserve screen-relative movement. Check physical-controller equivalents only in games that implement them.
 
 Adopt the standard deliberately in each game and verify its existing controls when doing so. Documentation alone does not retrofit another game's controller.
